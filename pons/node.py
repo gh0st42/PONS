@@ -48,7 +48,7 @@ class Message(object):
     """A message.
     """
 
-    def __init__(self, msgid: str, src: int, dst: int, size: int, created, hops=0, ttl=3600*24, content={}, metadata={}):
+    def __init__(self, msgid: str, src: int, dst: int, size: int, created, hops=0, ttl=3600, content={}, metadata={}):
         self.id = msgid
         self.src = src
         self.dst = dst
@@ -63,7 +63,8 @@ class Message(object):
         return "Message(%s, %d, %d, %d)" % (self.id, self.src, self.dst, self.size)
 
     def is_expired(self, now):
-        return self.created + self.ttl > now
+        # print("is_expired: %d + %d > %d" % (self.created, self.ttl, now))
+        return now - self.created > self.ttl
 
 
 class Node(object):

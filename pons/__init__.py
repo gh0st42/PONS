@@ -32,10 +32,17 @@ def message_event_generator(netsim, msggenconfig):
                 msggenconfig["size"][0], msggenconfig["size"][1])
         else:
             size = msggenconfig["size"]
+        if "ttl" not in msggenconfig:
+            ttl = 3600
+        elif isinstance(msggenconfig["ttl"], tuple):
+            ttl = random.randint(
+                msggenconfig["ttl"][0], msggenconfig["ttl"][1])
+        else:
+            ttl = msggenconfig["ttl"]
         msgid = "%s%d" % (msggenconfig["id"], counter)
         msg = Message(msgid, src,
                       dst, size,
-                      env.now)
+                      env.now, ttl=ttl)
         netsim.nodes[src].router.add(msg)
 
 
@@ -62,9 +69,16 @@ def message_burst_generator(netsim, msggenconfig):
                     msggenconfig["size"][0], msggenconfig["size"][1])
             else:
                 size = msggenconfig["size"]
+            if "ttl" not in msggenconfig:
+                ttl = 3600
+            elif isinstance(msggenconfig["ttl"], tuple):
+                ttl = random.randint(
+                    msggenconfig["ttl"][0], msggenconfig["ttl"][1])
+            else:
+                ttl = msggenconfig["ttl"]
             msgid = "%s%d" % (msggenconfig["id"], counter)
             msg = Message(msgid, src,
                           dst, size,
-                          env.now)
+                          env.now, ttl=ttl)
             # print("create message %s (%d->%d)" % (msgid, src, dst))
             netsim.nodes[src].router.add(msg)
