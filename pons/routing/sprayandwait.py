@@ -19,8 +19,8 @@ class SprayAndWaitRouter(Router):
     def add(self, msg):
         # print("adding new msg to store")
         msg.metadata['copies'] = self.copies
-        self.store.append(msg)
-        self.forward(msg)
+        if self.store_add(msg):
+            self.forward(msg)
 
     def forward(self, msg):
         if msg.dst in self.peers and not self.msg_already_spread(msg, msg.dst):
@@ -30,7 +30,7 @@ class SprayAndWaitRouter(Router):
             self.netsim.nodes[self.my_id].send(self.netsim, msg.dst, msg)
             # )
             self.remember(msg.dst, msg)
-            self.store.remove(msg)
+            self.store_del(msg)
         elif msg.metadata['copies'] > 1:
             # self.log("broadcasting to peers ", self.peers)
             for peer in self.peers:
@@ -64,7 +64,7 @@ class SprayAndWaitRouter(Router):
         if not self.is_msg_known(msg):
             self.remember(remote_id, msg)
             msg.hops += 1
-            self.store.append(msg)
+            self.store_add(msg)
             if msg.dst == self.my_id:
                 # print("msg arrived", self.my_id)
                 self.netsim.routing_stats['delivered'] += 1

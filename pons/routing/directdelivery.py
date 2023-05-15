@@ -2,17 +2,16 @@ from .router import Router
 
 
 class DirectDeliveryRouter(Router):
-    def __init__(self, scan_interval=2.0):
-        super(DirectDeliveryRouter, self).__init__(scan_interval)
-        self.store = []
+    def __init__(self, scan_interval=2.0, capacity=0):
+        super(DirectDeliveryRouter, self).__init__(scan_interval, capacity)
 
     def __str__(self):
         return "DirectDeliveryRouter"
 
     def add(self, msg):
         # print("adding new msg to store")
-        self.store.append(msg)
-        self.forward(msg)
+        if self.store_add(msg):
+            self.forward(msg)
 
     def forward(self, msg):
         if msg.dst in self.peers and not self.msg_already_spread(msg, msg.dst):
@@ -22,7 +21,7 @@ class DirectDeliveryRouter(Router):
             self.netsim.nodes[self.my_id].send(self.netsim, msg.dst, msg)
             # )
             self.remember(msg.dst, msg)
-            self.store.remove(msg)
+            self.store_del(msg)
 
     def on_peer_discovered(self, peer_id):
         # self.log("peer discovered: %d" % peer_id)
@@ -35,7 +34,7 @@ class DirectDeliveryRouter(Router):
         if not self.is_msg_known(msg):
             self.remember(remote_id, msg)
             msg.hops += 1
-            self.store.append(msg)
+            self.store_add(msg)
             if msg.dst == self.my_id:
                 # self.log("msg arrived", self.my_id)
                 self.netsim.routing_stats['delivered'] += 1

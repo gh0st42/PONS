@@ -2,17 +2,16 @@ from .router import Router
 
 
 class EpidemicRouter(Router):
-    def __init__(self, scan_interval=2.0):
-        super(EpidemicRouter, self).__init__(scan_interval)
-        self.store = []
+    def __init__(self, scan_interval=2.0, capacity=0):
+        super(EpidemicRouter, self).__init__(scan_interval, capacity)
 
     def __str__(self):
         return "EpidemicRouter"
 
     def add(self, msg):
         # self.log("adding new msg to store")
-        self.store.append(msg)
-        self.forward(msg)
+        if self.store_add(msg):
+            self.forward(msg)
 
     def forward(self, msg):
         if msg.dst in self.peers and not self.msg_already_spread(msg, msg.dst):
@@ -22,7 +21,7 @@ class EpidemicRouter(Router):
             self.netsim.nodes[self.my_id].send(self.netsim, msg.dst, msg)
             # )
             self.remember(msg.dst, msg)
-            self.store.remove(msg)
+            self.store_del(msg)
         else:
             # self.log("broadcasting to peers ", self.peers)
             for peer in self.peers:
@@ -37,7 +36,10 @@ class EpidemicRouter(Router):
     def on_peer_discovered(self, peer_id):
         # self.log("peer discovered: %d" % peer_id)
         for msg in self.store:
-            self.forward(msg)
+            if msg.is_expired(self.netsim.env.now):
+                self.store_del(msg)
+            else:
+                self.forward(msg)
 
     def on_msg_received(self, msg, remote_id):
         # self.log("msg received: %s from %d" % (msg, remote_id))
@@ -45,7 +47,7 @@ class EpidemicRouter(Router):
         if not self.is_msg_known(msg):
             self.remember(remote_id, msg)
             msg.hops += 1
-            self.store.append(msg)
+            self.store_add(msg)
             if msg.dst == self.my_id:
                 # self.log("msg arrived %s" % msg)
                 self.netsim.routing_stats['delivered'] += 1

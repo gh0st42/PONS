@@ -6,10 +6,13 @@ HELLO_MSG_SIZE = 42
 
 
 class Router(object):
-    def __init__(self, scan_interval=2.0):
+    def __init__(self, scan_interval=2.0, capacity=0):
         self.scan_interval = scan_interval
         self.peers = []
         self.history = {}
+        self.store = []
+        self.capacity = capacity
+        self.used = 0
 
     def __str__(self):
         return "Router"
@@ -22,7 +25,41 @@ class Router(object):
         print("[%s : %s] %s" % (self.my_id, self, msg))
 
     def add(self, msg: pons.Message):
-        print("add function unimplemented")
+        self.store_add(msg)
+
+    def store_add(self, msg: pons.Message):
+        if self.capacity > 0 and self.used + msg.size > self.capacity:
+            # self.log("store full, no room for msg %s" % msg.id)
+            self.store_cleanup()
+            self.make_room_for(msg)
+            if self.used + msg.size > self.capacity:
+                # self.log("store still full, no room for msg %s" % msg.id)
+                return False
+            # self.log("store cleaned up, made room for msg %s" % msg.id)
+        self.store.append(msg)
+        self.used += msg.size
+        return True
+
+    def store_del(self, msg: pons.Message):
+        self.used -= msg.size
+        self.store.remove(msg)
+
+    def store_cleanup(self):
+        # [self.store_del(msg)
+        # for msg in self.store if msg.is_expired(self.netsim.env.now)]
+
+        for msg in self.store:
+            if msg.is_expired(self.netsim.env.now):
+                # self.log("removing expired msg %s" % msg.id)
+                self.store_del(msg)
+
+    def make_room_for(self, msg: pons.Message):
+        if msg.size < self.capacity:
+            # self.log("making room for msg %s" % msg.id)
+            self.store.sort(key=lambda m: (m.size, m.created))
+            while self.used + msg.size > self.capacity:
+                # self.log("removing msg %s" % self.store[0].id)
+                self.store_del(self.store[0])
 
     def start(self, netsim: pons.NetSim, my_id: int):
         self.netsim = netsim
@@ -41,7 +78,7 @@ class Router(object):
             # new_peers = [p for p in self.peers if p not in old_peers]
 
             # for peer in new_peers:
-            # self.on_peer_discovered(peer)
+            #    self.on_peer_discovered(peer)
 
             # do actual peer discovery with a hello message
             self.peers.clear()
