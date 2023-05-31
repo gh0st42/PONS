@@ -23,7 +23,7 @@ moves = pons.generate_randomwaypoint_movement(
     SIM_TIME, NUM_NODES, WORLD_SIZE[0], WORLD_SIZE[1], max_pause=60.0)
 
 net = pons.NetworkSettings("WIFI_50m", range=NET_RANGE)
-epidemic = pons.routing.EpidemicRouter(capacity=CAPACITY)
+epidemic = pons.routing.PRoPHETRouter(capacity=CAPACITY)
 
 nodes = pons.generate_nodes(
     NUM_NODES, net=[net], router=epidemic)
