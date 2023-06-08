@@ -1,2 +1,3 @@
 dash-bootstrap-components
 dash
+plotly
