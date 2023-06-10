@@ -18,13 +18,18 @@ def get_figure(dataframe: pd.DataFrame, settings: Dict):
                      range_x=[0, WORLD_SIZE[0]],
                      range_y=[0, WORLD_SIZE[1]],
                      color_discrete_sequence=["rgba(0, 204, 0, 0.5)"])
-    set_speed(fig, settings)
+    #set_speed(fig, settings)
+    fig.layout.updatemenus[0].buttons[0].args[1]["frame"]["duration"] = 30
+    fig.layout.updatemenus[0].buttons[0].args[1]["transition"]["duration"] = 5
     fig.update_layout(width=800, height=800)  # TODO scale this by x and y
     fig.update_yaxes(scaleanchor="x", scaleratio=1)
-    fig.update_traces(marker={"size": 50 * SIZEREF})
+    fig.update_traces(marker={"size": settings["NET_RANGE"] * SIZEREF})
     fig.update_geos(projection_type="equirectangular", visible=True, resolution=110)
     return fig
 
+
+def update_net_range(fig, settings: Dict):
+    fig.update_traces(marker={"size": settings["NET_RANGE"] * SIZEREF})
 
 
 def set_speed(figure, settings: Dict):

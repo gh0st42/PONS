@@ -9,7 +9,6 @@ RANDOM_SEED = 42
 # SIM_TIME = 3600*24*7
 # SIM_TIME = 3600*24
 SIM_TIME = 3600
-NET_RANGE = 50
 WORLD_SIZE = (1000, 1000)
 CAPACITY = 10000
 
@@ -27,7 +26,7 @@ def generate_movement(settings: Dict):
 
 def simulate(moves, settings: Dict):
     num_nodes = settings["NUM_NODES"]
-    net = pons.NetworkSettings("WIFI_50m", range=NET_RANGE)
+    net = pons.NetworkSettings("WIFI_50m", range=settings["NET_RANGE"])
     epidemic = pons.routing.EpidemicRouter(capacity=CAPACITY)
 
     nodes = pons.generate_nodes(
@@ -60,7 +59,6 @@ def get_dataframe(settings: Dict):
         result["node"][index] = node
         result["x"][index] = x
         result["y"][index] = y
-        result["range"][index] = NET_RANGE
         index += 1
         missing.remove((time, node))
 
@@ -75,7 +73,6 @@ def get_dataframe(settings: Dict):
         result["node"][index] = node
         result["x"][index] = value[0]
         result["y"][index] = value[1]
-        result["range"][index] = NET_RANGE
         index += 1
 
     return pd.DataFrame.from_dict(result)
