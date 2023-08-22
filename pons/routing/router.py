@@ -1,5 +1,3 @@
-
-from copy import copy
 import pons
 
 HELLO_MSG_SIZE = 42
@@ -25,7 +23,11 @@ class Router(object):
         print("[%s : %s] %s" % (self.my_id, self, msg))
 
     def add(self, msg: pons.Message):
-        self.store_add(msg)
+        if self.store_add(msg):
+            self.forward(msg)
+
+    def forward(self, msg):
+        pass
 
     def store_add(self, msg: pons.Message):
         if self.capacity > 0 and self.used + msg.size > self.capacity:
@@ -38,11 +40,13 @@ class Router(object):
             # self.log("store cleaned up, made room for msg %s" % msg.id)
         self.store.append(msg)
         self.used += msg.size
+        self.netsim.event_manager.on_message_created(self.my_id, msg)
         return True
 
     def store_del(self, msg: pons.Message):
         self.used -= msg.size
         self.store.remove(msg)
+        self.netsim.event_manager.on_message_dropped(self.my_id, msg)
 
     def store_cleanup(self):
         # [self.store_del(msg)
@@ -81,6 +85,7 @@ class Router(object):
             #    self.on_peer_discovered(peer)
 
             # do actual peer discovery with a hello message
+            self.netsim.event_manager.on_before_scan(self.my_id)
             self.peers.clear()
             self.netsim.nodes[self.my_id].send(self.netsim, pons.BROADCAST_ADDR, pons.Message(
                 "HELLO", self.my_id, pons.BROADCAST_ADDR, HELLO_MSG_SIZE, self.netsim.env.now))
@@ -98,10 +103,28 @@ class Router(object):
             # self.log("DUP PEER: %d" % remote_id)
 
     def on_peer_discovered(self, peer_id):
-        self.log("peer discovered: %d" % peer_id)
+        #self.log("peer discovered: %d" % peer_id)
+        self.netsim.event_manager.on_peer_discovery(self.my_id, peer_id)
 
     def on_msg_received(self, msg: pons.Message, remote_id: int):
-        self.log("msg received: %s from %d" % (msg, remote_id))
+        self.netsim.routing_stats['relayed'] += 1
+        if not self.is_msg_known(msg):
+            self.remember(remote_id, msg)
+            msg.hops += 1
+            self.store_add(msg)
+            if msg.dst == self.my_id:
+                # print("msg arrived", self.my_id)
+                self.netsim.routing_stats['delivered'] += 1
+                self.netsim.routing_stats['hops'] += msg.hops
+                self.netsim.routing_stats['latency'] += self.env.now - msg.created
+                self.netsim.event_manager.on_message_delivered(self.my_id, remote_id, msg)
+            else:
+                # print("msg not arrived yet", self.my_id)
+                self.netsim.event_manager.on_message_received(self.my_id, remote_id, msg)
+                self.forward(msg)
+        else:
+            # print("msg already known", self.history)
+            self.netsim.routing_stats['dups'] += 1
 
     def remember(self, peer_id, msg: pons.Message):
         if msg.id not in self.history:

@@ -1,27 +1,9 @@
-from typing import List
+import time
+from typing import List, Dict
 
 import simpy
-import time
+
 import pons
-from enum import Enum
-
-
-class EventType(Enum):
-    SENT = 0
-
-
-#class Event:
-#    """Simulation Events"""
-#    def __init__(self, type: EventType, node1: pons.Node, node2: pons.Node, message: pons.Message):
-#        self.type: EventType = type
-#        self.node1: pons.Node = node1
-#        self.node2: pons.Node = node2
-#        self.message: pons.Message = message
-#
-#    def __str__(self):
-#        if self.type == EventType.SENT:
-#            return f"{self.node1} sent {self.message} to {self.node2}"
-#        raise NotImplementedError(f"{self.type} can not be converted to str")
 
 
 class NetSim(object):
@@ -42,7 +24,7 @@ class NetSim(object):
                               'latency': 0.0, 'started': 0, 'relayed': 0, 'removed': 0, 'aborted': 0, 'dups': 0,
                               'latency_avg': 0.0, 'delivery_prob': 0.0, 'hops_avg': 0.0, 'overhead_ratio': 0.0}
         self.router_stats = {}
-        #self.events: List[Event] = []
+        self.event_manager: pons.EventManager = pons.EventManager(self.env, nodes)
 
         self.mover = pons.OneMovementManager(
             self.env, self.nodes, self.movements)
@@ -129,14 +111,14 @@ class NetSim(object):
 
         if self.routing_stats["delivered"] > 0:
             self.routing_stats["latency_avg"] = self.routing_stats["latency"] / \
-                self.routing_stats["delivered"]
+                                                self.routing_stats["delivered"]
             self.routing_stats["hops_avg"] = self.routing_stats["hops"] / \
-                self.routing_stats["delivered"]
+                                             self.routing_stats["delivered"]
             self.routing_stats["overhead_ratio"] = (self.routing_stats["relayed"] - self.routing_stats["delivered"]) / \
-                self.routing_stats["delivered"]
+                                                   self.routing_stats["delivered"]
 
         self.routing_stats["delivery_prob"] = self.routing_stats["delivered"] / \
-            self.routing_stats["created"]
+                                              self.routing_stats["created"]
 
         # delete entry "hops" and "latency" from routing_stats as they are only used for calculating the average
         del self.routing_stats["hops"]

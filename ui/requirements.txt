@@ -1,3 +1,4 @@
 dash-bootstrap-components
 dash
 plotly
+dash_breakpoints
