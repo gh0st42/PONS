@@ -1,0 +1,29 @@
+{
+  "minSimTime": 0,
+  "maxSimTime": 3600,
+  "simTimeStep": 50,
+  "sliderMarksStep": 200,
+  "minNumOfNodes": 1,
+  "maxNumOfNodes": 10,
+  "numOfNodesStep": 1,
+  "minNetRange": 20,
+  "maxNetRange": 1000,
+  "netRangeStep": 5,
+  "minSpeed": 0,
+  "maxSpeed": 20,
+  "speedStep": 0.2,
+  "frameStepOptions": [1, 2, 5, 10, 100],
+  "refreshInterval": 80,
+  "capacity": 10000,
+  "messages": {
+    "minInterval": 0,
+    "maxInterval": 1000,
+    "intervalStep": 100,
+    "minSize": 0,
+    "maxSize": 8224,
+    "sizeStep": 1028,
+    "minTtl": 0,
+    "maxTtl": 3600,
+    "ttlStep": 400
+  }
+}

@@ -1,5 +1,8 @@
-import simpy
 import time
+from typing import List, Dict
+
+import simpy
+
 import pons
 
 
@@ -21,6 +24,7 @@ class NetSim(object):
                               'latency': 0.0, 'started': 0, 'relayed': 0, 'removed': 0, 'aborted': 0, 'dups': 0,
                               'latency_avg': 0.0, 'delivery_prob': 0.0, 'hops_avg': 0.0, 'overhead_ratio': 0.0}
         self.router_stats = {}
+        self.event_manager: pons.EventManager = pons.EventManager(self.env, nodes)
 
         self.mover = pons.OneMovementManager(
             self.env, self.nodes, self.movements)
@@ -107,14 +111,14 @@ class NetSim(object):
 
         if self.routing_stats["delivered"] > 0:
             self.routing_stats["latency_avg"] = self.routing_stats["latency"] / \
-                self.routing_stats["delivered"]
+                                                self.routing_stats["delivered"]
             self.routing_stats["hops_avg"] = self.routing_stats["hops"] / \
-                self.routing_stats["delivered"]
+                                             self.routing_stats["delivered"]
             self.routing_stats["overhead_ratio"] = (self.routing_stats["relayed"] - self.routing_stats["delivered"]) / \
-                self.routing_stats["delivered"]
+                                                   self.routing_stats["delivered"]
 
         self.routing_stats["delivery_prob"] = self.routing_stats["delivered"] / \
-            self.routing_stats["created"]
+                                              self.routing_stats["created"]
 
         # delete entry "hops" and "latency" from routing_stats as they are only used for calculating the average
         del self.routing_stats["hops"]
