@@ -105,7 +105,7 @@ class Ns2Parser:
         self._accept(Token.NS)
         self._accept(Token.UNDERLINE)
         self._accept(Token.AT)
-        time = round(self._parse_float())
+        time = self._parse_float()
         self._accept(Token.QUOTE)
         self._accept(Token.BACKSLASH)
         node = self._parse_node()
@@ -166,47 +166,112 @@ class Ns2Movement:
         return moves_dict
 
     @classmethod
-    def _get_moves(cls, entries: List[Ns2Entry]) -> Tuple[List[Tuple], int]:
+    def _get_init_coordinates(cls, node: int, entries: List[Ns2Entry]) -> Tuple[float, float]:
+        x = None
+        y = None
+        init_entries = list(filter(lambda e: e.is_init and e.node == node, entries))
+        for entry in init_entries:
+            if entry.x is not None:
+                x = entry.x
+            if entry.y is not None:
+                y = entry.y
+        return x, y
+
+    @classmethod
+    def _get_initial_until(cls, start: int, until: float, node: int, x: float, y: float) -> List:
+        moves = [(float(time), node, x, y) for time in range(start, math.floor(until))]
+        moves.append((until, node, x, y))
+        return moves
+
+
+    #@classmethod
+    #def _get_moves(cls, entries: List[Ns2Entry]) -> Tuple[List[Tuple], int]:
+    #    min_time = math.floor(min(entry.time for entry in entries if not entry.is_init))
+    #    max_time = math.floor(max(entry.time for entry in entries if not entry.is_init))
+    #    nodes = set([entry.node for entry in entries])
+    #    moves = cls._get_initial(min_time - 1, entries)
+#
+    #    entry_dict = {}
+    #    non_init_entries = list(filter(lambda e: not e.is_init, entries))
+    #    for entry in non_init_entries:
+    #        time = entry.time
+    #        if time not in entry_dict:
+    #            entry_dict[time] = {}
+    #        entry_dict[time][entry.node] = entry
+#
+    #    for node in nodes:
+    #        last_entry_time = None
+    #        for time in range(min_time, max_time + 1):
+    #            if time in entry_dict and node in entry_dict[time]:
+    #                last_entry_time = time
+    #            if time not in moves:
+    #                moves[time] = {}
+    #            if last_entry_time is None:
+    #                moves[time][node] = moves[time - 1][node]
+    #                continue
+    #            current_pos = Vector(moves[time - 1][node][2], moves[time - 1][node][3])
+    #            entry = entry_dict[last_entry_time][node]
+    #            destination = Vector(entry.x, entry.y)
+    #            delta = destination - current_pos
+    #            step = delta.normalize() * entry.speed
+    #            new_pos = current_pos + step
+    #            moves[time][node] = [time, node, new_pos.x, new_pos.y]
+#
+    #    return flatten([[tuple(moves[time][node]) for node in moves[time]] for time in moves]), len(nodes)
+
+
+    @classmethod
+    def _get_moves(cls, entries):
         min_time = math.floor(min(entry.time for entry in entries if not entry.is_init))
         max_time = math.floor(max(entry.time for entry in entries if not entry.is_init))
         nodes = set([entry.node for entry in entries])
-        moves = cls._get_initial(min_time - 1, entries)
+        moves = []
 
-        entry_dict = {}
-        non_init_entries = list(filter(lambda e: not e.is_init, entries))
+        non_init_entries = sorted(list(filter(lambda e: not e.is_init, entries)), key=lambda e: e.time)
+        entry_dict = {node: [] for node in nodes}
         for entry in non_init_entries:
-            time = entry.time
-            if time not in entry_dict:
-                entry_dict[time] = {}
-            entry_dict[time][entry.node] = entry
+            entry_dict[entry.node].append(entry)
 
         for node in nodes:
-            last_entry_time = None
-            for time in range(min_time, max_time + 1):
-                if time in entry_dict and node in entry_dict[time]:
-                    last_entry_time = time
-                if time not in moves:
-                    moves[time] = {}
-                if last_entry_time is None:
-                    moves[time][node] = moves[time - 1][node]
-                    continue
-                current_pos = Vector(moves[time - 1][node][2], moves[time - 1][node][3])
-                entry = entry_dict[last_entry_time][node]
-                destination = Vector(entry.x, entry.y)
-                delta = destination - current_pos
-                step = delta.normalize() * entry.speed
-                new_pos = current_pos + step
-                moves[time][node] = [time, node, new_pos.x, new_pos.y]
+            node_moves = []
+            node_entries = entry_dict[node]
+            x, y = cls._get_init_coordinates(node, entries)
+            node_moves += cls._get_initial_until(min_time - 1, entry_dict[node][0].time, node, x, y)
+            for i in range(0, len(node_entries) - 1):
+                current_entry = node_entries[i]
+                next_entry = node_entries[i + 1]
 
-        return flatten([[tuple(moves[time][node]) for node in moves[time]] for time in moves]), len(nodes)
+                current_pos = Vector(node_moves[-1][2], node_moves[-1][3])
+                target = Vector(current_entry.x, current_entry.y)
+                direction = (target - current_pos).normalize() * current_entry.speed
+
+                first_full = math.ceil(current_entry.time)
+                first_step = first_full - current_entry.time
+                next = current_pos + first_step * direction
+                node_moves.append((first_full, node, next.x, next.y))
+
+                last_full = math.floor(next_entry.time)
+
+                for time in range(first_full, last_full + 1):
+                    current_pos = Vector(node_moves[-1][2], node_moves[-1][3])
+                    next = current_pos + direction
+                    node_moves.append((time, node, next.x, next.y))
+
+                current_pos = Vector(node_moves[-1][2], node_moves[-1][3])
+                last_step = next_entry.time - last_full
+                next = current_pos + last_step * direction
+                node_moves.append((next_entry.time, node, next.x, next.y))
+
+            moves += node_moves
+        return moves
 
     @classmethod
     def from_file(cls, filename: str):
         with open(filename, "r") as file:
             content = file.read()
             entries = Ns2Parser(content).parse()
-        moves, num_nodes = cls._get_moves(entries)
+        moves = cls._get_moves(entries)
         return moves
 
-
-#moves = Ns2Movement.from_file("default_scenario_MovementNs2Report.txt")
+moves = Ns2Movement.from_file("default_scenario_MovementNs2Report.txt")
+print(moves)

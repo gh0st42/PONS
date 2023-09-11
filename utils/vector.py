@@ -31,6 +31,12 @@ class Vector:
             return Vector(x=self.x * other.x, y=self.y * other.y)
         return Vector(x=self.x * other, y=self.y * other)
 
+    def __imul__(self, other):
+        return self.__mul__(other)
+
+    def __rmul__(self, other):
+        return self.__mul__(other)
+
     def __truediv__(self, other: "Vector" or float) -> "Vector":
         if isinstance(other, Vector):
             return Vector(x=self.x / other.x, y=self.y / other.y)
