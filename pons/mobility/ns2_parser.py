@@ -50,6 +50,7 @@ class Ns2Parser:
 
     @staticmethod
     def _scan(text: str) -> List[str]:
+        """splits the ns2 file into tokens"""
         tmp: List[str] = text.split(" ")
         tokens: List[str] = []
         for token in tmp:
@@ -66,189 +67,263 @@ class Ns2Parser:
         return list(filter(lambda tok: tok != "", tokens))
 
     def _check(self, tokens: Token | List[Token]) -> bool:
+        """
+        checks if the current token is the given token(s) and returns true in that case
+        @param tokens: either a token or a list of tokens to check for
+        """
         if not isinstance(tokens, list):
             tokens = [tokens]
         values = [t.value for t in tokens]
         return self._current_token in values
 
     def _accept(self, tokens: Token | List[Token] = None):
+        """
+        accepts the current token, optionally with a condition
+        @param tokens: either a token, a list of tokens or none if any token should be accepted
+        """
         if tokens is not None:
             if not isinstance(tokens, list):
                 tokens = [tokens]
             if not self._check(tokens):
+                # if the current token is not one of the given tokens
                 raise Exception(f"expected {', '.join([token.value for token in tokens])} - got {self._current_token}")
+        # select new current token
         self._current_index += 1
         self._current_token = self._tokens[self._current_index]
         next_index = self._current_index + 1
         self._next_token = self._tokens[next_index] if next_index < len(self._tokens) else None
 
     def parse(self) -> List[Ns2Entry]:
+        """parses the file and returns a list of ns2 entries"""
+        # parse the first row
         entries = [self._parse_row()]
+        # as long as a newline and a next token exists
         while self._check(Token.NEWLINE) and self._next_token is not None:
             self._accept()
+            # parse the row
             entry = self._parse_row()
             if entry is not None:
                 entries.append(entry)
         return entries
 
     def _parse_row(self) -> Ns2Entry:
+        """parses a ns2 row"""
+        # row starts with $node
         if self._check(Token.NODE):
             return self._parse_init_row()
+        # row starts with $ns
         if self._check(Token.NS):
             return self._parse_default_row()
         raise Exception(f"entries either have to start with {Token.NODE.value} or {Token.NS.value}")
 
     def _parse_init_row(self) -> Ns2Entry | None:
+        """parses a row of the form $node_(<node_id>) set <coordinate>_ <value>"""
+        # initialize entry with node number
         entry = Ns2Entry(node=self._parse_node(), is_init=True)
         self._accept(Token.SET)
+        # skip z row
         if self._skip_row():
             return None
+        # parse and set the coordinate
         self._parse_coordinate(entry)
         return entry
 
     def _skip_row(self) -> bool:
+        """skips rows setting the z coordinate and returns True if the row has been skipped"""
         if not self._check(Token.Z):
             return False
+        # if row is skipped, accept all remaining tokens of the row
         self._accept()
         self._accept(Token.UNDERLINE)
         self._parse_float()
         return True
 
     def _parse_default_row(self) -> Ns2Entry:
+        """parses a row of the format $ns_ at <time> "\$node_(<node_id>) setdest <x> <y> <speed>" """
         self._accept(Token.NS)
         self._accept(Token.UNDERLINE)
         self._accept(Token.AT)
+        # parse the time
         time = self._parse_float()
         self._accept(Token.QUOTE)
         self._accept(Token.BACKSLASH)
+        # parse the node
         node = self._parse_node()
         self._accept(Token.SET_DEST)
+        # parse coordinates and the speed
         x = self._parse_float()
         y = self._parse_float()
         speed = self._parse_float()
         self._accept(Token.QUOTE)
+        # build and return an entry based on parsed data
         return Ns2Entry(node=node, time=time, x=x, y=y, speed=speed)
 
     def _parse_coordinate(self, entry: Ns2Entry):
+        """
+        parses a coordinate and sets it on an entry
+        @param entry: the entry to set the coordinate on
+        """
+        # check, if token is either x, y or z
         if not self._check([Token.X, Token.Y, Token.Z]):
             raise Exception(f"expected {Token.X.value}, {Token.Y.value} or {Token.Z.value} - got {self._current_token}")
+        # save the coordinate (x,y,z)
         coordinate = self._current_token
         self._accept()
         self._accept(Token.UNDERLINE)
+        # parse the coordinate value
         value = self._parse_float()
+        # set either x or y value on entry - depending on the parsed coordinate
         if coordinate == Token.X.value:
             entry.x = value
         else:
             entry.y = value
 
     def _parse_node(self) -> int:
+        """parses a node and returns the id"""
         self._accept(Token.NODE)
         self._accept(Token.UNDERLINE)
         self._accept(Token.PARAN_LEFT)
+        # get node id
         node = self._parse_int()
         self._accept(Token.PARAN_RIGHT)
         return node
 
     def _parse_int(self) -> int:
+        """parses an integer"""
         token = self._current_token
         self._accept()
         return int(token)
 
     def _parse_float(self) -> float:
+        """parses a float"""
         token = self._current_token
         self._accept()
         return float(token)
 
 
 class Ns2Movement:
-    def __init__(self, num_nodes, moves=[]):
+    """ns2 movement"""
+    def __init__(self, num_nodes, moves, start, end):
         self.num_nodes = num_nodes
         self.moves = moves
-
-    @classmethod
-    def _get_initial(cls, start_time: float, entries: List[Ns2Entry]) -> Dict[float, Dict[int, List]]:
-        init_entries = list(filter(lambda e: e.is_init, entries))
-        moves_dict = {start_time: {}}
-        for entry in init_entries:
-            if entry.node not in moves_dict[start_time]:
-                moves_dict[start_time][entry.node] = [start_time, entry.node, entry.x, entry.y]
-            if entry.x is not None:
-                moves_dict[start_time][entry.node][2] = entry.x
-            if entry.y is not None:
-                moves_dict[start_time][entry.node][3] = entry.y
-        return moves_dict
+        self.start = start
+        self.end = end
 
     @classmethod
     def _get_init_coordinates(cls, node: int, entries: List[Ns2Entry]) -> Tuple[float, float]:
+        """
+        returns the initial coordinates for a node set by the init entries
+        @param node: the node id
+        @param entries: entries to search in
+        """
         x = None
         y = None
+        # get all init entries for the node
         init_entries = list(filter(lambda e: e.is_init and e.node == node, entries))
-        print(init_entries)
         for entry in init_entries:
+            # if entry has a x value, set x
             if entry.x is not None:
                 x = entry.x
+            # if entry has a y value, set y
             if entry.y is not None:
                 y = entry.y
         return x, y
 
     @classmethod
     def _get_initial_until(cls, start: int, until: float, node: int, x: float, y: float) -> List:
+        """
+        returns a list of initial moves from a start time until a given time
+        @param start: start time
+        @param until: time until the moves should be added
+        @param node: the node id
+        @param x: the x coordinate
+        @param y: the y coordinate
+        """
+        # add moves with integer time until floor(until)
         moves = [(float(time), node, x, y) for time in range(start, math.floor(until))]
+        # add exact time until move
         moves.append((until, node, x, y))
         return moves
 
     @classmethod
     def _get_moves(cls, entries):
-        min_time = min(math.floor(min(entry.time for entry in entries if not entry.is_init)), 1)
+        # get min and max time and nodes
+        min_time = math.floor(min(entry.time for entry in entries if not entry.is_init))
         max_time = math.floor(max(entry.time for entry in entries if not entry.is_init))
         nodes = set([entry.node for entry in entries])
         moves = []
 
+        # create dict assigning entries to nodes
         non_init_entries = sorted(list(filter(lambda e: not e.is_init, entries)), key=lambda e: e.time)
         entry_dict = {node: [] for node in nodes}
         for entry in non_init_entries:
             entry_dict[entry.node].append(entry)
 
+        # for every node
         for node in nodes:
             node_moves = []
             node_entries = entry_dict[node]
+            # get initial coordinates
             x, y = cls._get_init_coordinates(node, entries)
+            # fill moves with init coordinates until first entry
             node_moves += cls._get_initial_until(min_time - 1, entry_dict[node][0].time, node, x, y)
+            # for every entry except last one
             for i in range(0, len(node_entries) - 1):
+                # get current and next entry
                 current_entry = node_entries[i]
                 next_entry = node_entries[i + 1]
 
                 current_pos = Vector(node_moves[-1][2], node_moves[-1][3])
                 target = Vector(current_entry.x, current_entry.y)
+                # vector the simulation should move forward in one time step
                 direction = (target - current_pos).normalize() * current_entry.speed
 
+                # time of arrival at target
                 target_time = ((target - current_pos) / direction).x if not direction == 0 else math.inf
 
+                # first integer time
                 first_full = math.ceil(current_entry.time)
+                # step from entry start time until first integer time
                 first_step = first_full - current_entry.time
+                # calculate next position
                 next = current_pos + first_step * direction
+                # append move
                 node_moves.append((first_full, node, next.x, next.y))
 
+                # get last integer move
                 last_full = math.floor(next_entry.time)
 
+                # for each time step from first int move to last int move
                 for time in range(first_full, last_full + 1):
+                    # only move forward, if the time is not greater than the target time
                     if time < current_entry.time + target_time:
+                        # calculate new position
                         current_pos = Vector(node_moves[-1][2], node_moves[-1][3])
                         next = current_pos + direction
+                    # append move
                     node_moves.append((time, node, next.x, next.y))
 
                 current_pos = Vector(node_moves[-1][2], node_moves[-1][3])
+                # step from start time of next entry until last integer time
                 last_step = next_entry.time - last_full
+                # calculate next time and append move
                 next = current_pos + last_step * direction
                 node_moves.append((next_entry.time, node, next.x, next.y))
 
+            # add nove moves to moves
             moves += node_moves
-        return len(nodes), sorted(moves, key=lambda m: m[0])
+        # build class from num_nodes, moves, min and max time
+        return cls(len(nodes), sorted(moves, key=lambda m: m[0]), min_time, max_time)
 
     @classmethod
-    def from_file(cls, filename: str):
-        with open(filename, "r") as file:
+    def from_file(cls, path: str):
+        """
+        get movement from a ns2 file
+        @param path: path to the file
+        """
+        # read and parse file
+        with open(path, "r") as file:
             content = file.read()
             entries = Ns2Parser(content).parse()
-        num_nodes, moves = cls._get_moves(entries)
-        return cls(num_nodes, moves)
+        # get moves
+        return cls._get_moves(entries)
