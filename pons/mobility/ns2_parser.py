@@ -3,7 +3,8 @@ from dataclasses import dataclass
 from enum import Enum
 from string import digits
 from typing import List, Tuple, Dict
-from utils import Vector, flatten
+
+from utils import Vector
 
 
 class Token(Enum):
@@ -251,8 +252,3 @@ class Ns2Movement:
             entries = Ns2Parser(content).parse()
         num_nodes, moves = cls._get_moves(entries)
         return cls(num_nodes, moves)
-
-
-if __name__ == "__main__":
-    moves = Ns2Movement.from_file("default_scenario_MovementNs2Report.txt")
-    print(moves.moves)
