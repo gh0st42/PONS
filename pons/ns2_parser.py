@@ -85,7 +85,9 @@ class Ns2Parser:
         entries = [self._parse_row()]
         while self._check(Token.NEWLINE) and self._next_token is not None:
             self._accept()
-            entries.append(self._parse_row())
+            entry = self._parse_row()
+            if entry is not None:
+                entries.append(entry)
         return entries
 
     def _parse_row(self) -> Ns2Entry:
@@ -95,11 +97,21 @@ class Ns2Parser:
             return self._parse_default_row()
         raise Exception(f"entries either have to start with {Token.NODE.value} or {Token.NS.value}")
 
-    def _parse_init_row(self) -> Ns2Entry:
+    def _parse_init_row(self) -> Ns2Entry | None:
         entry = Ns2Entry(node=self._parse_node(), is_init=True)
         self._accept(Token.SET)
+        if self._skip_row():
+            return None
         self._parse_coordinate(entry)
         return entry
+
+    def _skip_row(self) -> bool:
+        if not self._check(Token.Z):
+            return False
+        self._accept()
+        self._accept(Token.UNDERLINE)
+        self._parse_float()
+        return True
 
     def _parse_default_row(self) -> Ns2Entry:
         self._accept(Token.NS)
@@ -170,6 +182,7 @@ class Ns2Movement:
         x = None
         y = None
         init_entries = list(filter(lambda e: e.is_init and e.node == node, entries))
+        print(init_entries)
         for entry in init_entries:
             if entry.x is not None:
                 x = entry.x
@@ -183,46 +196,9 @@ class Ns2Movement:
         moves.append((until, node, x, y))
         return moves
 
-
-    #@classmethod
-    #def _get_moves(cls, entries: List[Ns2Entry]) -> Tuple[List[Tuple], int]:
-    #    min_time = math.floor(min(entry.time for entry in entries if not entry.is_init))
-    #    max_time = math.floor(max(entry.time for entry in entries if not entry.is_init))
-    #    nodes = set([entry.node for entry in entries])
-    #    moves = cls._get_initial(min_time - 1, entries)
-#
-    #    entry_dict = {}
-    #    non_init_entries = list(filter(lambda e: not e.is_init, entries))
-    #    for entry in non_init_entries:
-    #        time = entry.time
-    #        if time not in entry_dict:
-    #            entry_dict[time] = {}
-    #        entry_dict[time][entry.node] = entry
-#
-    #    for node in nodes:
-    #        last_entry_time = None
-    #        for time in range(min_time, max_time + 1):
-    #            if time in entry_dict and node in entry_dict[time]:
-    #                last_entry_time = time
-    #            if time not in moves:
-    #                moves[time] = {}
-    #            if last_entry_time is None:
-    #                moves[time][node] = moves[time - 1][node]
-    #                continue
-    #            current_pos = Vector(moves[time - 1][node][2], moves[time - 1][node][3])
-    #            entry = entry_dict[last_entry_time][node]
-    #            destination = Vector(entry.x, entry.y)
-    #            delta = destination - current_pos
-    #            step = delta.normalize() * entry.speed
-    #            new_pos = current_pos + step
-    #            moves[time][node] = [time, node, new_pos.x, new_pos.y]
-#
-    #    return flatten([[tuple(moves[time][node]) for node in moves[time]] for time in moves]), len(nodes)
-
-
     @classmethod
     def _get_moves(cls, entries):
-        min_time = math.floor(min(entry.time for entry in entries if not entry.is_init))
+        min_time = min(math.floor(min(entry.time for entry in entries if not entry.is_init)), 1)
         max_time = math.floor(max(entry.time for entry in entries if not entry.is_init))
         nodes = set([entry.node for entry in entries])
         moves = []
@@ -245,6 +221,8 @@ class Ns2Movement:
                 target = Vector(current_entry.x, current_entry.y)
                 direction = (target - current_pos).normalize() * current_entry.speed
 
+                target_time = ((target - current_pos) / direction).x if not direction == 0 else math.inf
+
                 first_full = math.ceil(current_entry.time)
                 first_step = first_full - current_entry.time
                 next = current_pos + first_step * direction
@@ -253,8 +231,9 @@ class Ns2Movement:
                 last_full = math.floor(next_entry.time)
 
                 for time in range(first_full, last_full + 1):
-                    current_pos = Vector(node_moves[-1][2], node_moves[-1][3])
-                    next = current_pos + direction
+                    if time < current_entry.time + target_time:
+                        current_pos = Vector(node_moves[-1][2], node_moves[-1][3])
+                        next = current_pos + direction
                     node_moves.append((time, node, next.x, next.y))
 
                 current_pos = Vector(node_moves[-1][2], node_moves[-1][3])
@@ -263,15 +242,17 @@ class Ns2Movement:
                 node_moves.append((next_entry.time, node, next.x, next.y))
 
             moves += node_moves
-        return moves
+        return len(nodes), sorted(moves, key=lambda m: m[0])
 
     @classmethod
     def from_file(cls, filename: str):
         with open(filename, "r") as file:
             content = file.read()
             entries = Ns2Parser(content).parse()
-        moves = cls._get_moves(entries)
-        return moves
+        num_nodes, moves = cls._get_moves(entries)
+        return cls(num_nodes, moves)
 
-moves = Ns2Movement.from_file("default_scenario_MovementNs2Report.txt")
-print(moves)
+
+if __name__ == "__main__":
+    moves = Ns2Movement.from_file("default_scenario_MovementNs2Report.txt")
+    print(moves.moves)

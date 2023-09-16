@@ -1,3 +1,4 @@
+import math
 import random
 from typing import Dict, Any, Tuple, List
 
@@ -89,7 +90,7 @@ class DataManager:
         data = {}
         helper = {}
         for move in self._moves:
-            time = move[0]
+            time = float(move[0])
             node = move[1]
             x = move[2]
             y = move[3]
@@ -146,7 +147,9 @@ class DataManager:
     def _generate_stores(self):
         stores = {}
         stores[0] = {i: set() for i in range(0, self._settings["NUM_NODES"])}
+        # add stores for integer times
         for time in range(1, self._settings["SIM_TIME"]):
+            time = float(time)
             stores[time] = {i: stores[time - 1][i].copy() for i in range(0, self._settings["NUM_NODES"])}
             for event in self._events_list:
                 if time != event.time:
@@ -156,6 +159,13 @@ class DataManager:
                 elif event.type == pons.EventType.DROPPED:
                     if event.message in stores[time][event.node]:
                         stores[time][event.node].remove(event.message)
+        # add stores for float times
+        for move in self._moves:
+            time = move[0]
+            # if time is not an integer
+            if time % 1 != 0:
+                stores[time] = {i: stores[math.floor(time)][i].copy() for i in range(0, self._settings["NUM_NODES"])}
+
         self._stores = stores
 
     def _generate(self):

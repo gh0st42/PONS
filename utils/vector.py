@@ -42,5 +42,13 @@ class Vector:
             return Vector(x=self.x / other.x, y=self.y / other.y)
         return Vector(x=self.x / other, y=self.y / other)
 
+    def __eq__(self, other):
+        if isinstance(other, Vector):
+            return self.x == other.x and self.y == other.y
+        return self.x == other and self.y == other
+
     def normalize(self) -> "Vector":
+        if self == 0:
+            return self
         return self / abs(self)
+
