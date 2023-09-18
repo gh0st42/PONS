@@ -6,12 +6,13 @@ import pandas as pd
 import pons
 
 RANDOM_SEED = 42
-CAPACITY = 10000
 
 random.seed(RANDOM_SEED)
 
 
 class DataManager:
+    """handling everything regarding the data preparation for the visualization"""
+
     def __init__(self, settings: Dict[str, Any]):
         self._settings: Dict[str, Any] = settings
         self._moves: List[Tuple[float, int, int, int]] = []
@@ -34,6 +35,7 @@ class DataManager:
                                                      max_speed=self._settings["MAX_SPEED"])
 
     def _simulate(self):
+        """simulations as shown in sim.py"""
         self._moves = self._generate_movement()
 
         num_nodes = self._settings["NUM_NODES"]
@@ -86,6 +88,7 @@ class DataManager:
                 self._add(data, helper, time, node, x, y)
 
     def _generate_data(self):
+        """generates movement data"""
         data = {}
         helper = {}
         for move in self._moves:
@@ -102,6 +105,7 @@ class DataManager:
         self._helper = helper
 
     def _add_event(self, target: Dict[float, Dict[str, List]], event: pons.Event):
+        """adds event to event data"""
         time = event.time
         if time not in self._helper or event.from_node not in self._helper[time]:
             return
@@ -114,6 +118,7 @@ class DataManager:
         target[time]["to_y"].append(to_y)
 
     def _generate_event_data(self):
+        """generates event data"""
         data = {}
         for event in self._events_list:
             if event.time not in data:
@@ -122,19 +127,28 @@ class DataManager:
         self._events = data
 
     def _generate_connections(self):
+        """generates connection data"""
         data = {}
         current_conns = set()
+        # for each time
         for time in range(0, self._settings["SIM_TIME"]):
             data[time] = []
+            # for every event that takes place at that time
             for event in [event for event in self._events_list if event.time == time]:
+                # if event is CONNECTION_UP
                 if event.type == pons.EventType.CONNECTION_UP:
+                    # add connection to current_conns
                     current_conns.add(frozenset((event.node, event.from_node)))
+                # else if event is CONNECTION_DOWN
                 elif event.type == pons.EventType.CONNECTION_DOWN:
+                    # remove event from current_conns
                     conn = frozenset((event.node, event.from_node))
                     if conn in current_conns:
                         current_conns.remove(conn)
+            # for each connection
             for conn in current_conns:
                 node1, node2 = tuple(conn)
+                # extract coordinates and append to data
                 from_x, from_y = self._helper[time][node1]
                 to_x, to_y = self._helper[time][node2]
                 data[time].append(pd.DataFrame.from_dict({
@@ -144,21 +158,31 @@ class DataManager:
         self._connections = data
 
     def _generate_stores(self):
-        stores = {}
-        stores[0] = {i: set() for i in range(0, self._settings["NUM_NODES"])}
+        """generates the store data"""
+        # set stores for time=0 to empty sets
+        stores = {0: {i: set() for i in range(0, self._settings["NUM_NODES"])}}
+        # for each time starting with 1
         for time in range(1, self._settings["SIM_TIME"]):
+            # copy the stores of time - 1
             stores[time] = {i: stores[time - 1][i].copy() for i in range(0, self._settings["NUM_NODES"])}
+            # for each event
             for event in self._events_list:
+                # that takes place at the time
                 if time != event.time:
                     continue
+                # if event is of types CREATED, RECEIVED or DELIVERED
                 if event.type in [pons.EventType.CREATED, pons.EventType.RECEIVED, pons.EventType.DELIVERED]:
+                    # add the message to the store
                     stores[time][event.node].add(event.message)
+                # else if event is of type DROPPED
                 elif event.type == pons.EventType.DROPPED:
                     if event.message in stores[time][event.node]:
+                        # remove the message from the store
                         stores[time][event.node].remove(event.message)
         self._stores = stores
 
     def _generate(self):
+        """generates all data"""
         self._simulate()
         self._generate_stores()
         self._generate_data()
@@ -167,6 +191,7 @@ class DataManager:
 
     @staticmethod
     def _to_dataframes(data: Dict[float, Dict[str, List]]) -> Dict[float, pd.DataFrame]:
+        """converts dicts to dataframes"""
         dfs = {}
         for time in data:
             dfs[time] = pd.DataFrame.from_dict(data[time])
@@ -176,11 +201,12 @@ class DataManager:
         """gets the movement data"""
         return self._to_dataframes(self._data)
 
-    def get_event_data(self, types=None) -> Dict[float, List[pd.DataFrame]]:
-        """gets the event data"""
-        if types is None:
-            types = []
-
+    def get_event_data(self, types) -> Dict[float, List[pd.DataFrame]]:
+        """
+        loads event data for given types (used for message relay visualization)
+        @param types: list of event types
+        @return: dict mapping time to event dataframe
+        """
         data: Dict[float, Any] = {}
         for time in self._events:
             data[time] = []
@@ -193,27 +219,43 @@ class DataManager:
                     }))
         return data
 
-    def get_buffer(self, time) -> Dict[int, float]:
+    def get_buffer(self, time: float) -> Dict[int, float]:
+        """
+        gets the data for the buffer animation
+        @param time: current time
+        @return: dict mapping node to buffer fullness
+        """
         capacity = self._settings["ROUTER"].capacity
         data = {}
+        # for every node
         for i in range(0, self._settings["NUM_NODES"]):
+            # get current stored messages
             messages = self._stores[time][i]
+            # calculate total size
             size = sum([msg.size for msg in messages])
+            # calculate fullness
             data[i] = (float(size) / float(capacity)) * 100.
         return data
 
     def get_connection_data(self):
+        """gets the connection data between nodes"""
         return self._connections
 
     def get_events(self, until: float, exclude_types=None):
+        """
+        get events until given time with the possibility to exclude event types
+        @param until: time until the events should be returned
+        @param exclude_types: (optional) list of types to exclude
+        @return: events as strings in order
+        """
         if exclude_types is None:
             exclude_types = []
         return reversed([str(e) for e in self._events_list if e.time <= until if e.type not in exclude_types])
 
-    def get_events_as_str(self, until: float, exclude_types=None) -> str:
-        return "\n".join(self.get_events(until, exclude_types))
-
     def update_settings(self, settings: Dict[str, Any]):
-        """updates the settings"""
+        """
+        updates settings
+        @param settings: the settings dict from app.py
+        """
         self._settings = settings
         self._generate()

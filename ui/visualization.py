@@ -1,19 +1,14 @@
-import math
 from enum import Enum
 from typing import Dict, Any
-from typing import List
 
-import pandas as pd
 import plotly.graph_objects as go
 
 import pons
 import ui
 
-FIGURE_SIZE = (700, 700)
-SIZE_FACTOR = 0.8
-
 
 class VisualizationStatus(Enum):
+    """visualization status enum"""
     PLAY = 0
     PAUSE = 1
     WAIT = 2
@@ -39,14 +34,17 @@ class Visualization:
 
         fig = go.Figure()
 
-
+        # remove all margins
         fig.update_layout(autosize=True, margin={ "l": 0, "r": 0, "t": 0, "b": 0})
         fig.update_yaxes(scaleanchor="x", scaleratio=1)
         fig.update_xaxes(title="", range=[0, world_size[0]])
+        # removes double 0
         fig.update_yaxes(title="", range=[0 + 61, world_size[1]])
 
+        # show node ids of SHOW_NODE_IDS is true
         mode = "markers" + ("+text" if self._settings["SHOW_NODE_IDS"] else "")
-        # core
+
+        # core of nodes
         fig.add_trace(go.Scattergl(
             x=dataframe["x"],
             y=dataframe["y"],
@@ -64,7 +62,7 @@ class Visualization:
             mode=mode
         ))
 
-        # radius
+        # radius of ndoes
         fig.add_trace(go.Scatter(
             x=dataframe["x"],
             y=dataframe["y"],

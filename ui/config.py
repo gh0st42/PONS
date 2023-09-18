@@ -1,11 +1,16 @@
+import inspect
 from dataclasses import dataclass
-from dataclasses_json import dataclass_json, LetterCase
 from typing import List
+
+from dataclasses_json import dataclass_json, LetterCase
+
+import pons
 
 
 @dataclass_json(letter_case=LetterCase.CAMEL)
 @dataclass
 class MessageConfig:
+    """config class for messages"""
     min_interval: int
     max_interval: int
     interval_step: int
@@ -20,6 +25,7 @@ class MessageConfig:
 @dataclass_json(letter_case=LetterCase.CAMEL)
 @dataclass
 class Config:
+    """config class"""
     min_sim_time: int
     max_sim_time: int
     sim_time_step: int
@@ -41,3 +47,11 @@ class Config:
 
 with open("config.json", "r") as file:
     config = Config.from_json(file.read())
+
+IGNORE_ROUTERS = ["Router"]
+
+ROUTERS = {
+    member: (cls(capacity=config.capacity) if "capacity" in inspect.getfullargspec(cls.__init__).args else cls())
+    for (member, cls) in inspect.getmembers(pons.routing) if
+    inspect.isclass(cls) and member not in IGNORE_ROUTERS
+}
