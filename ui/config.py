@@ -51,7 +51,9 @@ with open("config.json", "r") as file:
 IGNORE_ROUTERS = ["Router"]
 
 ROUTERS = {
-    member: (cls(capacity=config.capacity) if "capacity" in inspect.getfullargspec(cls.__init__).args else cls())
+    member: (cls(capacity=config.capacity)
+             if "capacity" in inspect.getfullargspec(cls.__init__).args
+             else cls())
     for (member, cls) in inspect.getmembers(pons.routing) if
     inspect.isclass(cls) and member not in IGNORE_ROUTERS
 }

@@ -59,14 +59,14 @@ app.clientside_callback(
     [Input("checkbox_collapse_button", "n_clicks")],
     [State("checkbox_collapse", "is_open")],
 )
-def toggle_collapse(n, is_open):
+def toggle_collapse(n_clicks, is_open):
     """
     toggling the checkbox collapse
-    @param n: n_clicks of checkbox_collapse_button
+    @param n_clicks: n_clicks of checkbox_collapse_button
     @param is_open: state of checkbox_collapse is_open property
     @return: toggled value for is_open
     """
-    if n:
+    if n_clicks:
         return not is_open
     return is_open
 
@@ -292,7 +292,16 @@ def on_sim_time(value):
     ],
     prevent_initial_call=True
 )
-def on_save(n_clicks, num_nodes, net_range, min_speed, max_speed, sim_time, router, msg_interval, msg_size, msg_ttl):
+def on_save(n_clicks,
+            num_nodes,
+            net_range,
+            min_speed,
+            max_speed,
+            sim_time,
+            router,
+            msg_interval,
+            msg_size,
+            msg_ttl):
     """
     saves changes to settings
     @param n_clicks: n_clicks of the saveButton
@@ -341,7 +350,7 @@ def on_save(n_clicks, num_nodes, net_range, min_speed, max_speed, sim_time, rout
         # animation slider value
         0,
         # animation slider max
-        sim_time, {i: '{}'.format(i) for i in range(0, sim_time, int(sim_time / 20))},
+        sim_time, {i: f"{i}" for i in range(0, sim_time, int(sim_time / 20))},
         # save button content
         "Save",
         # animation interval

@@ -47,16 +47,25 @@ class DataManager:
 
         msggenconfig = {
             "type": "single",
-            "interval": (self._settings["MESSAGES"]["MIN_INTERVAL"], self._settings["MESSAGES"]["MAX_INTERVAL"]),
+            "interval": (
+                self._settings["MESSAGES"]["MIN_INTERVAL"],
+                self._settings["MESSAGES"]["MAX_INTERVAL"]
+            ),
             "src": (0, num_nodes),
             "dst": (0, num_nodes),
-            "size": (self._settings["MESSAGES"]["MIN_SIZE"], self._settings["MESSAGES"]["MAX_SIZE"]),
+            "size": (
+                self._settings["MESSAGES"]["MIN_SIZE"],
+                self._settings["MESSAGES"]["MAX_SIZE"]
+            ),
             "id": "M",
-            "ttl": (self._settings["MESSAGES"]["MIN_TTL"], self._settings["MESSAGES"]["MAX_TTL"])
+            "ttl": (
+                self._settings["MESSAGES"]["MIN_TTL"],
+                self._settings["MESSAGES"]["MAX_TTL"]
+            )
         }
 
-        netsim = pons.NetSim(self._settings["SIM_TIME"], self._settings["WORLD_SIZE"], nodes, self._moves,
-                             config=config, msggens=[msggenconfig])
+        netsim = pons.NetSim(self._settings["SIM_TIME"], self._settings["WORLD_SIZE"], nodes,
+                             self._moves, config=config, msggens=[msggenconfig])
 
         netsim.setup()
         netsim.run()
@@ -72,10 +81,15 @@ class DataManager:
         data[time]["node"].append(str(node))
         data[time]["x"].append(x)
         data[time]["y"].append(y)
-        data[time]["stores"].append(f"<b>{node}</b><br>{'<br>'.join([msg.id for msg in self._stores[time][node]])}")
+        data[time]["stores"].append(
+            f"<b>{node}</b><br>{'<br>'.join([msg.id for msg in self._stores[time][node]])}"
+        )
         helper[time][node] = (x, y)
 
-    def _add_missing_data(self, data: Dict[float, Dict[str, List]], helper: Dict[float, Dict[int, Tuple[int, int]]]):
+    def _add_missing_data(self,
+                          data: Dict[float, Dict[str, List]],
+                          helper: Dict[float, Dict[int, Tuple[int, int]]]
+                          ):
         for time in range(self._settings["SIM_TIME"]):
             time = float(time)
             if time not in data:
@@ -164,14 +178,18 @@ class DataManager:
         # for each time starting with 1
         for time in range(1, self._settings["SIM_TIME"]):
             # copy the stores of time - 1
-            stores[time] = {i: stores[time - 1][i].copy() for i in range(0, self._settings["NUM_NODES"])}
+            stores[time] = {
+                i: stores[time - 1][i].copy() for i in range(0, self._settings["NUM_NODES"])
+            }
             # for each event
             for event in self._events_list:
                 # that takes place at the time
                 if time != event.time:
                     continue
                 # if event is of types CREATED, RECEIVED or DELIVERED
-                if event.type in [pons.EventType.CREATED, pons.EventType.RECEIVED, pons.EventType.DELIVERED]:
+                if event.type in [
+                    pons.EventType.CREATED, pons.EventType.RECEIVED, pons.EventType.DELIVERED
+                ]:
                     # add the message to the store
                     stores[time][event.node].add(event.message)
                 # else if event is of type DROPPED
@@ -250,7 +268,9 @@ class DataManager:
         """
         if exclude_types is None:
             exclude_types = []
-        return reversed([str(e) for e in self._events_list if e.time <= until if e.type not in exclude_types])
+        return reversed(
+            [str(e) for e in self._events_list if e.time <= until if e.type not in exclude_types]
+        )
 
     def update_settings(self, settings: Dict[str, Any]):
         """

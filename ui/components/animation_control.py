@@ -38,7 +38,7 @@ def animation_control_component(settings):
                 drag_value=0,
                 step=10,
                 className="w-100",
-                marks={i: '{}'.format(i) for i in
+                marks={i: f'{i}' for i in
                        range(0, settings["SIM_TIME"], config.slider_marks_step)}
             ),
             width=10),
