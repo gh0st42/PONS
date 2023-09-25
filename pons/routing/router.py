@@ -1,18 +1,20 @@
-
-from copy import copy
 import pons
 
 HELLO_MSG_SIZE = 42
 
 
 class Router(object):
-    def __init__(self, scan_interval=2.0, capacity=0):
+    def __init__(self, scan_interval=2.0, capacity=0, energy_model: pons.EnergyModel = None):
         self.scan_interval = scan_interval
         self.peers = []
         self.history = {}
         self.store = []
         self.capacity = capacity
         self.used = 0
+
+        self.energy_model: pons.EnergyModel = energy_model
+        if energy_model is None:
+            self.energy_model = pons.UnlimitedEnergyModel()
 
     def __str__(self):
         return "Router"
@@ -26,6 +28,9 @@ class Router(object):
 
     def add(self, msg: pons.Message):
         self.store_add(msg)
+
+    def forward(self, msg):
+        self.energy_model.on_forward()
 
     def store_add(self, msg: pons.Message):
         if self.capacity > 0 and self.used + msg.size > self.capacity:
@@ -95,13 +100,29 @@ class Router(object):
             # self.log("NEW PEER: %d" % remote_id)
             self.on_peer_discovered(remote_id)
         # elif remote_id in self.peers:
-            # self.log("DUP PEER: %d" % remote_id)
+        # self.log("DUP PEER: %d" % remote_id)
 
     def on_peer_discovered(self, peer_id):
         self.log("peer discovered: %d" % peer_id)
 
     def on_msg_received(self, msg: pons.Message, remote_id: int):
-        self.log("msg received: %s from %d" % (msg, remote_id))
+        self.energy_model.on_receive()
+        self.netsim.routing_stats['relayed'] += 1
+        if not self.is_msg_known(msg):
+            self.remember(remote_id, msg)
+            msg.hops += 1
+            self.store_add(msg)
+            if msg.dst == self.my_id:
+                # print("msg arrived", self.my_id)
+                self.netsim.routing_stats['delivered'] += 1
+                self.netsim.routing_stats['hops'] += msg.hops
+                self.netsim.routing_stats['latency'] += self.env.now - msg.created
+            else:
+                # print("msg not arrived yet", self.my_id)
+                self.forward(msg)
+        else:
+            # print("msg already known", self.history)
+            self.netsim.routing_stats['dups'] += 1
 
     def remember(self, peer_id, msg: pons.Message):
         if msg.id not in self.history:

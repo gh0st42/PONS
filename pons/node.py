@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import math
-from copy import deepcopy
-import pons
 import random
-
+from copy import deepcopy
 from typing import TYPE_CHECKING
+
+import pons
 
 if TYPE_CHECKING:
     import pons.routing
