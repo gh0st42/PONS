@@ -19,8 +19,11 @@ CAPACITY = 10000
 print('Python Opportunistic Network Simulator')
 random.seed(RANDOM_SEED)
 
-moves = pons.generate_randomwaypoint_movement(
-    SIM_TIME, NUM_NODES, WORLD_SIZE[0], WORLD_SIZE[1], max_pause=60.0)
+mov = pons.Ns2Movement.from_file("tests/mobility/ns2_example_0_3600_18_3035.txt")
+moves = mov.moves
+SIM_TIME = mov.end
+#moves = pons.generate_randomwaypoint_movement(
+#    SIM_TIME, NUM_NODES, WORLD_SIZE[0], WORLD_SIZE[1], max_pause=60.0)
 
 net = pons.NetworkSettings("WIFI_50m", range=NET_RANGE)
 epidemic = pons.routing.EpidemicRouter(capacity=CAPACITY)

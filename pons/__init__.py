@@ -1,5 +1,4 @@
 from .simulation import NetSim
-from .events import EventManager, Event, EventType
 from .node import generate_nodes, Node, NetworkSettings, Message, BROADCAST_ADDR
 from .routing import Router, EpidemicRouter
 from .mobility import Ns2Movement, OneMovement, OneMovementManager, generate_randomwaypoint_movement

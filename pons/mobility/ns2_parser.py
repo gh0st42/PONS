@@ -230,7 +230,15 @@ class Ns2Movement:
         return x, y
 
     @classmethod
-    def _get_initial_until(cls, start: int, until: float, node: int, x: float, y: float) -> List:
+    def _get_initial_until(
+            cls,
+            start: int,
+            until: float,
+            node: int,
+            x: float,
+            y: float,
+            end_time: float = None
+    ) -> List:
         """
         returns a list of initial moves from a start time until a given time
         @param start: start time
@@ -238,19 +246,102 @@ class Ns2Movement:
         @param node: the node id
         @param x: the x coordinate
         @param y: the y coordinate
+        @param end_time: the optional end time of the simulation
         """
         # add moves with integer time until floor(until)
-        moves = [(float(time), node, x, y) for time in range(start, math.floor(until))]
+        if end_time is not None:
+            until = min(until, end_time)
+        moves = [(float(time), node, x, y) for time in range(start, math.floor(until) + 1)]
         # add exact time until move
         moves.append((until, node, x, y))
         return moves
 
     @classmethod
-    def _get_moves(cls, entries):
+    def _get_moves_for_entry(cls, node: int, node_moves, entry: Ns2Entry, next_entry: Ns2Entry, end_time: float = None) -> List:
+        """
+        generates moves for an entry and appends it to node_moves
+        @param node: the node to generate for
+        @param node_moves: the already generated node_moves
+        @param entry: the ns2 entry to generate moves for
+        @param end_time: the optional end time of the simulation
+        """
+        # only append moves if end_time is not surpassed
+        if end_time is not None and entry.time >= end_time:
+            return node_moves
+        current_pos = Vector(node_moves[-1][2], node_moves[-1][3])
+        target = Vector(entry.x, entry.y)
+        # vector the simulation should move forward in one time step
+        direction = (target - current_pos).normalize() * entry.speed
+
+        # time of arrival at target
+        target_time = ((target - current_pos) / direction).x if not direction == 0 else math.inf
+
+        # first integer time
+        first_full = math.ceil(entry.time)
+        # step from entry start time until first integer time
+        first_step = first_full - entry.time
+        # calculate next position
+        next = current_pos + first_step * direction
+        # append move
+        node_moves.append((first_full, node, next.x, next.y))
+
+        # get last integer move
+        until = first_full + target_time
+        if next_entry is not None:
+            until = next_entry.time
+        if end_time is not None:
+            until = min(until, end_time - 1)
+        last_full = math.floor(until)
+
+        # for each time step from first int move to last int move
+        for time in range(first_full, last_full + 1):
+            # only move forward, if the time is not greater than the target time
+            if time < entry.time + target_time:
+                # calculate new position
+                current_pos = Vector(node_moves[-1][2], node_moves[-1][3])
+                next = current_pos + direction
+            # append move
+            node_moves.append((time, node, next.x, next.y))
+
+        current_pos = Vector(node_moves[-1][2], node_moves[-1][3])
+        # step from start time of next entry until last integer time
+        last_step = until - last_full
+        if last_step != 0:
+            # calculate next time and append move
+            next = current_pos + last_step * direction
+            node_moves.append((until, node, next.x, next.y))
+
+        if next_entry is None and end_time is not None and end_time > until:
+            for time in range(last_full + 1, end_time):
+                node_moves.append((time, node, next.x, next.y))
+
+        return node_moves
+
+    @classmethod
+    def _fill_up_until_end(cls, nodes, moves, end_time: float):
+        for node in nodes:
+            node_moves = [move for move in moves if move[1] == node]
+            last_move = node_moves[-1]
+            last_int = math.floor(end_time)
+            for time in range(math.ceil(last_move[0]), last_int + 1):
+                moves.append((time, node, last_move[2], last_move[3]))
+            if last_int != end_time:
+                moves.append((end_time, node, last_move[2], last_move[3]))
+
+    @classmethod
+    def _get_moves(cls, entries, start_time: float = None, end_time: float = None):
+        """
+        generates move based on entries
+        @param entries: the entries
+        @start_time: the optional start time of the simulation
+        @end_time: the optional end time of the simulation
+        """
         # get min and max time and nodes
-        min_time = math.floor(min(entry.time for entry in entries if not entry.is_init))
-        max_time = math.floor(max(entry.time for entry in entries if not entry.is_init))
-        nodes = set([entry.node for entry in entries])
+        if start_time is None:
+            start_time = min(0, math.floor(min(entry.time for entry in entries if not entry.is_init)))
+        #if end_time is None:
+        #    math.floor(max(entry.time for entry in entries if not entry.is_init))
+        nodes = set(entry.node for entry in entries)
         moves = []
 
         # create dict assigning entries to nodes
@@ -266,64 +357,38 @@ class Ns2Movement:
             # get initial coordinates
             x, y = cls._get_init_coordinates(node, entries)
             # fill moves with init coordinates until first entry
-            node_moves += cls._get_initial_until(min_time - 1, entry_dict[node][0].time, node, x, y)
+            node_moves += cls._get_initial_until(start_time, entry_dict[node][0].time, node, x, y, end_time)
             # for every entry except last one
             for i in range(0, len(node_entries) - 1):
                 # get current and next entry
                 current_entry = node_entries[i]
                 next_entry = node_entries[i + 1]
 
-                current_pos = Vector(node_moves[-1][2], node_moves[-1][3])
-                target = Vector(current_entry.x, current_entry.y)
-                # vector the simulation should move forward in one time step
-                direction = (target - current_pos).normalize() * current_entry.speed
+                cls._get_moves_for_entry(node, node_moves, current_entry, next_entry, end_time)
 
-                # time of arrival at target
-                target_time = ((target - current_pos) / direction).x if not direction == 0 else math.inf
+            last_entry = node_entries[-1]
+            cls._get_moves_for_entry(node, node_moves, last_entry, None, end_time)
 
-                # first integer time
-                first_full = math.ceil(current_entry.time)
-                # step from entry start time until first integer time
-                first_step = first_full - current_entry.time
-                # calculate next position
-                next = current_pos + first_step * direction
-                # append move
-                node_moves.append((first_full, node, next.x, next.y))
-
-                # get last integer move
-                last_full = math.floor(next_entry.time)
-
-                # for each time step from first int move to last int move
-                for time in range(first_full, last_full + 1):
-                    # only move forward, if the time is not greater than the target time
-                    if time < current_entry.time + target_time:
-                        # calculate new position
-                        current_pos = Vector(node_moves[-1][2], node_moves[-1][3])
-                        next = current_pos + direction
-                    # append move
-                    node_moves.append((time, node, next.x, next.y))
-
-                current_pos = Vector(node_moves[-1][2], node_moves[-1][3])
-                # step from start time of next entry until last integer time
-                last_step = next_entry.time - last_full
-                # calculate next time and append move
-                next = current_pos + last_step * direction
-                node_moves.append((next_entry.time, node, next.x, next.y))
-
-            # add nove moves to moves
             moves += node_moves
         # build class from num_nodes, moves, min and max time
-        return cls(len(nodes), sorted(moves, key=lambda m: m[0]), min_time, max_time)
+        max_time = max(move[0] for move in moves)
+        if end_time is not None:
+            max_time = end_time - 1
+        cls._fill_up_until_end(nodes, moves, max_time)
+        return cls(len(nodes), sorted(moves, key=lambda m: m[0]), start_time, max_time)
 
     @classmethod
-    def from_file(cls, path: str):
+    def from_file(cls, path: str, start_time: float = None, end_time: float = None):
         """
         get movement from a ns2 file
         @param path: path to the file
+        @param start_time: optional start time of the simulation
+        @param end_time: optional end time of the simulation
+            (if none is given, the simulation runs until every nodes have reached their destination)
         """
         # read and parse file
         with open(path, "r") as file:
             content = file.read()
             entries = Ns2Parser(content).parse()
         # get moves
-        return cls._get_moves(entries)
+        return cls._get_moves(entries, start_time, end_time)
