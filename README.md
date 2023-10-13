@@ -10,6 +10,7 @@ Features:
   - spray & wait
   - first contact
   - direct delivery
+  - PRoPHET
 - mobility
   - random waypoint
   - external ONE movement
