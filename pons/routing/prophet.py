@@ -37,18 +37,19 @@ class PRoPHETRouter(Router):
     """
     Implements the PRoPHET Router
     """
-    def __init__(self, scan_interval=2.0, capacity=0, config: PRoPHETConfig=None):
+
+    def __init__(self, scan_interval=2.0, capacity=0, config: PRoPHETConfig = None):
         super().__init__(scan_interval, capacity)
         self.store = []
         self.predictabilities = {}
         self.config = PRoPHETConfig() if config is None else config
 
     def __str__(self):
-        return "EpidemicRouter"
+        return "PRoPHETRouter"
 
     def start(self, netsim: pons.NetSim, my_id: int):
         super().start(netsim, my_id)
-        self.predictabilities[my_id] = { "pred": 1. }
+        self.predictabilities[my_id] = {"pred": 1.}
 
     def add(self, msg):
         # self.log("adding new msg to store")
@@ -76,7 +77,8 @@ class PRoPHETRouter(Router):
                         # self.log("forwarding to peer")
                         self.netsim.routing_stats['started'] += 1
                         # self.netsim.env.process(
-                        self.netsim.nodes[self.my_id].send(self.netsim, peer, msg)
+                        self.netsim.nodes[self.my_id].send(
+                            self.netsim, peer, msg)
                         # )
                         self.remember(peer, msg)
 
@@ -94,8 +96,10 @@ class PRoPHETRouter(Router):
             pred = self.config.p_encounter_first
         else:
             old_pred = self.predictabilities[remote_id]["pred"]
-            pred = old_pred + (1 - self.config.delta - old_pred) * self.config.p_encounter
-        self.predictabilities[remote_id] = { "pred": pred, "last_aging": self.env.now }
+            pred = old_pred + (1 - self.config.delta -
+                               old_pred) * self.config.p_encounter
+        self.predictabilities[remote_id] = {
+            "pred": pred, "last_aging": self.env.now}
 
     def _age_predictabilities(self, remote_id):
         for peer in self.predictabilities:
@@ -103,7 +107,8 @@ class PRoPHETRouter(Router):
                 continue
             peer_info = self.predictabilities[remote_id]
             k = self.env.now - peer_info["last_aging"]
-            self.predictabilities[remote_id]["pred"] = peer_info["pred"] * (self.config.gamma ** k)
+            self.predictabilities[remote_id]["pred"] = peer_info["pred"] * \
+                (self.config.gamma ** k)
             self.predictabilities[remote_id]["last_aging"] = self.env.now
 
     def _update_transitive_predictabilities(self, remote_id):
@@ -112,14 +117,16 @@ class PRoPHETRouter(Router):
             remote_preds[peer] = {
                 "pred": max(
                     self._get_pred_for(peer, remote_preds),
-                    self._get_pred_for(self.my_id, remote_preds) * self._get_pred_for(peer) * self.config.beta
+                    self._get_pred_for(self.my_id, remote_preds) *
+                    self._get_pred_for(peer) * self.config.beta
                 ),
                 "last_aging": self.env.now
             }
 
     def _get_peer_predictabilities(self, peer_id: int) -> Dict:
         other_router = self.netsim.nodes[peer_id].router
-        assert isinstance(other_router, PRoPHETRouter), "PRoPHET only works with other PRoPHET routers"
+        assert isinstance(
+            other_router, PRoPHETRouter), "PRoPHET only works with other PRoPHET routers"
 
         return other_router.predictabilities
 
