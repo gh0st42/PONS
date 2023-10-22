@@ -1,5 +1,3 @@
-
-from copy import copy
 import pons
 
 HELLO_MSG_SIZE = 42
@@ -68,7 +66,8 @@ class Router(object):
         self.env.process(self.scan())
 
     def scan(self):
-        while True:
+        node = self.netsim.nodes[self.my_id]
+        while node.energy_model.energy > 0:
             # print("[%s] scanning..." % self.my_id)
 
             # assume some kind of peer discovery mechanism
@@ -88,6 +87,8 @@ class Router(object):
             yield self.env.timeout(self.scan_interval)
 
     def on_scan_received(self, msg: pons.Message, remote_id: int):
+        if self.netsim.nodes[self.my_id].energy_model.energy <= 0:
+            return
         # self.log("[%s] scan received: %s from %d" %
         #         (self.my_id, msg, remote_id))
         if msg.id == "HELLO" and remote_id not in self.peers:
@@ -95,7 +96,7 @@ class Router(object):
             # self.log("NEW PEER: %d" % remote_id)
             self.on_peer_discovered(remote_id)
         # elif remote_id in self.peers:
-            # self.log("DUP PEER: %d" % remote_id)
+        # self.log("DUP PEER: %d" % remote_id)
 
     def on_peer_discovered(self, peer_id):
         self.log("peer discovered: %d" % peer_id)

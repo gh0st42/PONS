@@ -10,9 +10,15 @@ RANDOM_SEED = 42
 # SIM_TIME = 3600*24*7
 SIM_TIME = 3600*24
 NET_RANGE = 50
-NUM_NODES = 10
+NUM_NODES = 3
 WORLD_SIZE = (1000, 1000)
 CAPACITY = 10000
+# size of ENERGY_MODELS should match NUM_NODES
+ENERGY_MODELS = [
+    pons.ESP32Wifi(1000000),
+    pons.DefaultEnergyModel(),
+    pons.ESP32Wifi(5000000),
+]
 # CAPACITY = 0
 
 # Setup and start the simulation
@@ -25,7 +31,8 @@ moves = pons.generate_randomwaypoint_movement(
 net = pons.NetworkSettings("WIFI_50m", range=NET_RANGE)
 epidemic = pons.routing.EpidemicRouter(capacity=CAPACITY)
 
-nodes = pons.generate_nodes(NUM_NODES, net=[net], router=epidemic)
+
+nodes = pons.generate_nodes(NUM_NODES, net=[net], router=epidemic, energy_model=ENERGY_MODELS)
 config = {"movement_logger": False, "peers_logger": False}
 
 msggenconfig = {"type": "single", "interval": 30, "src": (

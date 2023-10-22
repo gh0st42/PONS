@@ -1,4 +1,5 @@
 from .router import Router
+import pons
 
 
 class DirectDeliveryRouter(Router):
@@ -28,21 +29,20 @@ class DirectDeliveryRouter(Router):
         for msg in self.store:
             self.forward(msg)
 
-    def on_msg_received(self, msg, remote_id):
-        # self.log("msg received: %s from %d" % (msg, remote_id))
+    def on_msg_received(self, msg: pons.Message, remote_id: int):
         self.netsim.routing_stats['relayed'] += 1
         if not self.is_msg_known(msg):
             self.remember(remote_id, msg)
             msg.hops += 1
             self.store_add(msg)
             if msg.dst == self.my_id:
-                # self.log("msg arrived", self.my_id)
+                # print("msg arrived", self.my_id)
                 self.netsim.routing_stats['delivered'] += 1
                 self.netsim.routing_stats['hops'] += msg.hops
                 self.netsim.routing_stats['latency'] += self.env.now - msg.created
             else:
-                # self.log("msg not arrived yet", self.my_id)
+                # print("msg not arrived yet", self.my_id)
                 self.forward(msg)
         else:
-            # self.log("msg already known", self.history)
+            # print("msg already known", self.history)
             self.netsim.routing_stats['dups'] += 1

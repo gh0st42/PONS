@@ -2,6 +2,7 @@ from .router import Router
 
 import copy
 import math
+import pons
 
 
 class SprayAndWaitRouter(Router):
@@ -58,8 +59,7 @@ class SprayAndWaitRouter(Router):
         for msg in self.store:
             self.forward(msg)
 
-    def on_msg_received(self, msg, remote_id):
-        # self.log("msg received: %s from %d" % (msg, remote_id))
+    def on_msg_received(self, msg: pons.Message, remote_id: int):
         self.netsim.routing_stats['relayed'] += 1
         if not self.is_msg_known(msg):
             self.remember(remote_id, msg)
