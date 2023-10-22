@@ -1,6 +1,7 @@
 import simpy
 import time
 import pons
+from multiprocessing import Process
 
 
 class NetSim(object):
@@ -45,6 +46,17 @@ class NetSim(object):
             for node in self.nodes:
                 print(node.neighbors)
 
+    def start_energy_manager(self, interval=1.0):
+        """start an energy manager"""
+        while True:
+            yield self.env.timeout(interval)
+            for node in self.nodes:
+                node.energy_model.on_idle(interval)
+
+    def should_start_energy_manager(self) -> bool:
+        """check if any node has another energy model than the default one"""
+        return not all(isinstance(node, pons.DefaultEnergyModel) for node in self.nodes)
+
     def setup(self):
         print("initialize simulation")
 
@@ -57,6 +69,9 @@ class NetSim(object):
 
         if self.config is not None and self.config.get("peers_logger", True):
             self.env.process(self.start_peers_logger())
+
+        if self.should_start_energy_manager():
+            self.env.process(self.start_energy_manager())
 
         for n in self.nodes:
             n.start(self)

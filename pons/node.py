@@ -70,7 +70,7 @@ class Node(object):
     """A The ONE movement scenario.
     """
 
-    def __init__(self, node_id: int, net: List[NetworkSettings] = None, router: pons.routing.Router = None):
+    def __init__(self, node_id: int, net: List[NetworkSettings] = None, router: pons.routing.Router = None, energy_model: pons.EnergyModel = None):
         self.id = node_id
         self.x = 0.0
         self.y = 0.0
@@ -79,6 +79,9 @@ class Node(object):
             for n in net:
                 self.net[n.name] = deepcopy(n)
         self.router = router
+        self.energy_model = energy_model
+        if self.energy_model is None:
+            self.energy_model = pons.DefaultEnergyModel()
         self.neighbors = {}
         for net in self.net.values():
             self.neighbors[net.name] = []
@@ -111,6 +114,7 @@ class Node(object):
                     for nid in self.neighbors[net.name]:
                         receiver = netsim.nodes[nid]
                         netsim.net_stats["tx"] += 1
+                        self.energy_model.on_forward()
                         pons.delayed_execution(netsim.env, tx_time,
                                                receiver.on_recv(netsim, self.id, msg))
                 else:
@@ -118,6 +122,7 @@ class Node(object):
                         # self.log("sending msg %s to %d" % (msg, to_nid))
                         receiver = netsim.nodes[to_nid]
                         netsim.net_stats["tx"] += 1
+                        self.energy_model.on_forward()
                         pons.delayed_execution(netsim.env, tx_time,
                                                receiver.on_recv(netsim, self.id, msg))
                     else:
@@ -135,6 +140,7 @@ class Node(object):
             if from_nid in self.neighbors[net.name]:
                 # print("Node %d received msg %s from %d" % (to_nid, msg, from_nid))
                 netsim.net_stats["rx"] += 1
+                self.energy_model.on_receive()
                 if self.router is not None:
                     if msg.id == "HELLO":
                         self.router.on_scan_received(deepcopy(msg), from_nid)
@@ -146,11 +152,33 @@ class Node(object):
                 netsim.net_stats["drop"] += 1
 
 
-def generate_nodes(num_nodes: int, offset: int = 0, net: List[NetworkSettings] = None, router: pons.routing.Router = None):
+def generate_nodes(
+        num_nodes: int,
+        offset: int = 0,
+        net: List[NetworkSettings] = None,
+        router: pons.routing.Router = None,
+        energy_model: pons.EnergyModel or List[pons.EnergyModel] = None
+):
+    """
+    generates nodes
+    @param num_nodes: number of nodes
+    @param offset: offset for the node ids
+    @param net: a list of network settings
+    @param router: the router to use (optional)
+    @param energy_model: the energy model(s) (optional) -
+        Either one energy model or a list of models matching num_nodes.
+        If only one is given, it is used for every nodes.
+    """
     nodes = []
-    if net == None:
+    if net is None:
         net = []
+    if energy_model is None:
+        energy_model = pons.DefaultEnergyModel()
+    if isinstance(energy_model, pons.EnergyModel):
+        energy_model = [deepcopy(energy_model) for i in range(0, num_nodes)]
+    if len(energy_model) != num_nodes:
+        raise ValueError("size of energy_model should match num_nodes")
     for i in range(num_nodes):
         nodes.append(Node(i + offset, net=deepcopy(net),
-                     router=deepcopy(router)))
+                     router=deepcopy(router), energy_model=energy_model[i]))
     return nodes

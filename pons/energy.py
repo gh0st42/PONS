@@ -12,7 +12,7 @@ class EnergyModel:
         self._receive: float = receive
         self._forward: float = forward
         self._name: str = name
-        self.current_energy: float = max_energy
+        self.energy: float = max_energy
 
     def __str__(self) -> str:
         return self._name
@@ -22,18 +22,24 @@ class EnergyModel:
 
     def on_receive(self):
         """handling message receive"""
-        self.current_energy -= self._receive
+        self.energy -= self._receive
 
     def on_forward(self):
         """handling message forward"""
-        self.current_energy -= self._forward
+        self.energy -= self._forward
 
-    def on_idle(self):
+    def on_idle(self, interval: float = 1.0):
         """handling idle"""
-        self.current_energy -= self._idle
+        self.energy -= self._idle * interval
 
 
-class UnlimitedEnergyModel(EnergyModel):
+class DefaultEnergyModel(EnergyModel):
     """unlimited energy model - equivalent to no energy model"""
     def __init__(self):
-        super().__init__(100, 0, 0, 0, "UnlimitedEnergyModel")
+        super().__init__(100, 0, 0, 0, "DefaultEnergyModel")
+
+
+class ESP32Wifi(EnergyModel):
+    """energy model simulating the esp32 using wifi"""
+    def __init__(self, initial_energy: int = 100000):
+        super().__init__(initial_energy, 90, 100, 190, "ESP32 Wifi")
