@@ -2,7 +2,7 @@ import math
 from dataclasses import dataclass
 from enum import Enum
 from string import digits
-from typing import List, Tuple, Dict
+from typing import List, Tuple
 
 from utils import Vector
 
@@ -23,6 +23,7 @@ class Token(Enum):
     SET_DEST = "setdest"
     BACKSLASH = "\\"
     NEWLINE = "\n"
+    HASH = "#"
 
 
 TOKENS = [e.value for e in Token]
@@ -100,11 +101,20 @@ class Ns2Parser:
         # as long as a newline and a next token exists
         while self._check(Token.NEWLINE) and self._next_token is not None:
             self._accept()
+            # skip commented rows
+            if self._check(Token.HASH):
+                self._skip_until_newline()
+                continue
             # parse the row
             entry = self._parse_row()
             if entry is not None:
                 entries.append(entry)
         return entries
+
+    def _skip_until_newline(self):
+        while not self._check(Token.NEWLINE):
+            self._accept()
+
 
     def _parse_row(self) -> Ns2Entry:
         """parses a ns2 row"""
@@ -146,7 +156,9 @@ class Ns2Parser:
         # parse the time
         time = self._parse_float()
         self._accept(Token.QUOTE)
-        self._accept(Token.BACKSLASH)
+        # the one generated ns2 code uses a backslash here
+        if self._check(Token.BACKSLASH):
+            self._accept(Token.BACKSLASH)
         # parse the node
         node = self._parse_node()
         self._accept(Token.SET_DEST)
@@ -274,7 +286,7 @@ class Ns2Movement:
         direction = (target - current_pos).normalize() * entry.speed
 
         # time of arrival at target
-        target_time = ((target - current_pos) / direction).x if not direction == 0 else math.inf
+        target_time = (target.x - current_pos.x) / direction.x if not direction.x == 0 else math.inf
 
         # first integer time
         first_full = math.ceil(entry.time)
@@ -286,10 +298,13 @@ class Ns2Movement:
         node_moves.append((first_full, node, next.x, next.y))
 
         # get last integer move
+        # if no next entry, move until destination is reached
         until = first_full + target_time
         if next_entry is not None:
+            # if there is a next entry, move until its time
             until = next_entry.time
         if end_time is not None:
+            # if there is a custom end_time and it is before the until time, use it
             until = min(until, end_time - 1)
         last_full = math.floor(until)
 
@@ -311,6 +326,7 @@ class Ns2Movement:
             next = current_pos + last_step * direction
             node_moves.append((until, node, next.x, next.y))
 
+        # fill up until end_time
         if next_entry is None and end_time is not None and end_time > until:
             for time in range(last_full + 1, end_time):
                 node_moves.append((time, node, next.x, next.y))
