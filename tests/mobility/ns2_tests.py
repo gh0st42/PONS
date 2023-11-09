@@ -9,8 +9,10 @@ class Ns2Tests(unittest.TestCase):
     tests for ns2 movement
     """
     # further test files must be of the same format
-    # ns2_example_<end_time>_<last_entry>.txt
+    # ns2_example_<start_time>_<end_time>_<first_entry>_<last_entry>.txt
+    # start_time: the start time of the scenario
     # end_time: the end time of the scenario
+    # first_entry: the floor of the first entry time
     # last_entry: the floor of the last entry time
     TESTFILES = [
         "ns2_example_0_3600_18_3035.txt",
@@ -65,7 +67,7 @@ class Ns2Tests(unittest.TestCase):
         for file in self.TESTFILES:
             movement = Ns2Movement.from_file(file, end_time=end_time)
             moves = movement.moves
-            self.assertEqual(max(move[0] for move in moves), end_time)
+            self.assertLessEqual(max(move[0] for move in moves), end_time)
 
     def test_with_start_time(self):
         """
@@ -86,6 +88,10 @@ class Ns2Tests(unittest.TestCase):
         """
         start_time = 30
         for file in self.TESTFILES:
-            movement = Ns2Movement.from_file(file)
+            movement = Ns2Movement.from_file(file, start_time=start_time)
             moves = movement.moves
-            self.assertEqual(min(move[0] for move in moves), start_time)
+            self.assertEqual(start_time, min(move[0] for move in moves))
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -263,13 +263,15 @@ class Ns2Movement:
         # add moves with integer time until floor(until)
         if end_time is not None:
             until = min(until, end_time)
+        if until < start:
+            return [(start, node, x, y)]
         moves = [(float(time), node, x, y) for time in range(start, math.floor(until) + 1)]
         # add exact time until move
         moves.append((until, node, x, y))
         return moves
 
     @classmethod
-    def _get_moves_for_entry(cls, node: int, node_moves, entry: Ns2Entry, next_entry: Ns2Entry, end_time: float = None) -> List:
+    def _get_moves_for_entry(cls, node: int, node_moves, entry: Ns2Entry, next_entry: Ns2Entry, start_time: float = None, end_time: float = None):
         """
         generates moves for an entry and appends it to node_moves
         @param node: the node to generate for
@@ -286,10 +288,12 @@ class Ns2Movement:
         direction = (target - current_pos).normalize() * entry.speed
 
         # time of arrival at target
-        target_time = (target.x - current_pos.x) / direction.x if not direction.x == 0 else math.inf
+        target_time = abs(target - current_pos) / entry.speed
 
         # first integer time
         first_full = math.ceil(entry.time)
+        if start_time is not None:
+            first_full = max(first_full, math.floor(start_time))
         # step from entry start time until first integer time
         first_step = first_full - entry.time
         # calculate next position
@@ -321,17 +325,15 @@ class Ns2Movement:
         current_pos = Vector(node_moves[-1][2], node_moves[-1][3])
         # step from start time of next entry until last integer time
         last_step = until - last_full
-        if last_step != 0:
+        if last_step != 0 and until >= start_time:
             # calculate next time and append move
             next = current_pos + last_step * direction
             node_moves.append((until, node, next.x, next.y))
 
         # fill up until end_time
-        if next_entry is None and end_time is not None and end_time > until:
+        if next_entry is None and end_time is not None and end_time > until and end_time >= start_time:
             for time in range(last_full + 1, end_time):
                 node_moves.append((time, node, next.x, next.y))
-
-        return node_moves
 
     @classmethod
     def _fill_up_until_end(cls, nodes, moves, end_time: float):
@@ -380,10 +382,10 @@ class Ns2Movement:
                 current_entry = node_entries[i]
                 next_entry = node_entries[i + 1]
 
-                cls._get_moves_for_entry(node, node_moves, current_entry, next_entry, end_time)
+                cls._get_moves_for_entry(node, node_moves, current_entry, next_entry, start_time, end_time)
 
             last_entry = node_entries[-1]
-            cls._get_moves_for_entry(node, node_moves, last_entry, None, end_time)
+            cls._get_moves_for_entry(node, node_moves, last_entry, None, start_time, end_time)
 
             moves += node_moves
         # build class from num_nodes, moves, min and max time
