@@ -1,7 +1,7 @@
 from .simulation import NetSim
-from .mobility import generate_randomwaypoint_movement, OneMovement, OneMovementManager
 from .node import generate_nodes, Node, NetworkSettings, Message, BROADCAST_ADDR
 from .routing import Router, EpidemicRouter
+from .mobility import Ns2Movement, OneMovement, OneMovementManager, generate_randomwaypoint_movement
 
 import random
 
