@@ -14,6 +14,7 @@ Features:
 - mobility
   - random waypoint
   - external ONE movement
+  - external ns2 movement
 
 ## Requirements
 

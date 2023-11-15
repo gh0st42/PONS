@@ -1,5 +1,8 @@
-import simpy
 import time
+from typing import List, Dict
+
+import simpy
+
 import pons
 
 
@@ -107,14 +110,14 @@ class NetSim(object):
 
         if self.routing_stats["delivered"] > 0:
             self.routing_stats["latency_avg"] = self.routing_stats["latency"] / \
-                self.routing_stats["delivered"]
+                                                self.routing_stats["delivered"]
             self.routing_stats["hops_avg"] = self.routing_stats["hops"] / \
-                self.routing_stats["delivered"]
+                                             self.routing_stats["delivered"]
             self.routing_stats["overhead_ratio"] = (self.routing_stats["relayed"] - self.routing_stats["delivered"]) / \
-                self.routing_stats["delivered"]
+                                                   self.routing_stats["delivered"]
 
         self.routing_stats["delivery_prob"] = self.routing_stats["delivered"] / \
-            self.routing_stats["created"]
+                                              self.routing_stats["created"]
 
         # delete entry "hops" and "latency" from routing_stats as they are only used for calculating the average
         del self.routing_stats["hops"]
