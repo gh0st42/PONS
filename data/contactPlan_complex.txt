@@ -1,0 +1,7 @@
+# example contact plan from https://bitbucket.org/lcd-unc-ar/dtnsim/src/support-hdtn/dtnsim/simulations/hdtn_demo/contactPlan/contactPlan.txt
+
+m horizon  +0
+a contact +10 +20 10 1 1000
+a contact +25 +38 10 2 1000
+a range +0 +60 1 10 1
+a range +0 +60 2 10 1

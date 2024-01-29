@@ -77,6 +77,11 @@ class NetSim(object):
         start_real = time.time()
         last_real = start_real
         last_sim = 0.0
+
+        now_sim = self.env.now
+        for n in self.nodes:
+            n.calc_neighbors(now_sim, self.nodes)
+
         while self.env.now < self.duration + 1.0:
             # self.env.run(until=self.duration)
             now_sim = self.env.now
@@ -97,7 +102,10 @@ class NetSim(object):
         now_real = time.time()
         diff = now_real - start_real
         now_sim = self.env.now
-        rate = (now_sim) / diff
+        if diff == 0:
+            rate = 0
+        else:
+            rate = (now_sim) / diff
 
         print("\nsimulation finished")
         print("simulated %d seconds in %.02f seconds (%.2f x real time)" %

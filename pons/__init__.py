@@ -1,8 +1,8 @@
 from .simulation import NetSim
 from .mobility import generate_randomwaypoint_movement, OneMovement, OneMovementManager
-from .node import generate_nodes, Node, NetworkSettings, Message, BROADCAST_ADDR
+from .node import generate_nodes, Node, Message
 from .routing import Router, EpidemicRouter
-
+from .net import NetworkSettings, ContactPlan, BROADCAST_ADDR
 import random
 
 
