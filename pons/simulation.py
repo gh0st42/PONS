@@ -62,6 +62,7 @@ class NetSim(object):
             self.env.process(self.start_peers_logger())
 
         for n in self.nodes:
+            #print("-> start node %d w/ %d apps" % (n.id, len(n.apps)))
             n.start(self)
 
         if self.msggens is not None:
@@ -74,6 +75,9 @@ class NetSim(object):
                         pons.message_burst_generator(self, msggen))
                 else:
                     raise Exception("unknown message generator type")
+        
+        for n in self.nodes:
+            n.calc_neighbors(self.nodes)
 
     def run(self):
         print("run simulation")
@@ -100,7 +104,10 @@ class NetSim(object):
         now_real = time.time()
         diff = now_real - start_real
         now_sim = self.env.now
-        rate = (now_sim) / diff
+        if diff > 0:
+            rate = (now_sim) / diff
+        else:
+            rate = 0.0
 
         print("\nsimulation finished")
         print("simulated %d seconds in %.02f seconds (%.2f x real time)" %
