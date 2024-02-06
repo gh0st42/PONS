@@ -38,8 +38,7 @@ netsim = pons.NetSim(SIM_TIME, WORLD_SIZE, nodes, moves,
 
 netsim.setup()
 
-# m = pons.Message("MSG1", 1, 2, 100, 0)
-# pons.delayed_execution(netsim.env, 0, nodes[0].router.add(m))
+
 # cProfile.run("netsim.run()")
 netsim.run()
 

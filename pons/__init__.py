@@ -2,14 +2,9 @@ from .simulation import NetSim
 from .node import generate_nodes, Node, NetworkSettings, Message, BROADCAST_ADDR
 from .routing import Router, EpidemicRouter
 from .mobility import Ns2Movement, OneMovement, OneMovementManager, generate_randomwaypoint_movement
+from .apps import PingApp, App
 
 import random
-
-
-def delayed_execution(env, delay, func, *args, **kwargs):
-    yield env.timeout(delay)
-    env.process(func(*args, **kwargs))
-
 
 def message_event_generator(netsim, msggenconfig):
     """A message generator.

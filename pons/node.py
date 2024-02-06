@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from simpy.util import start_delayed
+
 import math
 from copy import deepcopy
 import pons
@@ -17,7 +19,7 @@ class NetworkSettings(object):
     """A network settings.
     """
 
-    def __init__(self, name, range, bandwidth=54000000, loss=0.0, delay=0.05):
+    def __init__(self, name, range, bandwidth : int =54000000, loss : float = 0.0, delay : float =0.05):
         self.name = name
         self.bandwidth = bandwidth
         self.loss = loss
@@ -35,6 +37,10 @@ class NetworkSettings(object):
         return random.random() < self.loss
 
     def is_in_range(self, src: Node, dst: Node):
+        if self.range == 0:
+            # no range limit
+            # wired connection
+            return True
         dx = src.x - dst.x
         dy = src.y - dst.y
 
@@ -48,7 +54,7 @@ class Message(object):
     """A message.
     """
 
-    def __init__(self, msgid: str, src: int, dst: int, size: int, created, hops=0, ttl=3600, content={}, metadata={}):
+    def __init__(self, msgid: str, src: int, dst: int, size: int, created, hops=0, ttl=3600, src_service : int = 0, dst_service : int = 0, content={}, metadata={}):
         self.id = msgid
         self.src = src
         self.dst = dst
@@ -56,11 +62,13 @@ class Message(object):
         self.created = created
         self.hops = hops
         self.ttl = ttl
+        self.src_service = src_service
+        self.dst_service = dst_service
         self.content = content
         self.metadata = metadata
 
     def __str__(self):
-        return "Message(%s, %d, %d, %d)" % (self.id, self.src, self.dst, self.size)
+        return "Message(%s, %d.%d, %d.%d, %d)" % (self.id, self.src, self.src_service, self.dst, self.dst_service, self.size)
 
     def is_expired(self, now):
         # print("is_expired: %d + %d > %d" % (self.created, self.ttl, now))
@@ -88,7 +96,7 @@ class Node(object):
         return "Node(%d, %.02f, %.02f)" % (self.id, self.x, self.y)
 
     def log(self, msg: str):
-        print("[%d]: %s" % (self.id, msg))
+        print("[ %f ] [%d] NET: %s" % (self.netsim.env.now, self.id, msg))
 
     def start(self, netsim: pons.NetSim):
         self.netsim = netsim
@@ -108,19 +116,21 @@ class Node(object):
         for net in self.net.values():
             if not net.is_lost():
                 tx_time = net.tx_time(msg.size)
+                #self.log("sending msg %s to %d in %fs" % (msg.id, to_nid, tx_time))
                 if to_nid == BROADCAST_ADDR:
                     for nid in self.neighbors[net.name]:
                         receiver = netsim.nodes[nid]
                         netsim.net_stats["tx"] += 1
-                        pons.delayed_execution(netsim.env, tx_time,
-                                               receiver.on_recv(netsim, self.id, msg))
+                        start_delayed(netsim.env, receiver.on_recv(netsim, self.id, msg), tx_time)
+
                 else:
                     if to_nid in self.neighbors[net.name]:
                         # self.log("sending msg %s to %d" % (msg, to_nid))
                         receiver = netsim.nodes[to_nid]
                         netsim.net_stats["tx"] += 1
-                        pons.delayed_execution(netsim.env, tx_time,
-                                               receiver.on_recv(netsim, self.id, msg))
+                        #self.log("sending msg %s to %d in %fs" % (msg.id, to_nid, tx_time))
+                        start_delayed(netsim.env, receiver.on_recv(netsim, self.id, msg), tx_time)
+
                     else:
                         # print("Node %d cannot send msg %s to %d (not in range)" %
                         # (self.id, msg, to_nid))
@@ -132,9 +142,10 @@ class Node(object):
                 # pass
 
     def on_recv(self, netsim: pons.NetSim, from_nid: int, msg: Message):
+        yield netsim.env.timeout(0)
         for net in self.net.values():
             if from_nid in self.neighbors[net.name]:
-                # print("Node %d received msg %s from %d" % (to_nid, msg, from_nid))
+                #self.log("Node %d received msg %s from %d" % (self.id, msg.id, from_nid))
                 netsim.net_stats["rx"] += 1
                 if self.router is not None:
                     if msg.id == "HELLO":

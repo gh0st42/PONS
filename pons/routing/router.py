@@ -6,13 +6,14 @@ HELLO_MSG_SIZE = 42
 
 
 class Router(object):
-    def __init__(self, scan_interval=2.0, capacity=0):
+    def __init__(self, scan_interval=2.0, capacity=0, apps=[]):
         self.scan_interval = scan_interval
         self.peers = []
         self.history = {}
         self.store = []
         self.capacity = capacity
         self.used = 0
+        self.apps = apps
 
     def __str__(self):
         return "Router"
@@ -22,7 +23,7 @@ class Router(object):
         return str(self)
 
     def log(self, msg):
-        print("[%s : %s] %s" % (self.my_id, self, msg))
+        print("[ %f ] [%s : %s] ROUTER: %s" % (self.env.now, self.my_id, self, msg))
 
     def add(self, msg: pons.Message):
         self.store_add(msg)
@@ -65,6 +66,10 @@ class Router(object):
         self.netsim = netsim
         self.env = netsim.env
         self.my_id = my_id
+        #self.log("starting ")
+        for app in self.apps:
+            #self.log("starting app %s" % app)
+            app.start(netsim, my_id)
         self.env.process(self.scan())
 
     def scan(self):
@@ -92,10 +97,10 @@ class Router(object):
         #         (self.my_id, msg, remote_id))
         if msg.id == "HELLO" and remote_id not in self.peers:
             self.peers.append(remote_id)
-            # self.log("NEW PEER: %d" % remote_id)
+            #self.log("NEW PEER: %d (%s)" % (remote_id, self.peers))
             self.on_peer_discovered(remote_id)
-        # elif remote_id in self.peers:
-            # self.log("DUP PEER: %d" % remote_id)
+        #elif remote_id in self.peers:
+            #self.log("DUP PEER: %d" % remote_id)
 
     def on_peer_discovered(self, peer_id):
         self.log("peer discovered: %d" % peer_id)
