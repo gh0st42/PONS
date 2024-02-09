@@ -1,5 +1,8 @@
-import simpy
 import time
+from typing import List, Dict
+
+import simpy
+
 import pons
 
 
@@ -7,7 +10,7 @@ class NetSim(object):
     """A network simulator.
     """
 
-    def __init__(self, duration, world, nodes, movements=[], msggens=None, config=None):
+    def __init__(self, duration : int, world, nodes, movements=[], msggens=None, config=None):
         self.env = simpy.Environment()
         self.duration = duration
         self.nodes = nodes
@@ -59,6 +62,7 @@ class NetSim(object):
             self.env.process(self.start_peers_logger())
 
         for n in self.nodes:
+            #print("-> start node %d w/ %d apps" % (n.id, len(n.apps)))
             n.start(self)
 
         if self.msggens is not None:
@@ -71,6 +75,10 @@ class NetSim(object):
                         pons.message_burst_generator(self, msggen))
                 else:
                     raise Exception("unknown message generator type")
+        
+        print(self.nodes)
+        for n in self.nodes:
+            n.calc_neighbors(0, self.nodes)
 
     def using_contactplan(self):
         for n in self.nodes:
@@ -114,10 +122,11 @@ class NetSim(object):
         now_real = time.time()
         diff = now_real - start_real
         now_sim = self.env.now
-        if diff == 0:
-            rate = 0
-        else:
+
+        if diff > 0:
             rate = (now_sim) / diff
+        else:
+            rate = 0.0
 
         print("\nsimulation finished")
         print("simulated %d seconds in %.02f seconds (%.2f x real time)" %
@@ -127,14 +136,14 @@ class NetSim(object):
 
         if self.routing_stats["delivered"] > 0:
             self.routing_stats["latency_avg"] = self.routing_stats["latency"] / \
-                self.routing_stats["delivered"]
+                                                self.routing_stats["delivered"]
             self.routing_stats["hops_avg"] = self.routing_stats["hops"] / \
-                self.routing_stats["delivered"]
+                                             self.routing_stats["delivered"]
             self.routing_stats["overhead_ratio"] = (self.routing_stats["relayed"] - self.routing_stats["delivered"]) / \
-                self.routing_stats["delivered"]
+                                                   self.routing_stats["delivered"]
 
         self.routing_stats["delivery_prob"] = self.routing_stats["delivered"] / \
-            self.routing_stats["created"]
+                                              self.routing_stats["created"]
 
         # delete entry "hops" and "latency" from routing_stats as they are only used for calculating the average
         del self.routing_stats["hops"]

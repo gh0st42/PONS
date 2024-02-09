@@ -115,7 +115,7 @@ class CoreContactPlan(object):
     
     def has_contact(self, simtime: float, node1 : int, node2 : int) -> bool:
       current_contacts = self.at(simtime)
-      print("[ %f ] has_contact: %d %d | %s" % (simtime, node1, node2, current_contacts[0]))
+      # print("[ %f ] has_contact: %d %d | %s" % (simtime, node1, node2, current_contacts[0]))
       for c in current_contacts:
           if c.nodes[0] == node1 and c.nodes[1] == node2:
               return True
