@@ -34,7 +34,8 @@ class OneMovement(object):
                 num_nodes = max(num_nodes, node_id + 1)
                 x = float(x)
                 y = float(y)
-                moves.append((time, node_id, x, y))
+                z = 0.0
+                moves.append((time, node_id, x, y, z))
             return cls(duration, num_nodes, width, height, moves)
 
 
@@ -52,37 +53,41 @@ class OneMovementManager(object):
         if self.move_idx <= len(self.moves):
             time = 0.0
             while time == 0.0:
-                time, node_id, x, y = self.moves[self.move_idx]
+                time, node_id, x, y, z = self.moves[self.move_idx]
                 self.move_idx += 1
                 node = self.nodes[node_id]
                 node.x = x
                 node.y = y
+                node.z = z
 
             for n in self.nodes:
-                n.calc_neighbors(self.nodes)
-            self.env.process(self.move_next(time, node_id, x, y))
+                n.calc_neighbors(time, self.nodes)
+            self.env.process(self.move_next(time, node_id, x, y, z))
 
-    def move_next(self, time, node_id, x, y):
+    def move_next(self, time, node_id, x, y, z):
         yield self.env.timeout(time - self.env.now)
         node = self.nodes[node_id]
         node.x = x
         node.y = y
+        node.z = z
 
         # move all nodes with same timestamp
         while self.move_idx < len(self.moves):
-            next_time, node_id, x, y = self.moves[self.move_idx]
+            next_time, node_id, x, y, z = self.moves[self.move_idx]
             self.move_idx += 1
 
             if time == next_time:
                 node = self.nodes[node_id]
                 node.x = x
                 node.y = y
+                node.z = z
             else:
-                self.env.process(self.move_next(next_time, node_id, x, y))
+                self.env.process(self.move_next(next_time, node_id, x, y, z))
                 break
 
+        now = self.env.now
         for n in self.nodes:
-            n.calc_neighbors(self.nodes)
+            n.calc_neighbors(now, self.nodes)
 
 
 def generate_randomwaypoint_movement(duration, num_nodes, width, height, min_speed=1.0, max_speed=5.0, min_pause=0, max_pause=120):
@@ -93,7 +98,8 @@ def generate_randomwaypoint_movement(duration, num_nodes, width, height, min_spe
         cur_time = 0.0
         x = random.randint(0, width)
         y = random.randint(0, height)
-        moves.append((cur_time, i, x, y))
+        z = 0.0
+        moves.append((cur_time, i, x, y, z))
         while cur_time < duration:
             way_x = random.randint(0, width)
             way_y = random.randint(0, height)
@@ -110,7 +116,7 @@ def generate_randomwaypoint_movement(duration, num_nodes, width, height, min_spe
                 cur_time += 1
                 x += step_x
                 y += step_y
-                moves.append((cur_time, i, x, y))
+                moves.append((cur_time, i, x, y, z))
 
     # sort movees by time and node id
     moves.sort(key=lambda x: (x[0], x[1]))

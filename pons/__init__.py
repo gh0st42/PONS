@@ -1,5 +1,7 @@
 from .simulation import NetSim
-from .node import generate_nodes, Node, NetworkSettings, Message, BROADCAST_ADDR
+from .node import generate_nodes, Node, Message
+from .routing import Router, EpidemicRouter
+from .net import NetworkSettings, ContactPlan, BROADCAST_ADDR, CoreContact, CoreContactPlan
 from .routing import Router, EpidemicRouter
 from .mobility import Ns2Movement, OneMovement, OneMovementManager, generate_randomwaypoint_movement
 from .apps import PingApp, App

@@ -2,7 +2,7 @@ import math
 from dataclasses import dataclass
 from enum import Enum
 from string import digits
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 from utils import Vector
 
@@ -67,7 +67,7 @@ class Ns2Parser:
             tokens.append(token[substr_index:])
         return list(filter(lambda tok: tok != "", tokens))
 
-    def _check(self, tokens: Token | List[Token]) -> bool:
+    def _check(self, tokens: Union[Token, List[Token]]) -> bool:
         """
         checks if the current token is the given token(s) and returns true in that case
         @param tokens: either a token or a list of tokens to check for
@@ -77,7 +77,7 @@ class Ns2Parser:
         values = [t.value for t in tokens]
         return self._current_token in values
 
-    def _accept(self, tokens: Token | List[Token] = None):
+    def _accept(self, tokens: Union[Token, List[Token]] = None):
         """
         accepts the current token, optionally with a condition
         @param tokens: either a token, a list of tokens or none if any token should be accepted
@@ -126,7 +126,7 @@ class Ns2Parser:
             return self._parse_default_row()
         raise Exception(f"entries either have to start with {Token.NODE.value} or {Token.NS.value}")
 
-    def _parse_init_row(self) -> Ns2Entry | None:
+    def _parse_init_row(self) -> Union[Ns2Entry, None]:
         """parses a row of the form $node_(<node_id>) set <coordinate>_ <value>"""
         # initialize entry with node number
         entry = Ns2Entry(node=self._parse_node(), is_init=True)
@@ -409,4 +409,7 @@ class Ns2Movement:
             content = file.read()
             entries = Ns2Parser(content).parse()
         # get moves
-        return cls._get_moves(entries, start_time, end_time)
+        moves = cls._get_moves(entries, start_time, end_time)
+        # append z = 0 to every move
+        moves.moves = [(time, node, x, y, 0) for time, node, x, y in moves.moves]
+        return moves

@@ -10,7 +10,7 @@ class NetSim(object):
     """A network simulator.
     """
 
-    def __init__(self, duration, world, nodes, movements=[], msggens=None, config=None):
+    def __init__(self, duration : int, world, nodes, movements=[], msggens=None, config=None):
         self.env = simpy.Environment()
         self.duration = duration
         self.nodes = nodes
@@ -76,14 +76,32 @@ class NetSim(object):
                 else:
                     raise Exception("unknown message generator type")
         
+        print(self.nodes)
         for n in self.nodes:
-            n.calc_neighbors(self.nodes)
+            n.calc_neighbors(0, self.nodes)
 
+    def using_contactplan(self):
+        for n in self.nodes:
+            for net in n.net.values():
+                if net.contactplan is not None:
+                    return True
+        return False
+    
     def run(self):
         print("run simulation")
         start_real = time.time()
         last_real = start_real
         last_sim = 0.0
+
+        if not self.using_contactplan():
+            now_sim = self.env.now
+            for n in self.nodes:
+                n.calc_neighbors(now_sim, self.nodes)
+        else:
+            for n in self.nodes:
+                n.add_all_neighbors(self.env.now, self.nodes)
+
+
         while self.env.now < self.duration + 1.0:
             # self.env.run(until=self.duration)
             now_sim = self.env.now
@@ -104,6 +122,7 @@ class NetSim(object):
         now_real = time.time()
         diff = now_real - start_real
         now_sim = self.env.now
+
         if diff > 0:
             rate = (now_sim) / diff
         else:
