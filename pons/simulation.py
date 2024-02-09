@@ -72,15 +72,27 @@ class NetSim(object):
                 else:
                     raise Exception("unknown message generator type")
 
+    def using_contactplan(self):
+        for n in self.nodes:
+            for net in n.net.values():
+                if net.contactplan is not None:
+                    return True
+        return False
+    
     def run(self):
         print("run simulation")
         start_real = time.time()
         last_real = start_real
         last_sim = 0.0
 
-        now_sim = self.env.now
-        for n in self.nodes:
-            n.calc_neighbors(now_sim, self.nodes)
+        if not self.using_contactplan():
+            now_sim = self.env.now
+            for n in self.nodes:
+                n.calc_neighbors(now_sim, self.nodes)
+        else:
+            for n in self.nodes:
+                n.add_all_neighbors(self.env.now, self.nodes)
+
 
         while self.env.now < self.duration + 1.0:
             # self.env.run(until=self.duration)

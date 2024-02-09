@@ -35,16 +35,12 @@ nodes = pons.generate_nodes(
 config = {"movement_logger": False, "peers_logger": False}
 
 msggenconfig = {"type": "single", "interval": 30, "src": (
-    0, NUM_NODES), "dst": (0, NUM_NODES), "size": 100, "id": "M", "ttl": 3600}
+    0, NUM_NODES), "dst": (1, NUM_NODES), "size": 100, "id": "M", "ttl": 3600}
 
 netsim = pons.NetSim(SIM_TIME, WORLD_SIZE, nodes, [],
                      config=config, msggens=[msggenconfig])
 
 netsim.setup()
-
-# m = pons.Message("MSG1", 1, 2, 100, 0)
-# pons.delayed_execution(netsim.env, 0, nodes[0].router.add(m))
-# cProfile.run("netsim.run()")
 netsim.run()
 
 print(json.dumps(netsim.net_stats, indent=4))

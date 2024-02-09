@@ -14,6 +14,9 @@ Features:
 - mobility
   - random waypoint
   - external ONE movement
+- contact plan connectivity model
+  - ION DTN contact plans
+  - [core contact plan}(https://github.com/gh0st42/ccm/)
 
 ## Requirements
 

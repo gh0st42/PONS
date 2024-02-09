@@ -63,50 +63,62 @@ class Node(object):
             for node in nodes:
                 if node.id != self.id:
                     print("node %d: %s %s %s" % (node.id, node.net, net.name,  net.has_contact(simtime, self, node)))
-                    if net.name in node.net and (net.is_in_range(self, node) or net.has_contact(simtime, self, node)):
+                    if net.name in node.net and net.has_contact(simtime, self, node):
                         self.neighbors[net.name].append(node.id)
         self.log("neighbors: %s @ %f" % (self.neighbors, simtime))
 
+    def add_all_neighbors(self, simtime, nodes : List[Node]):
+        for net in self.net.values():
+            self.neighbors[net.name] = []
+            for node in nodes:
+                if node.id != self.id:
+                    if net.name in node.net:
+                        self.neighbors[net.name].append(node.id)
+
     def send(self, netsim: pons.NetSim, to_nid: int, msg: Message):
         for net in self.net.values():
-            if not net.is_lost():
                 #tx_time = net.tx_time(msg.size)
                 if to_nid == BROADCAST_ADDR:
                     for nid in self.neighbors[net.name]:
-                        try:
-                            tx_time = net.tx_time_for_contact(netsim.env.now, self.id, nid, msg.size)
-                        except:
-                            print("no contact found")
-                            continue
-                        print("tx_time: %f" % tx_time)
-                        receiver = netsim.nodes[nid]
-                        netsim.net_stats["tx"] += 1
-                        pons.delayed_execution(netsim.env, tx_time,
-                                               receiver.on_recv(netsim, self.id, msg))
+                        if not net.is_lost(netsim.env.now, self.id, nid):
+                            try:
+                                tx_time = net.tx_time_for_contact(netsim.env.now, self.id, nid, msg.size)
+                            except:
+                                continue
+                            # print("tx_time: %f" % tx_time)
+                            receiver = netsim.nodes[nid]
+                            netsim.net_stats["tx"] += 1
+                            pons.delayed_execution(netsim.env, tx_time,
+                                                receiver.on_recv(netsim, self.id, msg))
+                        else:
+                            # self.log("packet loss: %s to %d" %
+                            # (msg.id, to_nid))
+                            netsim.net_stats["loss"] += 1
+                            # pass
                 else:
                     if to_nid in self.neighbors[net.name]:
-                        try:
-                            tx_time = net.tx_time_for_contact(netsim.env.now, self.id, to_nid, msg.size)
-
-                        except Exception as e:
-                            print("no contact found: %s" % e)   
-                            #tx_time = 0.050001
-                            continue
-                        # self.log("sending msg %s to %d" % (msg, to_nid))
-                        print("tx_time: %f" % tx_time)
-                        receiver = netsim.nodes[to_nid]
-                        netsim.net_stats["tx"] += 1
-                        pons.delayed_execution(netsim.env, tx_time,
-                                               receiver.on_recv(netsim, self.id, msg))
+                        if not net.is_lost(netsim.env.now, self.id, to_nid):
+                            try:
+                                tx_time = net.tx_time_for_contact(netsim.env.now, self.id, to_nid, msg.size)
+                                # print("tx_time: %f" % tx_time)
+                            except Exception as e:
+                                #tx_time = 0.050001
+                                continue
+                            # self.log("sending msg %s to %d" % (msg, to_nid))
+                            receiver = netsim.nodes[to_nid]
+                            netsim.net_stats["tx"] += 1
+                            pons.delayed_execution(netsim.env, tx_time,
+                                                receiver.on_recv(netsim, self.id, msg))
+                        else:
+                            # self.log("packet loss: %s to %d" %
+                            # (msg.id, to_nid))
+                            netsim.net_stats["loss"] += 1
+                            # pass
                     else:
                         # print("Node %d cannot send msg %s to %d (not in range)" %
                         # (self.id, msg, to_nid))
                         pass
-            else:
-                # self.log("packet loss: %s to %d" %
-                # (msg.id, to_nid))
-                netsim.net_stats["loss"] += 1
-                # pass
+            
 
     def on_recv(self, netsim: pons.NetSim, from_nid: int, msg: Message):
         for net in self.net.values():
