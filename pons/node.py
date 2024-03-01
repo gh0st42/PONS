@@ -3,7 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 import pons
 
-from pons.net import BROADCAST_ADDR
+from pons.net.common import BROADCAST_ADDR
 from simpy.util import start_delayed
 
 class Message(object):
