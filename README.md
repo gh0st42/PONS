@@ -18,10 +18,15 @@ Features:
 - contact plan connectivity model
   - ION DTN contact plans
   - [core contact plan}(https://github.com/gh0st42/ccm/)
+- static networkx topology
+  - optionally: from graphml
+  - optionally: fluctuating from contact plan
+- simulated user applications
 
 ## Requirements
 
 - simpy >= 4.0
+- networkx >= 3.2
 - plotting:
   - seaborn
   - pandas
