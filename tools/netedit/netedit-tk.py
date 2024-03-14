@@ -278,7 +278,7 @@ def toolbtn_click(self, btns):
 def canvas_click(event):
     event.widget.focus_set()
     lastx, lasty = canvas.canvasx(event.x), canvas.canvasy(event.y)
-    print("clicked at", lastx, lasty)
+    # print("clicked at", lastx, lasty)
     if active_tool == "Node":
         add_node(lastx, lasty, nodevar.get())
     elif active_tool == "Select" or active_tool == "Move" or active_tool == "Link":
@@ -321,7 +321,7 @@ def canvas_release(event):
     global graph
     global selected_node
     lastx, lasty = canvas.canvasx(event.x), canvas.canvasy(event.y)
-    print("released at", lastx, lasty)
+    # print("released at", lastx, lasty)
     dst_node = node_at(lastx, lasty)
     if dst_node != 0 and dst_node != selected_node:
         if active_tool == "Link":
@@ -495,7 +495,7 @@ ttk.Separator(properties, orient=HORIZONTAL).grid(row=4, columnspan=2, sticky=(W
 ttk.Button(properties, text="Delete", command=delete_node).grid(row=5, columnspan=2)
 ttk.Separator(properties, orient=HORIZONTAL).grid(row=4, columnspan=2, sticky=(W, E))
 frame_links = ttk.LabelFrame(properties, text="Links")
-frame_links.grid(row=6, columnspan=2, sticky=(W, E))
+frame_links.grid(row=6, columnspan=2, sticky=(W, E), padx=10, pady=10)
 
 
 def delete_link(dst):
