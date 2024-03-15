@@ -37,20 +37,34 @@ net = pons.NetworkSettings("networkplan", range=0, contactplan=plan)
 
 # router = pons.routing.StaticRouter(capacity=CAPACITY)
 
-nodes = [
-    pons.Node(0, net=[net], router=pons.routing.StaticRouter(capacity=CAPACITY)),
-    pons.Node(1, net=[net], router=pons.routing.StaticRouter(capacity=CAPACITY)),
-    pons.Node(2, net=[net], router=pons.routing.StaticRouter(capacity=CAPACITY)),
-]
+# manually add routes
+# nodes = [
+#     pons.Node(0, net=[net], router=pons.routing.StaticRouter(capacity=CAPACITY)),
+#     pons.Node(1, net=[net], router=pons.routing.StaticRouter(capacity=CAPACITY)),
+#     pons.Node(2, net=[net], router=pons.routing.StaticRouter(capacity=CAPACITY)),
+# ]
 
 # node 0 can reach node 2 via node 1
-nodes[0].router.routes = [RouteEntry(dst=2, next_hop=1)]
+# nodes[0].router.routes = [RouteEntry(dst=2, next_hop=1)]
 # node 1 can reach node 2 directly
 # node 1 can reach node 1 directly
 # thus, no need to add routes for them
 # nodes[1].router.routes = [RouteEntry(dst=2, next_hop=2)]
 # node 2 can reach node 0 via node 1
-nodes[2].router.routes = [RouteEntry(dst=0, next_hop=1)]
+# nodes[2].router.routes = [RouteEntry(dst=0, next_hop=1)]
+
+# alternative: use the graph to calculate the routes
+nodes = [
+    pons.Node(
+        0, net=[net], router=pons.routing.StaticRouter(capacity=CAPACITY, graph=topo)
+    ),
+    pons.Node(
+        1, net=[net], router=pons.routing.StaticRouter(capacity=CAPACITY, graph=topo)
+    ),
+    pons.Node(
+        2, net=[net], router=pons.routing.StaticRouter(capacity=CAPACITY, graph=topo)
+    ),
+]
 
 config = {"movement_logger": False, "peers_logger": False}
 
@@ -61,7 +75,7 @@ ping_receiver = pons.apps.PingApp(dst=0, interval=-1, ttl=3600, size=100)
 nodes[0].router.apps = [ping_sender]
 nodes[2].router.apps = [ping_receiver]
 
-netsim = pons.NetSim(SIM_TIME, WORLD_SIZE, nodes, [], config=config, msggens=[])
+netsim = pons.NetSim(SIM_TIME, WORLD_SIZE, nodes, [], config=config)
 
 netsim.setup()
 netsim.run()

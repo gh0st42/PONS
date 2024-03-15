@@ -1,5 +1,8 @@
 from typing import List
+
+from pons.simulation import NetSim
 from .router import Router
+import networkx as nx
 
 
 class RouteEntry:
@@ -19,9 +22,29 @@ class RouteEntry:
 
 
 class StaticRouter(Router):
-    def __init__(self, routes: List[RouteEntry] = [], scan_interval=2.0, capacity=0):
+    def __init__(
+        self,
+        routes: List[RouteEntry] = [],
+        graph: nx.Graph = None,
+        scan_interval=2.0,
+        capacity=0,
+    ):
         super(StaticRouter, self).__init__(scan_interval, capacity)
         self.routes = routes
+        self.graph = graph
+
+    def start(self, netsim: NetSim, my_id: int):
+        super().start(netsim, my_id)
+        # get routes from graph to all other nodes
+        if self.graph is not None:
+            for node in self.graph.nodes:
+                if node != my_id:
+                    try:
+                        path = nx.shortest_path(self.graph, source=my_id, target=node)
+                        next_hop = path[1]
+                        self.routes.append(RouteEntry(dst=node, next_hop=next_hop))
+                    except nx.NetworkXNoPath:
+                        pass
 
     def __str__(self):
         return "StaticRouter"
