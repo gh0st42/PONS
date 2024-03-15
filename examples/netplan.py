@@ -64,7 +64,7 @@ print(json.dumps(netsim.routing_stats, indent=4))
 SIM_TIME = 120
 NUM_NODES = 3
 
-plan = pons.net.NetworkPlan.from_graphml("data/3n-exported.yml")
+plan = pons.net.NetworkPlan.from_graphml("data/3n-exported.graphml")
 print(plan.nodes())
 print(plan.connections())
 
