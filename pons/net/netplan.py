@@ -27,13 +27,12 @@ class NetworkPlan(CommonContactPlan):
 
     # return the loss for a contact between two nodes
     def loss_for_contact(self, simtime: float, node1: int, node2: int) -> float:
-        if self.contacts is not None:
-            if self.G.has_edge(node1, node2):
-                return 0.0
-            else:
-                return self.contacts.loss_for_contact(simtime, node1, node2)
-        else:
+        if self.G.has_edge(node1, node2):
             return 0.0
+        if self.contacts is not None:
+            return self.contacts.loss_for_contact(simtime, node1, node2)
+        else:
+            return 100.0
 
     # return whether there is a contact between two nodes
     def has_contact(self, simtime: float, node1: int, node2: int) -> bool:
@@ -49,10 +48,10 @@ class NetworkPlan(CommonContactPlan):
         self, simtime: float, node1: int, node2: int, size: int
     ) -> float:
         if self.contacts is None:
-            return 0.05
+            return 0.000005 * size
         else:
             if self.G.has_edge(node1, node2):
-                return 0.05
+                return 0.000005 * size
             else:
                 return self.contacts.tx_time_for_contact(simtime, node1, node2, size)
 
