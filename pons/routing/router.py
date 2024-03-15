@@ -1,4 +1,3 @@
-
 from copy import copy
 import pons
 
@@ -24,6 +23,9 @@ class Router(object):
 
     def log(self, msg):
         print("[ %f ] [%s : %s] ROUTER: %s" % (self.env.now, self.my_id, self, msg))
+
+    def send(self, to_nid: int, msg: pons.Message):
+        self.netsim.nodes[self.my_id].send(self.netsim, to_nid, msg)
 
     def add(self, msg: pons.Message):
         self.store_add(msg)
@@ -66,9 +68,9 @@ class Router(object):
         self.netsim = netsim
         self.env = netsim.env
         self.my_id = my_id
-        #self.log("starting ")
+        # self.log("starting ")
         for app in self.apps:
-            #self.log("starting app %s" % app)
+            # self.log("starting app %s" % app)
             app.start(netsim, my_id)
         self.env.process(self.scan())
 
@@ -87,8 +89,17 @@ class Router(object):
 
             # do actual peer discovery with a hello message
             self.peers.clear()
-            self.netsim.nodes[self.my_id].send(self.netsim, pons.BROADCAST_ADDR, pons.Message(
-                "HELLO", self.my_id, pons.BROADCAST_ADDR, HELLO_MSG_SIZE, self.netsim.env.now))
+            self.netsim.nodes[self.my_id].send(
+                self.netsim,
+                pons.BROADCAST_ADDR,
+                pons.Message(
+                    "HELLO",
+                    self.my_id,
+                    pons.BROADCAST_ADDR,
+                    HELLO_MSG_SIZE,
+                    self.netsim.env.now,
+                ),
+            )
 
             yield self.env.timeout(self.scan_interval)
 
@@ -97,10 +108,10 @@ class Router(object):
         #         (self.my_id, msg, remote_id))
         if msg.id == "HELLO" and remote_id not in self.peers:
             self.peers.append(remote_id)
-            #self.log("NEW PEER: %d (%s)" % (remote_id, self.peers))
+            # self.log("NEW PEER: %d (%s)" % (remote_id, self.peers))
             self.on_peer_discovered(remote_id)
-        #elif remote_id in self.peers:
-            #self.log("DUP PEER: %d" % remote_id)
+        # elif remote_id in self.peers:
+        # self.log("DUP PEER: %d" % remote_id)
 
     def on_peer_discovered(self, peer_id):
         self.log("peer discovered: %d" % peer_id)

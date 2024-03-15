@@ -27,7 +27,7 @@ class SprayAndWaitRouter(Router):
             # self.log("sending directly to receiver")
             self.netsim.routing_stats["started"] += 1
             # self.netsim.env.process(
-            self.netsim.nodes[self.my_id].send(self.netsim, msg.dst, msg)
+            self.send(msg.dst, msg)
             # )
             self.remember(msg.dst, msg)
             self.store_del(msg)
@@ -51,7 +51,7 @@ class SprayAndWaitRouter(Router):
                         msg.metadata["copies"] -= 1
 
                     # self.netsim.env.process(
-                    self.netsim.nodes[self.my_id].send(self.netsim, peer, outmsg)
+                    self.send(peer, outmsg)
                     # )
                     self.remember(peer, msg)
 

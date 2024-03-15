@@ -19,7 +19,7 @@ class FirstContactRouter(Router):
             # self.log("sending directly to receiver")
             self.netsim.routing_stats["started"] += 1
             # self.netsim.env.process(
-            self.netsim.nodes[self.my_id].send(self.netsim, msg.dst, msg)
+            self.send(msg.dst, msg)
             # )
             self.remember(msg.dst, msg)
             self.store_del(msg)
@@ -30,7 +30,7 @@ class FirstContactRouter(Router):
                     # print("forwarding to peer")
                     self.netsim.routing_stats["started"] += 1
                     # self.netsim.env.process(
-                    self.netsim.nodes[self.my_id].send(self.netsim, peer, msg)
+                    self.send(peer, msg)
                     # )
                     self.remember(peer, msg)
                     self.store_del(msg)

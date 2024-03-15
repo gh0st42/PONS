@@ -60,7 +60,7 @@ class StaticRouter(Router):
             # self.log("sending directly to receiver")
             self.netsim.routing_stats["started"] += 1
             # self.netsim.env.process(
-            self.netsim.nodes[self.my_id].send(self.netsim, msg.dst, msg)
+            self.send(msg.dst, msg)
             # )
             self.remember(msg.dst, msg)
             self.store_del(msg)
@@ -77,7 +77,7 @@ class StaticRouter(Router):
                     # self.log("forwarding to next hop", route.next_hop)
                     self.netsim.routing_stats["started"] += 1
                     # self.netsim.env.process(
-                    self.netsim.nodes[self.my_id].send(self.netsim, route.next_hop, msg)
+                    self.send(route.next_hop, msg)
                     # )
                     self.remember(route.next_hop, msg)
                     self.store_del(msg)

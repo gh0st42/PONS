@@ -20,7 +20,7 @@ class EpidemicRouter(Router):
             # self.log("sending %s directly to receiver" % msg.id)
             self.netsim.routing_stats["started"] += 1
             # self.netsim.env.process(
-            self.netsim.nodes[self.my_id].send(self.netsim, msg.dst, msg)
+            self.send(msg.dst, msg)
             # )
             self.remember(msg.dst, msg)
             self.store_del(msg)
@@ -31,7 +31,7 @@ class EpidemicRouter(Router):
                     # self.log("forwarding to peer")
                     self.netsim.routing_stats["started"] += 1
                     # self.netsim.env.process(
-                    self.netsim.nodes[self.my_id].send(self.netsim, peer, msg)
+                    self.send(peer, msg)
                     # )
                     self.remember(peer, msg)
 
