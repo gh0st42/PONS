@@ -25,6 +25,7 @@ class PRoPHETConfig:
     gamma: float
         determines how quickly the predictabilities age (lower gamma -> faster aging)
     """
+
     p_encounter_first: float = 0.5
     p_first_threshold: float = 0.1
     p_encounter: float = 0.7
@@ -49,7 +50,7 @@ class PRoPHETRouter(Router):
 
     def start(self, netsim: pons.NetSim, my_id: int):
         super().start(netsim, my_id)
-        self.predictabilities[my_id] = {"pred": 1.}
+        self.predictabilities[my_id] = {"pred": 1.0}
 
     def add(self, msg):
         # self.log("adding new msg to store")
@@ -62,7 +63,7 @@ class PRoPHETRouter(Router):
         """
         if msg.dst in self.peers and not self.msg_already_spread(msg, msg.dst):
             # self.log("sending directly to receiver")
-            self.netsim.routing_stats['started'] += 1
+            self.netsim.routing_stats["started"] += 1
             # self.netsim.env.process(
             self.netsim.nodes[self.my_id].send(self.netsim, msg.dst, msg)
             # )
@@ -73,12 +74,13 @@ class PRoPHETRouter(Router):
             for peer in self.peers:
                 if not self.msg_already_spread(msg, peer):
                     peer_preds = self._get_peer_predictabilities(peer)
-                    if self._get_pred_for(msg.dst, peer_preds) > self._get_pred_for(msg.dst):
+                    if self._get_pred_for(msg.dst, peer_preds) > self._get_pred_for(
+                        msg.dst
+                    ):
                         # self.log("forwarding to peer")
-                        self.netsim.routing_stats['started'] += 1
+                        self.netsim.routing_stats["started"] += 1
                         # self.netsim.env.process(
-                        self.netsim.nodes[self.my_id].send(
-                            self.netsim, peer, msg)
+                        self.netsim.nodes[self.my_id].send(self.netsim, peer, msg)
                         # )
                         self.remember(peer, msg)
 
@@ -91,15 +93,17 @@ class PRoPHETRouter(Router):
             self.forward(msg)
 
     def _update_predictability(self, remote_id):
-        if (not remote_id in self.predictabilities or
-                self.predictabilities[remote_id]["pred"] < self.config.p_first_threshold):
+        if (
+            not remote_id in self.predictabilities
+            or self.predictabilities[remote_id]["pred"] < self.config.p_first_threshold
+        ):
             pred = self.config.p_encounter_first
         else:
             old_pred = self.predictabilities[remote_id]["pred"]
-            pred = old_pred + (1 - self.config.delta -
-                               old_pred) * self.config.p_encounter
-        self.predictabilities[remote_id] = {
-            "pred": pred, "last_aging": self.env.now}
+            pred = (
+                old_pred + (1 - self.config.delta - old_pred) * self.config.p_encounter
+            )
+        self.predictabilities[remote_id] = {"pred": pred, "last_aging": self.env.now}
 
     def _age_predictabilities(self, remote_id):
         for peer in self.predictabilities:
@@ -107,8 +111,9 @@ class PRoPHETRouter(Router):
                 continue
             peer_info = self.predictabilities[remote_id]
             k = self.env.now - peer_info["last_aging"]
-            self.predictabilities[remote_id]["pred"] = peer_info["pred"] * \
-                (self.config.gamma ** k)
+            self.predictabilities[remote_id]["pred"] = peer_info["pred"] * (
+                self.config.gamma**k
+            )
             self.predictabilities[remote_id]["last_aging"] = self.env.now
 
     def _update_transitive_predictabilities(self, remote_id):
@@ -117,16 +122,18 @@ class PRoPHETRouter(Router):
             remote_preds[peer] = {
                 "pred": max(
                     self._get_pred_for(peer, remote_preds),
-                    self._get_pred_for(self.my_id, remote_preds) *
-                    self._get_pred_for(peer) * self.config.beta
+                    self._get_pred_for(self.my_id, remote_preds)
+                    * self._get_pred_for(peer)
+                    * self.config.beta,
                 ),
-                "last_aging": self.env.now
+                "last_aging": self.env.now,
             }
 
     def _get_peer_predictabilities(self, peer_id: int) -> Dict:
         other_router = self.netsim.nodes[peer_id].router
         assert isinstance(
-            other_router, PRoPHETRouter), "PRoPHET only works with other PRoPHET routers"
+            other_router, PRoPHETRouter
+        ), "PRoPHET only works with other PRoPHET routers"
 
         return other_router.predictabilities
 
@@ -137,19 +144,22 @@ class PRoPHETRouter(Router):
 
     def on_msg_received(self, msg, remote_id):
         # self.log("msg received: %s from %d" % (msg, remote_id))
-        self.netsim.routing_stats['relayed'] += 1
+        self.netsim.routing_stats["relayed"] += 1
         if not self.is_msg_known(msg):
             self.remember(remote_id, msg)
             msg.hops += 1
-            self.store.append(msg)
             if msg.dst == self.my_id:
                 # print("msg arrived", self.my_id)
-                self.netsim.routing_stats['delivered'] += 1
-                self.netsim.routing_stats['hops'] += msg.hops
-                self.netsim.routing_stats['latency'] += self.env.now - msg.created
+                self.netsim.routing_stats["delivered"] += 1
+                self.netsim.routing_stats["hops"] += msg.hops
+                self.netsim.routing_stats["latency"] += self.env.now - msg.created
+                for app in self.apps:
+                    if app.service == msg.dst_service:
+                        app.on_msg_received(msg)
             else:
+                self.store.append(msg)
                 # print("msg not arrived yet", self.my_id)
                 self.forward(msg)
         else:
             # print("msg already known", self.history)
-            self.netsim.routing_stats['dups'] += 1
+            self.netsim.routing_stats["dups"] += 1
