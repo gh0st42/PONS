@@ -22,8 +22,8 @@ class NetSim(object):
         self.env = simpy.Environment()
         self.duration = duration
         # convert list from Node to dict with id as key
-        # self.nodes = {n.id: n for n in nodes}
-        self.nodes = nodes
+        self.nodes = {n.id: n for n in nodes}
+        # self.nodes = nodes
         self.world = world
         self.movements = movements
         self.msggens = msggens
@@ -65,7 +65,7 @@ class NetSim(object):
         while True:
             yield self.env.timeout(interval)
             print("time: %d" % self.env.now)
-            for node in self.nodes:
+            for node in self.nodes.values():
                 print(node.neighbors)
 
     def setup(self):
@@ -81,7 +81,7 @@ class NetSim(object):
         if self.config is not None and self.config.get("peers_logger", True):
             self.env.process(self.start_peers_logger())
 
-        for n in self.nodes:
+        for n in self.nodes.values():
             # print("-> start node %d w/ %d apps" % (n.id, len(n.apps)))
             n.start(self)
 
@@ -99,11 +99,11 @@ class NetSim(object):
                     raise Exception("unknown message generator type")
 
         print(self.nodes)
-        for n in self.nodes:
-            n.calc_neighbors(0, self.nodes)
+        for n in self.nodes.values():
+            n.calc_neighbors(0, self.nodes.values())
 
     def using_contactplan(self):
-        for n in self.nodes:
+        for n in self.nodes.values():
             for net in n.net.values():
                 if net.contactplan is not None:
                     return True
@@ -117,11 +117,11 @@ class NetSim(object):
 
         if not self.using_contactplan():
             now_sim = self.env.now
-            for n in self.nodes:
-                n.calc_neighbors(now_sim, self.nodes)
+            for n in self.nodes.values():
+                n.calc_neighbors(now_sim, self.nodes.values())
         else:
-            for n in self.nodes:
-                n.add_all_neighbors(self.env.now, self.nodes)
+            for n in self.nodes.values():
+                n.add_all_neighbors(self.env.now, self.nodes.values())
 
         while self.env.now < self.duration + 1.0:
             # self.env.run(until=self.duration)

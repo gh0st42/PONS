@@ -1,11 +1,13 @@
 import random
 import math
+from typing import Dict
 import simpy
+
+from pons.node import Node
 
 
 class OneMovement(object):
-    """A The ONE movement file.
-    """
+    """A The ONE movement file."""
 
     def __init__(self, duration, num_nodes, width, height, moves=[]):
         self.duration = duration
@@ -15,7 +17,13 @@ class OneMovement(object):
         self.moves = moves
 
     def __str__(self):
-        return "OneMovement(%d, %d, %d, %d, %d)" % (self.duration, self.num_nodes, self.width, self.height, len(self.moves))
+        return "OneMovement(%d, %d, %d, %d, %d)" % (
+            self.duration,
+            self.num_nodes,
+            self.width,
+            self.height,
+            len(self.moves),
+        )
 
     @classmethod
     def from_file(cls, filename):
@@ -40,10 +48,9 @@ class OneMovement(object):
 
 
 class OneMovementManager(object):
-    """A The ONE movement manager.
-    """
+    """A The ONE movement manager."""
 
-    def __init__(self, env, nodes, moves):
+    def __init__(self, env, nodes: Dict[int, Node], moves):
         self.env = env
         self.nodes = nodes
         self.moves = moves
@@ -60,8 +67,8 @@ class OneMovementManager(object):
                 node.y = y
                 node.z = z
 
-            for n in self.nodes:
-                n.calc_neighbors(time, self.nodes)
+            for n in self.nodes.values():
+                n.calc_neighbors(time, self.nodes.values())
             self.env.process(self.move_next(time, node_id, x, y, z))
 
     def move_next(self, time, node_id, x, y, z):
@@ -86,13 +93,21 @@ class OneMovementManager(object):
                 break
 
         now = self.env.now
-        for n in self.nodes:
-            n.calc_neighbors(now, self.nodes)
+        for n in self.nodes.values():
+            n.calc_neighbors(now, self.nodes.values())
 
 
-def generate_randomwaypoint_movement(duration, num_nodes, width, height, min_speed=1.0, max_speed=5.0, min_pause=0, max_pause=120):
-    """Generate random waypoint movement for a number of nodes.
-    """
+def generate_randomwaypoint_movement(
+    duration,
+    num_nodes,
+    width,
+    height,
+    min_speed=1.0,
+    max_speed=5.0,
+    min_pause=0,
+    max_pause=120,
+):
+    """Generate random waypoint movement for a number of nodes."""
     moves = []
     for i in range(num_nodes):
         cur_time = 0.0
