@@ -168,7 +168,7 @@ class Node(object):
                     if msg.id == "HELLO":
                         self.router.on_scan_received(deepcopy(msg), from_nid)
                     else:
-                        self.router.on_msg_received(deepcopy(msg), from_nid)
+                        self.router._on_msg_received(deepcopy(msg), from_nid)
             else:
                 # print("Node %d received msg %s from %d (not neighbor)" %
                 #      (to_nid, msg, from_nid))

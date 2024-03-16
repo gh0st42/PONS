@@ -116,7 +116,27 @@ class Router(object):
     def on_peer_discovered(self, peer_id):
         self.log("peer discovered: %d" % peer_id)
 
-    def on_msg_received(self, msg: pons.Message, remote_id: int):
+    def _on_msg_received(self, msg: pons.Message, remote_id: int):
+        # self.log("msg received: %s from %d" % (msg, remote_id))
+        self.netsim.routing_stats["relayed"] += 1
+        was_known = self.is_msg_known(msg)
+        if not was_known:
+            self.remember(remote_id, msg)
+            msg.hops += 1
+            if msg.dst == self.my_id:
+                self.log("msg (%s) arrived on %s" % (msg.id, self.my_id))
+                self.netsim.routing_stats["delivered"] += 1
+                self.netsim.routing_stats["hops"] += msg.hops
+                self.netsim.routing_stats["latency"] += self.env.now - msg.created
+                for app in self.apps:
+                    if app.service == msg.dst_service:
+                        app.on_msg_received(msg)
+        else:
+            # self.log("msg already known", self.history)
+            self.netsim.routing_stats["dups"] += 1
+        self.on_msg_received(msg, remote_id, was_known)
+
+    def on_msg_received(self, msg: pons.Message, remote_id: int, was_known: bool):
         self.log("msg received: %s from %d" % (msg, remote_id))
 
     def remember(self, peer_id, msg: pons.Message):

@@ -44,24 +44,9 @@ class EpidemicRouter(Router):
                 if not self.msg_already_spread(msg, peer_id):
                     self.forward(msg)
 
-    def on_msg_received(self, msg, remote_id):
+    def on_msg_received(self, msg, remote_id, was_known):
         # self.log("msg received: %s from %d" % (msg, remote_id))
-        self.netsim.routing_stats["relayed"] += 1
-        if not self.is_msg_known(msg):
-            self.remember(remote_id, msg)
-            msg.hops += 1
-            if msg.dst == self.my_id:
-                # self.log("msg arrived %s" % msg.id)
-                self.netsim.routing_stats["delivered"] += 1
-                self.netsim.routing_stats["hops"] += msg.hops
-                self.netsim.routing_stats["latency"] += self.env.now - msg.created
-                for app in self.apps:
-                    if app.service == msg.dst_service:
-                        app.on_msg_received(msg)
-            else:
-                self.store_add(msg)
-                # self.log("msg (%s) not arrived yet" % (msg.id, self.my_id))
-                self.forward(msg)
-        else:
-            # self.log("msg already known", self.history)
-            self.netsim.routing_stats["dups"] += 1
+        if not was_known and msg.dst != self.my_id:
+            self.store_add(msg)
+            # self.log("msg not arrived yet", self.my_id)
+            self.forward(msg)
