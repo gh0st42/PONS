@@ -16,6 +16,9 @@ graph = nx.Graph()
 
 active_tool = "Node"
 
+canvas_w = 2000
+canvas_h = 2000
+
 
 def focus_in(event):
     global root
@@ -243,7 +246,11 @@ def toolbar(root):
     combo.state(["readonly"])
     combo.pack(side=LEFT, padx=20)
 
-    btn_setup = ttk.Button(btn_bar, text="Setup", command=dialog_setup)
+    btn_setup = ttk.Button(
+        btn_bar,
+        text="Setup",
+        command=lambda e=(canvas_w, canvas_h): dialog_setup(e[0], e[1]),
+    )
     btn_setup.pack(side=RIGHT)
 
     return btn_bar
@@ -327,7 +334,7 @@ def canvas_release(event):
         if active_tool == "Link":
             graph.add_edge(selected_node, dst_node)
             selected_node = dst_node
-            update_ui()
+    update_ui()
 
 
 def on_menu_new_file():
@@ -450,7 +457,7 @@ canvas = Canvas(
     width=canvas_width,
     height=canvas_height,
     bg="white",
-    scrollregion=(0, 0, 2000, 2000),
+    scrollregion=(0, 0, canvas_width, canvas_height),
     yscrollcommand=v.set,
     xscrollcommand=h.set,
 )
