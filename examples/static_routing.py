@@ -25,8 +25,10 @@ topo = nx.graph.Graph()
 topo.add_node(0)
 topo.add_node(1)
 topo.add_node(2)
+topo.add_node(3)
 topo.add_edge(0, 1)
 topo.add_edge(1, 2)
+topo.add_edge(2, 3)
 
 plan = pons.net.NetworkPlan(topo)
 
@@ -40,19 +42,31 @@ nodes = [
     pons.Node(0, net=[net], router=pons.routing.StaticRouter(capacity=CAPACITY)),
     pons.Node(1, net=[net], router=pons.routing.StaticRouter(capacity=CAPACITY)),
     pons.Node(2, net=[net], router=pons.routing.StaticRouter(capacity=CAPACITY)),
+    pons.Node(3, net=[net], router=pons.routing.StaticRouter(capacity=CAPACITY)),
 ]
 
 # node 0 can reach node 2 via node 1
-nodes[0].router.routes = [RouteEntry(dst=2, next_hop=1)]
+# nodes[0].router.routes = [RouteEntry(dst=2, next_hop=1)]
+# node 0 can reach node 3 via node 1
+# nodes[0].router.routes.append(RouteEntry(dst=3, next_hop=1))
+
+# add a default route via node 1
+nodes[0].router.routes = [RouteEntry(dst="*", next_hop=1)]
 
 # node 1 can reach node 2 directly
 # node 1 can reach node 1 directly
 # thus, no need to add routes for them
 # nodes[1].router.routes = [RouteEntry(dst=2, next_hop=2)]
+nodes[1].router.routes = [RouteEntry(dst=3, next_hop=2)]
 
 # node 2 can reach node 0 via node 1
 nodes[2].router.routes = [RouteEntry(dst=0, next_hop=1)]
+# node 2 can reach node 3 directly
 
+# node 3 can reach node 1 via node 2
+nodes[3].router.routes = [RouteEntry(dst=1, next_hop=2)]
+# node 3 can reach node 0 via node 2
+nodes[3].router.routes.append(RouteEntry(dst=0, next_hop=2))
 
 config = {"movement_logger": False, "peers_logger": False}
 
@@ -61,7 +75,7 @@ ping_sender = pons.apps.PingApp(dst=2, interval=10, ttl=3600, size=100)
 ping_receiver = pons.apps.PingApp(dst=0, interval=-1, ttl=3600, size=100)
 
 nodes[0].router.apps = [ping_sender]
-nodes[2].router.apps = [ping_receiver]
+nodes[3].router.apps = [ping_receiver]
 
 netsim = pons.NetSim(SIM_TIME, WORLD_SIZE, nodes, [], config=config)
 

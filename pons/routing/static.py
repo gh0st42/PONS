@@ -1,8 +1,10 @@
-from typing import List
+from typing import List, Optional
+from pons.node import Message
 
 from pons.simulation import NetSim
 from .router import Router
 import networkx as nx
+import fnmatch
 
 
 class RouteEntry:
@@ -13,12 +15,21 @@ class RouteEntry:
         self.src = src
 
     def __str__(self):
-        return "RouteEntry(dst=%d, next_hop=%d, hops=%s, src=%s)" % (
+        return "RouteEntry(dst=%s, next_hop=%d, hops=%s, src=%s)" % (
             self.dst,
             self.next_hop,
             self.hops,
             self.src,
         )
+
+    def get_next_hop(self, msg: Message) -> Optional[int]:
+        if isinstance(self.dst, str):
+            if fnmatch.fnmatch(str(msg.dst), self.dst):
+                return self.next_hop
+        elif self.dst == msg.dst:
+            return self.next_hop
+        else:
+            return None
 
 
 class StaticRouter(Router):
@@ -68,18 +79,19 @@ class StaticRouter(Router):
 
         # check routing table
         for route in self.routes:
-            # self.log("checking route %s" % route)
-            if route.dst == msg.dst:
-                self.log("found route %s for %d" % (route, msg.dst))
-                if route.next_hop in self.peers and not self.msg_already_spread(
-                    msg, route.next_hop
+            self.log("checking route %s" % route)
+            next_hop = route.get_next_hop(msg)
+            if next_hop is not None:
+                # self.log("found route %s for %d" % (route, msg.dst))
+                if next_hop in self.peers and not self.msg_already_spread(
+                    msg, next_hop
                 ):
                     # self.log("forwarding to next hop", route.next_hop)
                     self.netsim.routing_stats["started"] += 1
                     # self.netsim.env.process(
-                    self.send(route.next_hop, msg)
+                    self.send(next_hop, msg)
                     # )
-                    self.remember(route.next_hop, msg)
+                    self.remember(next_hop, msg)
                     self.store_del(msg)
 
     def on_peer_discovered(self, peer_id):
