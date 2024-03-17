@@ -28,25 +28,13 @@ topo.add_node(3)
 topo.add_edge(1, 2)
 topo.add_edge(2, 3)
 
-plan = pons.net.NetworkPlan(topo)
-
-print(plan.nodes())
-print(plan.connections())
-
-net = pons.NetworkSettings("networkplan", range=0, contactplan=plan)
 
 # alternative: use the graph to calculate the routes
-nodes = [
-    pons.Node(
-        1, net=[net], router=pons.routing.StaticRouter(capacity=CAPACITY, graph=topo)
-    ),
-    pons.Node(
-        2, net=[net], router=pons.routing.StaticRouter(capacity=CAPACITY, graph=topo)
-    ),
-    pons.Node(
-        3, net=[net], router=pons.routing.StaticRouter(capacity=CAPACITY, graph=topo)
-    ),
-]
+# and generate nodes from
+nodes = pons.generate_nodes_from_graph(
+    topo, router=pons.routing.StaticRouter(capacity=CAPACITY, graph=topo)
+)
+print(nodes)
 
 config = {"movement_logger": False, "peers_logger": False}
 

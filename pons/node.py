@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from typing import List
 import pons
 
-from pons.net.common import BROADCAST_ADDR
+from pons.net.common import BROADCAST_ADDR, NetworkSettings
 from simpy.util import start_delayed
+import networkx as nx
 
 
 class Message(object):
@@ -186,4 +188,25 @@ def generate_nodes(
         net = []
     for i in range(num_nodes):
         nodes.append(Node(i + offset, net=deepcopy(net), router=deepcopy(router)))
+    return nodes
+
+
+def generate_nodes_from_graph(
+    graph: nx.Graph,
+    net: List[NetworkSettings] = None,
+    router: Router = None,
+):
+    nodes = []
+    if net == None:
+        net = []
+    net.append(
+        NetworkSettings(
+            "networkplan-%d" % len(graph.nodes()),
+            range=0,
+            contactplan=pons.net.NetworkPlan(graph),
+        )
+    )
+    for i in list(graph.nodes()):
+        nodes.append(Node(i, net=deepcopy(net), router=deepcopy(router)))
+
     return nodes
