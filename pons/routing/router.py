@@ -13,6 +13,12 @@ class Router(object):
         self.capacity = capacity
         self.used = 0
         self.apps = apps
+        self.stats = {
+            "rx": 0,
+            "tx": 0,
+            "failed": 0,
+            "delivered": 0,
+        }
 
     def __str__(self):
         return "Router"
@@ -25,6 +31,7 @@ class Router(object):
         print("[ %f ] [%s : %s] ROUTER: %s" % (self.env.now, self.my_id, self, msg))
 
     def send(self, to_nid: int, msg: pons.Message):
+        self.stats["tx"] += 1
         self.netsim.nodes[self.my_id].send(self.netsim, to_nid, msg)
 
     def add(self, msg: pons.Message):
@@ -117,6 +124,7 @@ class Router(object):
         self.log("peer discovered: %d" % peer_id)
 
     def _on_msg_received(self, msg: pons.Message, remote_id: int):
+        self.stats["rx"] += 1
         # self.log("msg received: %s from %d" % (msg, remote_id))
         self.netsim.routing_stats["relayed"] += 1
         was_known = self.is_msg_known(msg)
@@ -124,7 +132,8 @@ class Router(object):
             self.remember(remote_id, msg)
             msg.hops += 1
             if msg.dst == self.my_id:
-                self.log("msg (%s) arrived on %s" % (msg.id, self.my_id))
+                # self.log("msg (%s) arrived on %s" % (msg.id, self.my_id))
+                self.stats["delivered"] += 1
                 self.netsim.routing_stats["delivered"] += 1
                 self.netsim.routing_stats["hops"] += msg.hops
                 self.netsim.routing_stats["latency"] += self.env.now - msg.created
