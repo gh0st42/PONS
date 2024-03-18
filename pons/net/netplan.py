@@ -81,11 +81,15 @@ class NetworkPlan(CommonContactPlan):
                 G.remove_node(n)
 
         # check if all node names are integers
-        if not all([isinstance(n, int) for n in G.nodes()]):
+        if all([isinstance(n, int) or n.isnumeric() for n in G.nodes()]):
+            print("Nodes are already integers")
+            mapping = {n: int(n) for n in G.nodes()}
+        else:
+            print("Renaming nodes")
             # rename all node names to integers corresponding to their index
             mapping = {n: i for i, n in enumerate(G.nodes())}
             print(mapping)
-            G = nx.relabel_nodes(G, mapping)
+        G = nx.relabel_nodes(G, mapping)
         plan = cls(G)
         plan.mapping = mapping
         return plan
