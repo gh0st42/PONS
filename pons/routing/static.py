@@ -61,12 +61,12 @@ class StaticRouter(Router):
         return "StaticRouter"
 
     def add(self, msg):
-        self.log("adding new msg to store %s" % msg)
+        # self.log("adding new msg to store %s" % msg)
         if self.store_add(msg):
             self.forward(msg)
 
     def forward(self, msg):
-        self.log("%s peers: %s" % (msg, self.peers))
+        # self.log("%s peers: %s" % (msg, self.peers))
         if msg.dst in self.peers and not self.msg_already_spread(msg, msg.dst):
             # self.log("sending directly to receiver")
             self.netsim.routing_stats["started"] += 1
@@ -79,7 +79,7 @@ class StaticRouter(Router):
 
         # check routing table
         for route in self.routes:
-            self.log("checking route %s" % route)
+            # self.log("checking route %s" % route)
             next_hop = route.get_next_hop(msg)
             if next_hop is not None:
                 # self.log("found route %s for %d" % (route, msg.dst))
@@ -100,7 +100,7 @@ class StaticRouter(Router):
             self.forward(msg)
 
     def on_msg_received(self, msg, remote_id, was_known: bool):
-        self.log("msg received: %s from %d" % (msg, remote_id))
+        # self.log("msg received: %s from %d" % (msg, remote_id))
         if not was_known and msg.dst != self.my_id:
             self.store_add(msg)
             # self.log("msg not arrived yet", self.my_id)

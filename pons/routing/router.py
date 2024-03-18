@@ -149,16 +149,16 @@ class Router(object):
         self.log("msg received: %s from %d" % (msg, remote_id))
 
     def remember(self, peer_id, msg: pons.Message):
-        if msg.id not in self.history:
-            self.history[msg.id] = set()
+        if msg.unique_id() not in self.history:
+            self.history[msg.unique_id()] = set()
 
-        self.history[msg.id].add(peer_id)
+        self.history[msg.unique_id()].add(peer_id)
 
     def is_msg_known(self, msg: pons.Message):
-        return msg.id in self.history
+        return msg.unique_id() in self.history
 
     def msg_already_spread(self, msg: pons.Message, remote_id):
-        if msg.id not in self.history:
+        if msg.unique_id() not in self.history:
             return False
 
-        return remote_id in self.history[msg.id]
+        return remote_id in self.history[msg.unique_id()]

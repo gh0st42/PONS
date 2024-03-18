@@ -39,7 +39,7 @@ class Message(object):
         self.metadata = metadata
 
     def __str__(self):
-        return "Message(%s, %d.%d, %d.%d, %d)" % (
+        return "Message(%s, src=%d.%d, dst=%d.%d, size=%d)" % (
             self.id,
             self.src,
             self.src_service,
@@ -47,6 +47,9 @@ class Message(object):
             self.dst_service,
             self.size,
         )
+
+    def unique_id(self) -> str:
+        return "%s-%d-%d" % (self.id, self.src, self.created)
 
     def is_expired(self, now):
         # print("is_expired: %d + %d > %d" % (self.created, self.ttl, now))
