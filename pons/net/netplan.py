@@ -69,15 +69,16 @@ class NetworkPlan(CommonContactPlan):
         from copy import deepcopy
 
         for n in deepcopy(G.nodes()):
-            if n.startswith("net_"):
+            if (
+                (isinstance(n, str) and n.startswith("net_"))
+                or str.upper(G.nodes[n].get("type", "node")) == "SWITCH"
+                or str.upper(G.nodes[n].get("type", "node")) == "NET"
+            ):
                 neighbors = list(G.neighbors(n))
                 for i in range(len(neighbors)):
                     for j in range(i + 1, len(neighbors)):
                         G.add_edge(neighbors[i], neighbors[j])
                 G.remove_node(n)
-        print("removed hub nodes")
-        print(G.nodes())
-        print(G.edges())
 
         # rename all node names to integers corresponding to their index
         mapping = {n: i for i, n in enumerate(G.nodes())}

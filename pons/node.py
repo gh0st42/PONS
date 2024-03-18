@@ -207,6 +207,12 @@ def generate_nodes_from_graph(
         )
     )
     for i in list(graph.nodes()):
+        if (
+            (isinstance(i, str) and i.startswith("net_"))
+            or str.upper(graph.nodes[i].get("type", "node")) == "SWITCH"
+            or str.upper(graph.nodes[i].get("type", "node")) == "NET"
+        ):
+            continue
         nodes.append(Node(i, net=deepcopy(net), router=deepcopy(router)))
 
     return nodes
