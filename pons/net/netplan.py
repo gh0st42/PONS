@@ -84,6 +84,11 @@ class NetworkPlan(CommonContactPlan):
         if all([isinstance(n, int) or n.isnumeric() for n in G.nodes()]):
             print("Nodes are already integers")
             mapping = {n: int(n) for n in G.nodes()}
+            for n in G.nodes:
+                name = G.nodes[n].get("name", None)
+                if name is not None:
+                    print("Mapping node %s to %d" % (name, int(n)))
+                    mapping[name] = int(n)
         else:
             print("Renaming nodes")
             # rename all node names to integers corresponding to their index
