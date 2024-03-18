@@ -80,10 +80,12 @@ class NetworkPlan(CommonContactPlan):
                         G.add_edge(neighbors[i], neighbors[j])
                 G.remove_node(n)
 
-        # rename all node names to integers corresponding to their index
-        mapping = {n: i for i, n in enumerate(G.nodes())}
-        print(mapping)
-        G = nx.relabel_nodes(G, mapping)
+        # check if all node names are integers
+        if not all([isinstance(n, int) for n in G.nodes()]):
+            # rename all node names to integers corresponding to their index
+            mapping = {n: i for i, n in enumerate(G.nodes())}
+            print(mapping)
+            G = nx.relabel_nodes(G, mapping)
         plan = cls(G)
         plan.mapping = mapping
         return plan
