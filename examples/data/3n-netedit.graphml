@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='utf-8'?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+  <key id="d3" for="node" attr.name="name" attr.type="string" />
+  <key id="d2" for="node" attr.name="type" attr.type="string" />
+  <key id="d1" for="node" attr.name="y" attr.type="double" />
+  <key id="d0" for="node" attr.name="x" attr.type="double" />
+  <graph edgedefault="undirected">
+    <node id="1">
+      <data key="d0">76.0</data>
+      <data key="d1">125.0</data>
+      <data key="d2">Host</data>
+      <data key="d3">n1</data>
+    </node>
+    <node id="2">
+      <data key="d0">186.0</data>
+      <data key="d1">125.0</data>
+      <data key="d2">Host</data>
+      <data key="d3">n2</data>
+    </node>
+    <node id="3">
+      <data key="d0">306.0</data>
+      <data key="d1">125.0</data>
+      <data key="d2">Host</data>
+      <data key="d3">n3</data>
+    </node>
+    <edge source="1" target="2" />
+    <edge source="2" target="3" />
+  </graph>
+</graphml>
