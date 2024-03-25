@@ -35,8 +35,14 @@ def message_event_generator(netsim, msggenconfig):
             yield env.timeout(msggenconfig["interval"])
         netsim.routing_stats["created"] += 1
         counter += 1
-        src = random.randint(msggenconfig["src"][0], msggenconfig["src"][1] - 1)
-        dst = random.randint(msggenconfig["dst"][0], msggenconfig["dst"][1] - 1)
+        if isinstance(msggenconfig["src"], tuple):
+            src = random.randint(msggenconfig["src"][0], msggenconfig["src"][1] - 1)
+        else:
+            src = msggenconfig["src"]
+        if isinstance(msggenconfig["dst"], tuple):
+            dst = random.randint(msggenconfig["dst"][0], msggenconfig["dst"][1] - 1)
+        else:
+            dst = msggenconfig["dst"]
         if isinstance(msggenconfig["size"], tuple):
             size = random.randint(msggenconfig["size"][0], msggenconfig["size"][1])
         else:
@@ -69,7 +75,10 @@ def message_burst_generator(netsim, msggenconfig):
         for src in range(msggenconfig["src"][0], msggenconfig["src"][1]):
             netsim.routing_stats["created"] += 1
             counter += 1
-            dst = random.randint(msggenconfig["dst"][0], msggenconfig["dst"][1] - 1)
+            if isinstance(msggenconfig["dst"], tuple):
+                dst = random.randint(msggenconfig["dst"][0], msggenconfig["dst"][1] - 1)
+            else:
+                dst = msggenconfig["dst"]
             if isinstance(msggenconfig["size"], tuple):
                 size = random.randint(msggenconfig["size"][0], msggenconfig["size"][1])
             else:
