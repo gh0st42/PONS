@@ -13,6 +13,7 @@ class NetworkPlan(CommonContactPlan):
         self, G: nx.Graph, contacts: Optional[CommonContactPlan] = None
     ) -> None:
         self.G = G
+        self.full_graph = deepcopy(G)
         self.set_contacts(contacts)
         self.mapping = {}
 
