@@ -22,6 +22,9 @@ class RouteEntry:
             self.src,
         )
 
+    def __repr__(self):
+        return str(self)
+
     def get_next_hop(self, msg: Message) -> Optional[int]:
         if isinstance(self.dst, str):
             if fnmatch.fnmatch(str(msg.dst), self.dst):

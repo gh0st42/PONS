@@ -198,15 +198,19 @@ def generate_nodes_from_graph(
     graph: nx.Graph,
     net: List[NetworkSettings] = None,
     router: Router = None,
+    contactplan: pons.net.ContactPlan = None,
 ):
     nodes = []
     if net == None:
         net = []
+
+    plan = pons.net.NetworkPlan(deepcopy(graph), contacts=contactplan)
+
     net.append(
         NetworkSettings(
             "networkplan-%d" % len(graph.nodes()),
             range=0,
-            contactplan=pons.net.NetworkPlan(graph),
+            contactplan=plan,
         )
     )
     for i in list(graph.nodes()):
