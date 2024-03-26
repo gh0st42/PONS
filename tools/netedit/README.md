@@ -13,7 +13,7 @@ $ docker build -t gh0st42/netedit .
 
 And then run it:
 ```
-$ docker run --rm -p 6080:6080 --name netedit -v $(pwd):/shared gh0st42/netedit
+$ docker run --rm -p 6080:6080 -p 5901:5901 --name netedit -v $(pwd):/shared gh0st42/netedit
 vnc://127.0.0.1:5901
 http://127.0.0.1:6080/vnc.html
 Password: netedit

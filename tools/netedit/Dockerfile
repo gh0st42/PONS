@@ -20,6 +20,9 @@ RUN mkdir -p /root/.vnc /data/netedit /shared && \
 COPY docker/entrypoint.sh /entrypoint.sh
 COPY docker/xstartup /root/.vnc/xstartup
 
+RUN touch /root/.Xresources
+RUN touch /root/.Xauthority
+
 COPY netedit-tk.py /data/netedit
 COPY gui /data/netedit/gui
 RUN ln -s /data/netedit/netedit-tk.py /usr/local/bin/netedit
