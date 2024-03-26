@@ -9,6 +9,13 @@ RUN \
   python3 python3-pip git python3-tk python3-networkx && \
   rm -rf /var/lib/apt/lists/*
 
+# HACK: get rid of lxpolkit error in VNC session
+RUN mv /usr/bin/lxpolkit /usr/bin/lxpolkit.bak
+
+# deactivate screensaver
+RUN sed -i -e "s/@xscreensaver -no-splash/@xset s off\n@xset -dpms\n@xset s noblank\n/g" /etc/xdg/lxsession/LXDE/autostart
+
+
 # Define working directory.
 WORKDIR /data
 
