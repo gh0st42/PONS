@@ -5,6 +5,7 @@ from pons.simulation import NetSim
 from .router import Router
 import networkx as nx
 import fnmatch
+import random
 
 
 class RouteEntry:
@@ -54,9 +55,16 @@ class StaticRouter(Router):
             for node in self.graph.nodes:
                 if node != my_id:
                     try:
-                        path = nx.shortest_path(self.graph, source=my_id, target=node)
-                        next_hop = path[1]
-                        self.routes.append(RouteEntry(dst=node, next_hop=next_hop))
+                        paths = nx.all_shortest_paths(
+                            self.graph, source=my_id, target=node
+                        )
+                        for path in paths:
+                            next_hop = path[1]
+                            self.routes.append(
+                                RouteEntry(
+                                    dst=node, next_hop=next_hop, hops=len(path) - 1
+                                )
+                            )
                     except nx.NetworkXNoPath:
                         pass
 
@@ -80,6 +88,7 @@ class StaticRouter(Router):
             self.store_del(msg)
             return
 
+        next_hops = []
         # check routing table
         for route in self.routes:
             # self.log("checking route %s" % route)
@@ -89,13 +98,20 @@ class StaticRouter(Router):
                 if next_hop in self.peers and not self.msg_already_spread(
                     msg, next_hop
                 ):
-                    # self.log("forwarding to next hop", route.next_hop)
-                    self.netsim.routing_stats["started"] += 1
-                    # self.netsim.env.process(
-                    self.send(next_hop, msg)
-                    # )
-                    self.remember(next_hop, msg)
-                    self.store_del(msg)
+                    next_hops.append(next_hop)
+
+        # self.log("num routes: %d %s" % (len(next_hops), next_hops))
+
+        # if more than one next hop is available pick a random one
+        if len(next_hops) > 0:
+            next_hop = random.choice(next_hops)
+            # self.log("forwarding to next hop: %d" % next_hop)
+            self.netsim.routing_stats["started"] += 1
+            # self.netsim.env.process(
+            self.send(next_hop, msg)
+            # )
+            self.remember(next_hop, msg)
+            self.store_del(msg)
 
     def on_peer_discovered(self, peer_id):
         # self.log("peer discovered: %d" % peer_id)
