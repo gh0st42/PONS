@@ -1,4 +1,5 @@
 from copy import copy
+import random
 import pons
 from pons.event_log import event_log
 
@@ -51,6 +52,7 @@ class PingApp(App):
         interval: float = 1.0,
         ttl: int = 3600,
         size: int = 1000,
+        rnd_start: bool = False,
     ):
         super().__init__(service)
         self.msgs_sent = 0
@@ -62,6 +64,7 @@ class PingApp(App):
         self.size = size
         self.dst = dst
         self.dst_service = dst_service
+        self.rnd_start = rnd_start
 
     def __str__(self):
         return "PingApp (%d, %d)" % (self.my_id, self.service)
@@ -76,20 +79,24 @@ class PingApp(App):
         if msg.id.startswith("ping-"):
             self.log("ping received: %s" % (msg.id))
             self.msgs_received += 1
-            content = {"id": msg.id, "start": msg.created, "end": self.netsim.env.now}
-            pong_msg = pons.Message(
-                msg.id.replace("ping", "pong"),
-                self.my_id,
-                msg.src,
-                msg.size,
-                self.netsim.env.now,
-                ttl=msg.ttl,
-                src_service=msg.dst_service,
-                dst_service=msg.src_service,
-                content=content,
-            )
-            self.netsim.routing_stats["created"] += 1
-            self.netsim.nodes[self.my_id].router.add(pong_msg)
+            if self.ttl > 0:
+                content = {
+                    "id": msg.id,
+                    "start": msg.created,
+                    "end": self.netsim.env.now,
+                }
+                pong_msg = pons.Message(
+                    msg.id.replace("ping", "pong"),
+                    self.my_id,
+                    msg.src,
+                    msg.size,
+                    self.netsim.env.now,
+                    ttl=msg.ttl,
+                    src_service=msg.dst_service,
+                    dst_service=msg.src_service,
+                    content=content,
+                )
+                self.send(pong_msg)
         elif msg.id.startswith("pong-"):
             now = self.netsim.env.now
             self.log(
@@ -101,8 +108,10 @@ class PingApp(App):
 
     def run(self):
         if self.interval > 0:
+            if self.rnd_start:
+                delay = random.random() * self.interval
+                yield self.netsim.env.timeout(delay)
             while True:
-                yield self.netsim.env.timeout(self.interval)
                 ping_msg = pons.Message(
                     "ping-%d" % self.msgs_sent,
                     self.my_id,
@@ -116,3 +125,4 @@ class PingApp(App):
                 self.log("sending ping %s" % ping_msg.id)
                 self.msgs_sent += 1
                 self.send(ping_msg)
+                yield self.netsim.env.timeout(self.interval)
