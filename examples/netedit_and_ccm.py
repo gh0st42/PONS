@@ -40,8 +40,8 @@ net = pons.NetworkSettings("networkplan", range=0, contactplan=plan)
 # static routing needs to be passed the full contact graph with all POSSIBLE edges
 static = pons.routing.StaticRouter(capacity=CAPACITY, graph=plan.full_graph)
 
-nodes = pons.generate_nodes_from_graph(plan.G, net=[net], router=static)
-config = {"movement_logger": False, "peers_logger": False}
+nodes = pons.generate_nodes_from_graph(plan.G, router=static, contactplan=plan2)
+config = {"movement_logger": False, "peers_logger": False, "event_logging": True}
 
 msggenconfig = {
     "type": "single",
