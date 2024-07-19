@@ -83,7 +83,7 @@ class CoreContact(object):
         if line.startswith("a contact"):
             line = line[9:].strip()
         fields = line.split()
-        print(fields, len(fields))
+        # print(fields, len(fields))
         if len(fields) != 8:
             raise ValueError("Invalid CoreContact line: %s" % line)
         timespan = (int(fields[0]), int(fields[1]))
@@ -165,7 +165,7 @@ class CoreContactPlan(object):
                 elif len(fields) > 4 and fields[0] == "a":
                     if fields[1] == "contact":
                         contact = CoreContact.from_string(line, mapping=mapping)
-                        print(contact)
+                        # print(contact)
                         contacts.append(contact)
         self.contacts = contacts
 
