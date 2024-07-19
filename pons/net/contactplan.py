@@ -18,6 +18,9 @@ class CommonContactPlan(object):
     ) -> float:
         raise NotImplementedError()
 
+    def at(self, time: int) -> List[CoreContact]:
+        raise NotImplementedError()
+
 
 class CoreContact(object):
     def __init__(
@@ -63,7 +66,12 @@ class CoreContact(object):
             fields[3] = int(fields[3])
 
         nodes = (fields[2], fields[3])
-        bw = int(fields[4])
+        bw = int(
+            fields[4]
+            .replace("mbit", "000000")
+            .replace("kbit", "000")
+            .replace("gbit", "000000000")
+        )
         loss = float(fields[5])
         delay = int(fields[6])
         jitter = int(fields[7])

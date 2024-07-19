@@ -1,16 +1,17 @@
 PONS - Python Opportunistic Network Simulator
 ===
 
-A simple DTN simulator in the style of [the ONE](https://github.com/akeranen/the-one).
+A modular DTN simulator in the style of [the ONE](https://github.com/akeranen/the-one).
 
 Features:
-- simple distance-based network simulation
+- distance- or contact-window-based network simulation
 - DTN routing algorithms
   - epidemic
   - spray & wait
   - first contact
   - direct delivery
   - PRoPHET
+  - static
 - mobility
   - random waypoint
   - external ONE movement
@@ -22,6 +23,9 @@ Features:
   - optionally: from graphml
   - optionally: fluctuating from contact plan
 - simulated user applications
+- tools
+  - `netedit-tk` for generating graphml topologies
+  - `netreplay` for generating animated gifs from graphml topologies with a contact plan
 
 ## Requirements
 

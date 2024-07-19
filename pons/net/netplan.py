@@ -2,6 +2,7 @@ from __future__ import annotations
 from copy import deepcopy
 
 import networkx as nx
+import sys
 
 from typing import TYPE_CHECKING, List, Tuple, Optional
 
@@ -22,7 +23,10 @@ class NetworkPlan(CommonContactPlan):
         self.contacts = contacts
         if contacts is not None:
             for c in self.contacts.all_contacts():
-                self.G.remove_edge(c[0], c[1])
+                try:
+                    self.G.remove_edge(c[0], c[1])
+                except nx.NetworkXError:
+                    print("WARNING: Edge %s not in graph" % str(c), file=sys.stderr)
 
     def __str__(self) -> str:
         return "NetworkPlan(%s)" % (self.G)
@@ -62,6 +66,16 @@ class NetworkPlan(CommonContactPlan):
 
     def connections(self) -> List[Tuple[int, int]]:
         return list(self.G.edges())
+
+    def connections_at_time(self, time: float) -> List[Tuple[int, int]]:
+        static_links = list(self.G.edges())
+        if self.contacts is None:
+            return static_links
+        else:
+            dyn_links = self.contacts.at(time)
+            # convert to list of tuples with node ids
+            dyn_links = [l.nodes for l in dyn_links]
+            return static_links + dyn_links
 
     @classmethod
     def from_graphml(cls, filename) -> NetworkPlan:
