@@ -1,4 +1,5 @@
 event_log_fh = None
+event_filter = []
 
 
 def open_log(filename: str = "/tmp/events.log"):
@@ -8,6 +9,11 @@ def open_log(filename: str = "/tmp/events.log"):
 
 def event_log(ts: float, category: str, msg: str):
     global event_log_fh
+    global event_filter
+
+    for f in event_filter:
+        if f == category:
+            return
 
     if event_log_fh is not None:
         event_log_fh.write("[ %f ] [%s] %s\n" % (ts, category, msg))

@@ -2,6 +2,7 @@ import time
 from typing import List, Dict
 
 from pons.event_log import event_log, open_log, close_log
+import pons.event_log
 import simpy
 
 import pons
@@ -87,6 +88,8 @@ class NetSim(object):
             if self.config.get("event_logging", False):
                 open_log()
 
+            pons.event_log.event_filter = self.config.get("event_filter", [])
+
         for n in self.nodes.values():
             # print("-> start node %d w/ %d apps" % (n.id, len(n.apps)))
             n.start(self)
@@ -144,7 +147,7 @@ class NetSim(object):
             next_event -= total
 
     def run(self):
-        print("run simulation")
+        print("== running simulation for %d seconds ==" % self.duration)
 
         all_contactplans = set()
 
