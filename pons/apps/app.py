@@ -26,7 +26,9 @@ class App(object):
 
     def _on_msg_received(self, msg: pons.Message):
         event_log(
-            self.netsim.env.now, "APP", "RX %d %s" % (self.my_id, msg.unique_id())
+            self.netsim.env.now,
+            "APP",
+            {"src": "RX", "id": self.my_id, "msg": msg.unique_id()},
         )
         self.on_msg_received(msg)
 
@@ -35,7 +37,7 @@ class App(object):
         event_log(
             self.netsim.env.now,
             "APP",
-            "TX %d -> %d : %s" % (self.my_id, msg.dst, msg.unique_id()),
+            {"src": "TX", "src": self.my_id, "dst": msg.dst, "msg": msg.unique_id()},
         )
         self.netsim.nodes[self.my_id].router.add(msg)
 

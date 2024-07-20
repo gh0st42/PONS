@@ -137,9 +137,9 @@ class NetSim(object):
             # print(len(events), "events at", total, ":", events)
             for e in events:
                 if e.timespan[0] == total:
-                    event_log(total, "LINK", f"UP | {e.nodes}")
+                    event_log(total, "LINK", {"event": "UP", "nodes": e.nodes})
                 if e.timespan[1] == total:
-                    event_log(total, "LINK", f"DOWN | {e.nodes}")
+                    event_log(total, "LINK", {"event": "DOWN", "nodes": e.nodes})
 
             next_event = contactplan.next_event(total)
             if next_event is None or next_event > self.duration:
@@ -155,7 +155,14 @@ class NetSim(object):
             event_log(
                 0,
                 "CONFIG",
-                f"START | {n.id} {n.x},{n.y} | {n.router.capacity} {n.router.used}",
+                {
+                    "event": "START",
+                    "id": n.id,
+                    "x": n.x,
+                    "y": n.y,
+                    "capacity": n.router.capacity,
+                    "used": n.router.used,
+                },
             )
             for net in n.net.values():
                 net.start(self)
