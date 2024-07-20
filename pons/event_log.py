@@ -2,6 +2,11 @@ event_log_fh = None
 event_filter = []
 
 
+def is_logging() -> bool:
+    global event_log_fh
+    return event_log_fh is not None
+
+
 def open_log(filename: str = "/tmp/events.log"):
     global event_log_fh
     event_log_fh = open(filename, "w")
