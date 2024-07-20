@@ -123,6 +123,9 @@ class CoreContactPlan(object):
         self.contacts = contacts
         if filename:
             self.load(filename, mapping=mapping)
+        self.max_time = max([c.timespan[1] for c in self.contacts])
+        self.last_at = -1
+        self.last_cache = []
 
     @classmethod
     def from_file(cls, filename, mapping: Dict[str, int] = {}) -> CoreContactPlan:
@@ -174,17 +177,32 @@ class CoreContactPlan(object):
         # remove duplicates
         return list(set(all))
 
+    def clean(self, time: int) -> None:
+        self.contacts = [c for c in self.contacts if c.timespan[1] >= time]
+
     def at(self, time: int) -> List[CoreContact]:
         """Returns the list of contacts at the given time."""
         # orig = time
         # if self.loop:
         #     time = time % (math.floor(self.get_max_time() + 0.5))
+        if time == self.last_at:
+            # print("cache hit", time, self.last_at)
+            return self.last_cache
+
+        # print("cache miss", time, self.last_at)
+        self.last_at = time
 
         contacts = [
             c for c in self.contacts if time >= c.timespan[0] and time <= c.timespan[1]
         ]
+        self.last_cache = contacts
 
         # print("at: %d (%d) %s" % (time, orig, [str(c) for c in contacts]))
+        tenth_time = self.get_max_time() / 10
+        # check if time is a multiple of 10% of the max time
+        if time % tenth_time == 0:
+            self.clean(time)
+
         return contacts
 
     def next_event(self, time: int) -> Optional[int]:
@@ -208,7 +226,7 @@ class CoreContactPlan(object):
 
     def get_max_time(self) -> int:
         """Returns the maximum time in the contact plan."""
-        return max([c.timespan[1] for c in self.contacts])
+        return self.max_time
 
     def has_contact(self, simtime: float, node1: int, node2: int) -> bool:
         current_contacts = self.at(simtime)

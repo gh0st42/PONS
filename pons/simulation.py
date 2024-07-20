@@ -1,7 +1,7 @@
 import time
 from typing import List, Dict
 
-from pons.event_log import event_log, open_log, close_log
+from pons.event_log import event_log, open_log, close_log, is_logging
 import pons.event_log
 import simpy
 
@@ -120,6 +120,8 @@ class NetSim(object):
 
     def contact_logger(self, contactplan):
         """Start a contact logger."""
+        if not is_logging():
+            return
         print("start contact logger: ", type(contactplan))
         if contactplan is None:
             print("No contact plan")
