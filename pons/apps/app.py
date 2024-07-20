@@ -15,6 +15,7 @@ class App(object):
         return str(self)
 
     def log(self, msg):
+        return
         print(
             "[ %f ] [%s.%d] APP: %s"
             % (self.netsim.env.now, self.my_id, self.service, msg)
@@ -28,7 +29,7 @@ class App(object):
         event_log(
             self.netsim.env.now,
             "APP",
-            {"src": "RX", "id": self.my_id, "msg": msg.unique_id()},
+            {"event": "RX", "id": self.my_id, "msg": msg.unique_id()},
         )
         self.on_msg_received(msg)
 
@@ -37,7 +38,7 @@ class App(object):
         event_log(
             self.netsim.env.now,
             "APP",
-            {"src": "TX", "src": self.my_id, "dst": msg.dst, "msg": msg.unique_id()},
+            {"event": "TX", "src": self.my_id, "dst": msg.dst, "msg": msg.unique_id()},
         )
         self.netsim.nodes[self.my_id].router.add(msg)
 
