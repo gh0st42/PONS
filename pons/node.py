@@ -169,6 +169,7 @@ class Node(object):
             if from_nid in self.neighbors[net.name]:
                 # self.log("Node %d received msg %s from %d" % (self.id, msg.id, from_nid))
                 netsim.net_stats["rx"] += 1
+                netsim.nodes[from_nid].router._on_tx_succeeded(msg.unique_id(), self.id)
                 if self.router is not None:
                     if msg.id == "HELLO":
                         self.router.on_scan_received(deepcopy(msg), from_nid)
@@ -178,6 +179,7 @@ class Node(object):
                 # print("Node %d received msg %s from %d (not neighbor)" %
                 #      (to_nid, msg, from_nid))
                 netsim.net_stats["drop"] += 1
+                netsim.nodes[from_nid].router._on_tx_failed(msg.unique_id(), self.id)
 
 
 def generate_nodes(

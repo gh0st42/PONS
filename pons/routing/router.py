@@ -110,6 +110,19 @@ class Router(object):
 
             yield self.env.timeout(self.scan_interval)
 
+    def _on_tx_failed(self, msg_id: str, remote_id: int):
+        self.stats["failed"] += 1
+        self.on_tx_failed(msg_id, remote_id)
+
+    def on_tx_failed(self, msg_id: str, remote_id: int):
+        pass
+
+    def _on_tx_succeeded(self, msg_id: str, remote_id: int):
+        self.on_tx_succeeded(msg_id, remote_id)
+
+    def on_tx_succeeded(self, msg_id: str, remote_id: int):
+        pass
+
     def on_scan_received(self, msg: pons.Message, remote_id: int):
         # self.log("[%s] scan received: %s from %d" %
         #         (self.my_id, msg, remote_id))
@@ -153,6 +166,10 @@ class Router(object):
             self.history[msg.unique_id()] = set()
 
         self.history[msg.unique_id()].add(peer_id)
+
+    def forget(self, peer_id, msg: pons.Message):
+        if msg.unique_id() in self.history:
+            self.history[msg.unique_id()].remove(peer_id)
 
     def is_msg_known(self, msg: pons.Message):
         return msg.unique_id() in self.history
