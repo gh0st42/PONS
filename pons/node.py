@@ -132,14 +132,28 @@ class Node(object):
                             netsim.env, receiver.on_recv(netsim, self.id, msg), tx_time
                         )
                         pons.simulation.event_log(
-                            netsim.env.now, "NET", f"TX {self.id} {msg.id} {nid}"
+                            netsim.env.now,
+                            "NET",
+                            {
+                                "event": "TX",
+                                "id": self.id,
+                                "msg": msg.unique_id(),
+                                "to": nid,
+                            },
                         )
                     else:
                         # self.log("packet loss: %s to %d" %
                         # (msg.id, to_nid))
                         netsim.net_stats["loss"] += 1
                         pons.simulation.event_log(
-                            netsim.env.now, "NET", f"LOST {self.id} {msg.id} {nid}"
+                            netsim.env.now,
+                            "NET",
+                            {
+                                "event": "LOST",
+                                "id": self.id,
+                                "msg": msg.unique_id(),
+                                "to": nid,
+                            },
                         )
                         # pass
             else:
@@ -157,7 +171,14 @@ class Node(object):
                         receiver = netsim.nodes[to_nid]
                         netsim.net_stats["tx"] += 1
                         pons.simulation.event_log(
-                            netsim.env.now, "NET", f"TX {self.id} {msg.id} {to_nid}"
+                            netsim.env.now,
+                            "NET",
+                            {
+                                "event": "TX",
+                                "id": self.id,
+                                "msg": msg.unique_id(),
+                                "to": to_nid,
+                            },
                         )
                         start_delayed(
                             netsim.env, receiver.on_recv(netsim, self.id, msg), tx_time
@@ -167,7 +188,14 @@ class Node(object):
                         # (msg.id, to_nid))
                         netsim.net_stats["loss"] += 1
                         pons.simulation.event_log(
-                            netsim.env.now, "NET", f"LOST {self.id} {msg.id} {to_nid}"
+                            netsim.env.now,
+                            "NET",
+                            {
+                                "event": "LOST",
+                                "id": self.id,
+                                "msg": msg.unique_id(),
+                                "to": to_nid,
+                            },
                         )
                         # pass
 
@@ -184,7 +212,14 @@ class Node(object):
                 netsim.net_stats["rx"] += 1
                 netsim.nodes[from_nid].router._on_tx_succeeded(msg.unique_id(), self.id)
                 pons.simulation.event_log(
-                    netsim.env.now, "NET", f"RX {self.id} {msg.id} {from_nid}"
+                    netsim.env.now,
+                    "NET",
+                    {
+                        "event": "RX",
+                        "id": self.id,
+                        "msg": msg.unique_id(),
+                        "from": from_nid,
+                    },
                 )
                 if self.router is not None:
                     if msg.id == "HELLO":
@@ -197,7 +232,14 @@ class Node(object):
                 netsim.net_stats["drop"] += 1
                 netsim.nodes[from_nid].router._on_tx_failed(msg.unique_id(), self.id)
                 pons.simulation.event_log(
-                    netsim.env.now, "NET", f"RX_FAIL {self.id} {msg.id} {from_nid}"
+                    netsim.env.now,
+                    "NET",
+                    {
+                        "event": "RX_FAIL",
+                        "id": self.id,
+                        "msg": msg.unique_id(),
+                        "to": from_nid,
+                    },
                 )
 
 

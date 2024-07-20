@@ -35,7 +35,9 @@ class Router(object):
         self.stats["tx"] += 1
         self.netsim.nodes[self.my_id].send(self.netsim, to_nid, msg)
         event_log(
-            self.env.now, "ROUTER", "TX %d -> %d : %s" % (self.my_id, to_nid, msg)
+            self.env.now,
+            "ROUTER",
+            {"event": "TX", "src": self.my_id, "dst": to_nid, "msg": msg.unique_id()},
         )
 
     def add(self, msg: pons.Message):
@@ -55,8 +57,13 @@ class Router(object):
         event_log(
             self.env.now,
             "STORE",
-            "ADDED %d %s %d / %d"
-            % (self.my_id, msg.unique_id(), self.used, self.capacity),
+            {
+                "event": "ADDED",
+                "id": self.my_id,
+                "msg": msg.unique_id(),
+                "used": self.used,
+                "capacity": self.capacity,
+            },
         )
         return True
 
@@ -66,8 +73,13 @@ class Router(object):
         event_log(
             self.env.now,
             "STORE",
-            "REMOVED %d %s %d / %d"
-            % (self.my_id, msg.unique_id(), self.used, self.capacity),
+            {
+                "event": "REMOVED",
+                "id": self.my_id,
+                "msg": msg.unique_id(),
+                "used": self.used,
+                "capacity": self.capacity,
+            },
         )
 
     def store_cleanup(self):
@@ -154,7 +166,14 @@ class Router(object):
 
     def _on_msg_received(self, msg: pons.Message, remote_id: int):
         event_log(
-            self.env.now, "ROUTER", "RX %d <- %d : %s" % (self.my_id, remote_id, msg)
+            self.env.now,
+            "ROUTER",
+            {
+                "event": "RX",
+                "dst": self.my_id,
+                "src": remote_id,
+                "msg": msg.unique_id(),
+            },
         )
         self.stats["rx"] += 1
         # self.log("msg received: %s from %d" % (msg, remote_id))
