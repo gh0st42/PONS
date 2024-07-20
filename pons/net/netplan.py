@@ -18,6 +18,24 @@ class NetworkPlan(CommonContactPlan):
         self.set_contacts(contacts)
         self.mapping = {}
 
+    def next_event(self, time: int) -> int | None:
+        if self.contacts is not None:
+            return self.contacts.next_event(time)
+        return None
+
+    def __eq__(self, value: object) -> bool:
+        if self.G != value.G:
+            return False
+        if self.contacts != value.contacts:
+            return False
+        return True
+
+    def __hash__(self) -> int:
+        contacts_hash = 0
+        if self.contacts is not None:
+            contacts_hash = hash(tuple(self.contacts.all_contacts()))
+        return contacts_hash
+
     # set the contact plan and remove all edges that are in the contact plan from the static graph
     def set_contacts(self, contacts: CommonContactPlan) -> None:
         self.contacts = contacts

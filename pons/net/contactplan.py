@@ -1,4 +1,5 @@
 from __future__ import annotations
+import math
 
 from typing import TYPE_CHECKING, Dict, List, Tuple, Optional
 
@@ -21,6 +22,15 @@ class CommonContactPlan(object):
     def at(self, time: int) -> List[CoreContact]:
         raise NotImplementedError()
 
+    def next_event(self, time: int) -> Optional[int]:
+        raise NotImplementedError()
+
+    def __eq__(self, value: object) -> bool:
+        raise NotImplementedError()
+
+    def __hash__(self) -> int:
+        raise NotImplementedError()
+
 
 class CoreContact(object):
     def __init__(
@@ -39,6 +49,28 @@ class CoreContact(object):
         self.delay = delay
         self.jitter = jitter
 
+    def __eq__(self, value: object) -> bool:
+        if not isinstance(value, CoreContact):
+            return False
+        if self.timespan != value.timespan:
+            return False
+        if self.nodes != value.nodes:
+            return False
+        if self.bw != value.bw:
+            return False
+        if self.loss != value.loss:
+            return False
+        if self.delay != value.delay:
+            return False
+        if self.jitter != value.jitter:
+            return False
+        return True
+
+    def __hash__(self) -> int:
+        return hash(
+            (self.timespan, self.nodes, self.bw, self.loss, self.delay, self.jitter)
+        )
+
     def __str__(self) -> str:
         return (
             "CoreContact(timespan=%r, nodes=%r, bw=%d, loss=%f, delay=%f, jitter=%f)"
@@ -51,7 +83,7 @@ class CoreContact(object):
         if line.startswith("a contact"):
             line = line[9:].strip()
         fields = line.split()
-        print(fields, len(fields))
+        # print(fields, len(fields))
         if len(fields) != 8:
             raise ValueError("Invalid CoreContact line: %s" % line)
         timespan = (int(fields[0]), int(fields[1]))
@@ -97,6 +129,21 @@ class CoreContactPlan(object):
         plan = cls(filename, mapping=mapping)
         return plan
 
+    def __eq__(self, value: object) -> bool:
+        if not isinstance(value, CoreContactPlan):
+            return False
+        if self.loop != value.loop:
+            return False
+        if len(self.contacts) != len(value.contacts):
+            return False
+        for i in range(len(self.contacts)):
+            if self.contacts[i] != value.contacts[i]:
+                return False
+        return True
+
+    def __hash__(self) -> int:
+        return hash((self.loop, tuple(self.contacts)))
+
     def __str__(self) -> str:
         return "CoreContactPlan(loop=%r, #contacts=%d)" % (
             self.loop,
@@ -118,7 +165,7 @@ class CoreContactPlan(object):
                 elif len(fields) > 4 and fields[0] == "a":
                     if fields[1] == "contact":
                         contact = CoreContact.from_string(line, mapping=mapping)
-                        print(contact)
+                        # print(contact)
                         contacts.append(contact)
         self.contacts = contacts
 
@@ -129,14 +176,27 @@ class CoreContactPlan(object):
 
     def at(self, time: int) -> List[CoreContact]:
         """Returns the list of contacts at the given time."""
-        orig = time
-        if self.loop:
-            time = time % self.get_max_time()
+        # orig = time
+        # if self.loop:
+        #     time = time % (math.floor(self.get_max_time() + 0.5))
+
         contacts = [
-            c for c in self.contacts if c.timespan[0] <= time and c.timespan[1] >= time
+            c for c in self.contacts if time >= c.timespan[0] and time <= c.timespan[1]
         ]
+
         # print("at: %d (%d) %s" % (time, orig, [str(c) for c in contacts]))
         return contacts
+
+    def next_event(self, time: int) -> Optional[int]:
+        # orig = time
+        # if self.loop:
+        # time = time % self.get_max_time()
+        nexts_1 = [c.timespan[0] for c in self.contacts if c.timespan[0] > time]
+        nexts_2 = [c.timespan[1] for c in self.contacts if c.timespan[1] > time]
+        nexts = nexts_1 + nexts_2
+        if len(nexts) == 0:
+            return None
+        return min(nexts)
 
     # def next_deactivation(self, time : int) -> Optional[int]:
     #   """Returns the next deactivation time.
@@ -220,6 +280,21 @@ class ContactPlan(CommonContactPlan):
                     bw_or_range = bw_or_range * 299792458
                 contacts.append((param1, t_range, node1, node2, bw_or_range))
         return ContactPlan(filename, contacts)
+
+    def __eq__(self, value: object) -> bool:
+        if not isinstance(value, ContactPlan):
+            return False
+        if self.name != value.name:
+            return False
+        if len(self.contacts) != len(value.contacts):
+            return False
+        for i in range(len(self.contacts)):
+            if self.contacts[i] != value.contacts[i]:
+                return False
+        return True
+
+    def __hash__(self) -> int:
+        return hash((self.name, tuple(self.contacts)))
 
     def all_contacts(self) -> List[Tuple[int, int]]:
         all = [(c[2], c[3]) for c in self.contacts]

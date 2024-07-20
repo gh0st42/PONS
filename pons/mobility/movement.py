@@ -4,6 +4,7 @@ from typing import Dict
 import simpy
 
 from pons.node import Node
+from pons.simulation import event_log
 
 
 class OneMovement(object):
@@ -77,6 +78,7 @@ class OneMovementManager(object):
         node.x = x
         node.y = y
         node.z = z
+        event_log(time, "MOVE", f"{node_id} {x},{y},{z}")
 
         # move all nodes with same timestamp
         while self.move_idx < len(self.moves):
@@ -88,6 +90,7 @@ class OneMovementManager(object):
                 node.x = x
                 node.y = y
                 node.z = z
+                event_log(time, "MOVE", f"{node_id} {x},{y},{z}")
             else:
                 self.env.process(self.move_next(next_time, node_id, x, y, z))
                 break

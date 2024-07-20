@@ -28,7 +28,7 @@ net = pons.NetworkSettings("WIFI", range=NET_RANGE)
 epidemic = pons.routing.EpidemicRouter()
 
 nodes = pons.generate_nodes(NUM_NODES, net=[net], router=epidemic)
-config = {"movement_logger": False, "peers_logger": False}
+config = {"movement_logger": False, "peers_logger": False, "event_logging": True}
 
 msggenconfig = {
     "type": "burst",

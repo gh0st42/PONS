@@ -1,5 +1,6 @@
 from copy import copy
 import pons
+from pons.event_log import event_log
 
 HELLO_MSG_SIZE = 42
 
@@ -33,6 +34,9 @@ class Router(object):
     def send(self, to_nid: int, msg: pons.Message):
         self.stats["tx"] += 1
         self.netsim.nodes[self.my_id].send(self.netsim, to_nid, msg)
+        event_log(
+            self.env.now, "ROUTER", "TX %d -> %d : %s" % (self.my_id, to_nid, msg)
+        )
 
     def add(self, msg: pons.Message):
         self.store_add(msg)
@@ -48,11 +52,23 @@ class Router(object):
             # self.log("store cleaned up, made room for msg %s" % msg.id)
         self.store.append(msg)
         self.used += msg.size
+        event_log(
+            self.env.now,
+            "STORE",
+            "ADDED %d %s %d / %d"
+            % (self.my_id, msg.unique_id(), self.used, self.capacity),
+        )
         return True
 
     def store_del(self, msg: pons.Message):
         self.used -= msg.size
         self.store.remove(msg)
+        event_log(
+            self.env.now,
+            "STORE",
+            "REMOVED %d %s %d / %d"
+            % (self.my_id, msg.unique_id(), self.used, self.capacity),
+        )
 
     def store_cleanup(self):
         # [self.store_del(msg)
@@ -137,6 +153,9 @@ class Router(object):
         self.log("peer discovered: %d" % peer_id)
 
     def _on_msg_received(self, msg: pons.Message, remote_id: int):
+        event_log(
+            self.env.now, "ROUTER", "RX %d <- %d : %s" % (self.my_id, remote_id, msg)
+        )
         self.stats["rx"] += 1
         # self.log("msg received: %s from %d" % (msg, remote_id))
         self.netsim.routing_stats["relayed"] += 1
@@ -152,7 +171,7 @@ class Router(object):
                 self.netsim.routing_stats["latency"] += self.env.now - msg.created
                 for app in self.apps:
                     if app.service == msg.dst_service:
-                        app.on_msg_received(msg)
+                        app._on_msg_received(msg)
         else:
             # self.log("msg already known", self.history)
             self.netsim.routing_stats["dups"] += 1

@@ -3,6 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import List
 import pons
+import sys
 
 from pons.net.common import BROADCAST_ADDR, NetworkSettings
 from simpy.util import start_delayed
@@ -130,10 +131,16 @@ class Node(object):
                         start_delayed(
                             netsim.env, receiver.on_recv(netsim, self.id, msg), tx_time
                         )
+                        pons.simulation.event_log(
+                            netsim.env.now, "NET", f"TX {self.id} {msg.id} {nid}"
+                        )
                     else:
                         # self.log("packet loss: %s to %d" %
                         # (msg.id, to_nid))
                         netsim.net_stats["loss"] += 1
+                        pons.simulation.event_log(
+                            netsim.env.now, "NET", f"LOST {self.id} {msg.id} {nid}"
+                        )
                         # pass
             else:
                 if to_nid in self.neighbors[net.name]:
@@ -149,6 +156,9 @@ class Node(object):
                         # self.log("sending msg %s to %d" % (msg, to_nid))
                         receiver = netsim.nodes[to_nid]
                         netsim.net_stats["tx"] += 1
+                        pons.simulation.event_log(
+                            netsim.env.now, "NET", f"TX {self.id} {msg.id} {to_nid}"
+                        )
                         start_delayed(
                             netsim.env, receiver.on_recv(netsim, self.id, msg), tx_time
                         )
@@ -156,6 +166,9 @@ class Node(object):
                         # self.log("packet loss: %s to %d" %
                         # (msg.id, to_nid))
                         netsim.net_stats["loss"] += 1
+                        pons.simulation.event_log(
+                            netsim.env.now, "NET", f"LOST {self.id} {msg.id} {to_nid}"
+                        )
                         # pass
 
                 else:
@@ -170,6 +183,9 @@ class Node(object):
                 # self.log("Node %d received msg %s from %d" % (self.id, msg.id, from_nid))
                 netsim.net_stats["rx"] += 1
                 netsim.nodes[from_nid].router._on_tx_succeeded(msg.unique_id(), self.id)
+                pons.simulation.event_log(
+                    netsim.env.now, "NET", f"RX {self.id} {msg.id} {from_nid}"
+                )
                 if self.router is not None:
                     if msg.id == "HELLO":
                         self.router.on_scan_received(deepcopy(msg), from_nid)
@@ -180,6 +196,9 @@ class Node(object):
                 #      (to_nid, msg, from_nid))
                 netsim.net_stats["drop"] += 1
                 netsim.nodes[from_nid].router._on_tx_failed(msg.unique_id(), self.id)
+                pons.simulation.event_log(
+                    netsim.env.now, "NET", f"RX_FAIL {self.id} {msg.id} {from_nid}"
+                )
 
 
 def generate_nodes(
@@ -206,15 +225,16 @@ def generate_nodes_from_graph(
     if net == None:
         net = []
 
-    plan = pons.net.NetworkPlan(deepcopy(graph), contacts=contactplan)
+    if contactplan is not None:
+        plan = pons.net.NetworkPlan(deepcopy(graph), contacts=contactplan)
 
-    net.append(
-        NetworkSettings(
-            "networkplan-%d" % len(graph.nodes()),
-            range=0,
-            contactplan=plan,
+        net.append(
+            NetworkSettings(
+                "networkplan-%d" % len(graph.nodes()),
+                range=0,
+                contactplan=plan,
+            )
         )
-    )
     for i in list(graph.nodes()):
         if (
             (isinstance(i, str) and i.startswith("net_"))

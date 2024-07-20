@@ -1,10 +1,13 @@
 import time
 from typing import List, Dict
 
+from pons.event_log import event_log, open_log, close_log
+import pons.event_log
 import simpy
 
 import pons
 from pons.node import Node
+from pons.event_log import event_log
 
 
 class NetSim(object):
@@ -17,7 +20,7 @@ class NetSim(object):
         nodes: List[Node],
         movements=[],
         msggens=None,
-        config=None,
+        config={},
     ):
         self.env = simpy.Environment()
         self.duration = duration
@@ -69,17 +72,23 @@ class NetSim(object):
                 print(node.neighbors)
 
     def setup(self):
-        print("initialize simulation")
+        print("initialize simulation: ", self.config)
 
         if self.movements is not None and len(self.movements) > 0:
             print("-> start movement manager")
             self.mover.start()
 
-        if self.config is not None and self.config.get("movement_logger", True):
-            self.env.process(self.start_movement_logger())
+        if self.config is not None:
+            if self.config.get("movement_logger", True):
+                self.env.process(self.start_movement_logger())
 
-        if self.config is not None and self.config.get("peers_logger", True):
-            self.env.process(self.start_peers_logger())
+            if self.config.get("peers_logger", True):
+                self.env.process(self.start_peers_logger())
+
+            if self.config.get("event_logging", False):
+                open_log()
+
+            pons.event_log.event_filter = self.config.get("event_filter", [])
 
         for n in self.nodes.values():
             # print("-> start node %d w/ %d apps" % (n.id, len(n.apps)))
@@ -109,8 +118,55 @@ class NetSim(object):
                     return True
         return False
 
+    def contact_logger(self, contactplan):
+        """Start a contact logger."""
+        print("start contact logger: ", type(contactplan))
+        if contactplan is None:
+            print("No contact plan")
+            return
+        next_event = contactplan.next_event(0)
+        if next_event is None:
+            print("No events in contact plan")
+            return
+
+        total = 0
+        while True:
+            yield self.env.timeout(next_event)
+            total += next_event
+            events = contactplan.at(total)
+            # print(len(events), "events at", total, ":", events)
+            for e in events:
+                if e.timespan[0] == total:
+                    event_log(total, "LINK", f"UP | {e.nodes}")
+                if e.timespan[1] == total:
+                    event_log(total, "LINK", f"DOWN | {e.nodes}")
+
+            next_event = contactplan.next_event(total)
+            if next_event is None or next_event > self.duration:
+                break
+            next_event -= total
+
     def run(self):
-        print("run simulation")
+        print("== running simulation for %d seconds ==" % self.duration)
+
+        all_contactplans = set()
+
+        for n in self.nodes.values():
+            event_log(
+                0,
+                "CONFIG",
+                f"START | {n.id} {n.x},{n.y} | {n.router.capacity} {n.router.used}",
+            )
+            for net in n.net.values():
+                net.start(self)
+                if net.contactplan is not None and net.contactplan.contacts is not None:
+                    all_contactplans.add(net.contactplan.contacts)
+
+        for cp in all_contactplans:
+            print(cp)
+            self.env.process(self.contact_logger(cp))
+        print("global number of unique contact plans: ", len(all_contactplans))
+
         start_real = time.time()
         last_real = start_real
         last_sim = 0.0
@@ -180,3 +236,5 @@ class NetSim(object):
         # delete entry "hops" and "latency" from routing_stats as they are only used for calculating the average
         del self.routing_stats["hops"]
         del self.routing_stats["latency"]
+
+        close_log()
