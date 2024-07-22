@@ -63,10 +63,14 @@ class Node(object):
     def __init__(
         self,
         node_id: int,
+        node_name: str = "",
         net: List[NetworkSettings] = None,
         router: pons.routing.Router = None,
     ):
         self.id = node_id
+        self.name = node_name
+        if self.name == "":
+            self.name = "n%d" % self.id
         self.x = 0.0
         self.y = 0.0
         self.z = 0.0
@@ -81,14 +85,20 @@ class Node(object):
             self.neighbors[net.name] = []
 
     def __str__(self):
-        return "Node(%d, %.02f, %.02f, %.02f)" % (self.id, self.x, self.y, self.z)
+        return "Node(%d (%s), %.02f, %.02f, %.02f)" % (
+            self.id,
+            self.name,
+            self.x,
+            self.y,
+            self.z,
+        )
 
     def log(self, msg: str):
         if self.netsim is not None:
             now = self.netsim.env.now
         else:
             now = 0
-        print("[ %f ] [%d] NET: %s" % (now, self.id, msg))
+        print("[ %f ] [ %d | %s ] NET: %s" % (now, self.id, self.name, msg))
 
     def start(self, netsim: pons.NetSim):
         self.netsim = netsim
@@ -277,13 +287,21 @@ def generate_nodes_from_graph(
                 contactplan=plan,
             )
         )
-    for i in list(graph.nodes()):
+    for i, data in list(graph.nodes().data()):
         if (
             (isinstance(i, str) and i.startswith("net_"))
             or str.upper(graph.nodes[i].get("type", "node")) == "SWITCH"
             or str.upper(graph.nodes[i].get("type", "node")) == "NET"
         ):
             continue
-        nodes.append(Node(i, net=deepcopy(net), router=deepcopy(router)))
+        node_name = data.get("name", "")
+        n = Node(i, node_name=node_name, net=deepcopy(net), router=deepcopy(router))
+        if data.get("x") is not None:
+            n.x = float(data.get("x"))
+        if data.get("y") is not None:
+            n.y = float(data.get("y"))
+        if data.get("z") is not None:
+            n.z = float(data.get("z"))
+        nodes.append(n)
 
     return nodes
