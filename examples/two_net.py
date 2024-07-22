@@ -55,7 +55,12 @@ msggenconfig = {
 }
 
 netsim = pons.NetSim(
-    SIM_TIME, WORLD_SIZE, nodes, moves, config=config, msggens=[msggenconfig]
+    SIM_TIME,
+    nodes,
+    world_size=WORLD_SIZE,
+    movements=moves,
+    config=config,
+    msggens=[msggenconfig],
 )
 
 netsim.setup()

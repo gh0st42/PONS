@@ -40,15 +40,11 @@ ping_receiver = pons.apps.PingApp(dst=0, interval=-1, ttl=3600, size=PING_SIZE)
 nodes[0].router.apps = [ping_sender]
 nodes[1].router.apps = [ping_receiver]
 
-
-# msggenconfig = {"type": "single", "interval": 30, "src": [0,1], "dst": [1,2], "size": 100, "id": "M", "ttl": 3600}
-
-netsim = pons.NetSim(SIM_TIME, WORLD_SIZE, nodes, None, config=config)
+netsim = pons.NetSim(SIM_TIME, nodes, world_size=WORLD_SIZE, config=config)
 
 netsim.setup()
 
-# m = pons.Message("MSG1", 1, 2, 100, 0)
-# pons.delayed_execution(netsim.env, 0, nodes[0].router.add(m))
+
 # cProfile.run("netsim.run()")
 netsim.run()
 

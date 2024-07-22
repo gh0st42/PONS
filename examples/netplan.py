@@ -16,7 +16,6 @@ RANDOM_SEED = 42
 # SIM_TIME = 3600*24*7
 SIM_TIME = 3600
 NUM_NODES = 4
-WORLD_SIZE = (1000, 1000)
 CAPACITY = 10000
 # CAPACITY = 0
 random.seed(RANDOM_SEED)
@@ -49,9 +48,7 @@ msggenconfig = {
     "ttl": 3600,
 }
 
-netsim = pons.NetSim(
-    SIM_TIME, WORLD_SIZE, nodes, [], config=config, msggens=[msggenconfig]
-)
+netsim = pons.NetSim(SIM_TIME, nodes, config=config, msggens=[msggenconfig])
 
 netsim.setup()
 netsim.run()
@@ -87,9 +84,7 @@ msggenconfig = {
 }
 
 
-netsim = pons.NetSim(
-    SIM_TIME, WORLD_SIZE, nodes, [], config=config, msggens=[msggenconfig]
-)
+netsim = pons.NetSim(SIM_TIME, nodes, config=config, msggens=[msggenconfig])
 
 netsim.setup()
 netsim.run()

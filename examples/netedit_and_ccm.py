@@ -13,7 +13,6 @@ import pons.routing
 
 
 RANDOM_SEED = 42
-WORLD_SIZE = (1000, 1000)
 CAPACITY = 10000
 # CAPACITY = 0
 random.seed(RANDOM_SEED)
@@ -54,9 +53,7 @@ msggenconfig = {
 }
 
 
-netsim = pons.NetSim(
-    SIM_TIME, WORLD_SIZE, nodes, [], config=config, msggens=[msggenconfig]
-)
+netsim = pons.NetSim(SIM_TIME, nodes, config=config, msggens=[msggenconfig])
 
 netsim.setup()
 netsim.run()

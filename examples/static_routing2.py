@@ -28,26 +28,32 @@ topo.add_node(3)
 topo.add_edge(1, 2)
 topo.add_edge(2, 3)
 
+plan = pons.net.NetworkPlan(topo)
+net = pons.NetworkSettings("networkplan", range=0, contactplan=plan)
 
 # alternative: use the graph to calculate the routes
 # and generate nodes from
 nodes = pons.generate_nodes_from_graph(
-    topo, router=pons.routing.StaticRouter(capacity=CAPACITY, graph=topo)
+    topo,
+    router=pons.routing.StaticRouter(capacity=CAPACITY, graph=topo),
+    net=[net],
 )
-print(nodes)
 
-config = {"movement_logger": False, "peers_logger": False}
+config = {"movement_logger": False, "peers_logger": False, "event_logging": True}
+
+netsim = pons.NetSim(SIM_TIME, nodes, world_size=WORLD_SIZE, config=config)
 
 ping_sender = pons.apps.PingApp(dst=3, interval=10, ttl=3600, size=100)
 # interval = -1 means receive only and never send a ping, only pong
 ping_receiver = pons.apps.PingApp(dst=1, interval=-1, ttl=3600, size=100)
 
-nodes[0].router.apps = [ping_sender]
-nodes[2].router.apps = [ping_receiver]
-
-netsim = pons.NetSim(SIM_TIME, WORLD_SIZE, nodes, [], config=config)
+netsim.install_app(1, ping_sender)
+netsim.install_app(3, ping_receiver)
 
 netsim.setup()
+for n in nodes:
+    print(n, n.router.routes)
+
 netsim.run()
 
 print(json.dumps(netsim.net_stats, indent=4))

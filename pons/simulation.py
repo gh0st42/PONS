@@ -1,5 +1,6 @@
 import time
-from typing import List, Dict
+from typing import List, Dict, Tuple
+from copy import deepcopy
 
 from pons.event_log import event_log, open_log, close_log, is_logging
 import pons.event_log
@@ -16,18 +17,19 @@ class NetSim(object):
     def __init__(
         self,
         duration: int,
-        world,
         nodes: List[Node],
+        world_size: Tuple[int, int] = (0, 0),
         movements=[],
         msggens=None,
         config={},
+        name_to_id_map: Dict[str, int] = {},
     ):
         self.env = simpy.Environment()
         self.duration = duration
         # convert list from Node to dict with id as key
         self.nodes = {n.id: n for n in nodes}
         # self.nodes = nodes
-        self.world = world
+        self.world = world_size
         self.movements = movements
         self.msggens = msggens
         self.config = config
@@ -51,7 +53,21 @@ class NetSim(object):
         }
         self.router_stats = {}
 
+        self.name_to_id_map = name_to_id_map
+        if len(self.name_to_id_map) == 0:
+            for n in self.nodes.values():
+                self.name_to_id_map[n.name] = n.id
+
+        if self.world == (0, 0):
+            self.world = (
+                max(n.x for n in self.nodes.values()) + 50,
+                max(n.y for n in self.nodes.values()) + 50,
+            )
+
         self.mover = pons.OneMovementManager(self.env, self.nodes, self.movements)
+
+    def get_id_by_name(self, name):
+        return self.name_to_id_map.get(name, -1)
 
     def start_movement_logger(self, interval=1.0):
         """Start a movement logger."""
@@ -118,6 +134,12 @@ class NetSim(object):
                     return True
         return False
 
+    def install_app(self, node, app):
+        if isinstance(node, str):
+            node = self.get_id_by_name(node)
+
+        self.nodes[node].router.apps.append(deepcopy(app))
+
     def contact_logger(self, contactplan):
         """Start a contact logger."""
         if not is_logging():
@@ -169,7 +191,10 @@ class NetSim(object):
             for net in n.net.values():
                 net.start(self)
                 if net.contactplan is not None and net.contactplan.contacts is not None:
-                    all_contactplans.add(net.contactplan.contacts)
+                    if isinstance(net.contactplan.contacts, list):
+                        all_contactplans.add(tuple(net.contactplan.contacts))
+                    else:
+                        all_contactplans.add(net.contactplan.contacts)
 
         for cp in all_contactplans:
             print(cp)

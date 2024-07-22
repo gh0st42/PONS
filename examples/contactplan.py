@@ -47,9 +47,7 @@ msggenconfig = {
     "ttl": 3600,
 }
 
-netsim = pons.NetSim(
-    SIM_TIME, WORLD_SIZE, nodes, [], config=config, msggens=[msggenconfig]
-)
+netsim = pons.NetSim(SIM_TIME, nodes, WORLD_SIZE, config=config, msggens=[msggenconfig])
 
 netsim.setup()
 netsim.run()

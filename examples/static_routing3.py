@@ -40,11 +40,17 @@ topo.add_edge(1, 5)
 topo.add_edge(5, 6)
 topo.add_edge(6, 4)
 
+plan = pons.net.NetworkPlan(topo)
+
+print(plan.nodes())
+print(plan.connections())
+
+net = pons.NetworkSettings("networkplan", range=0, contactplan=plan)
 
 # alternative: use the graph to calculate the routes
 # and generate nodes from
 nodes = pons.generate_nodes_from_graph(
-    topo, router=pons.routing.StaticRouter(capacity=CAPACITY, graph=topo)
+    topo, router=pons.routing.StaticRouter(capacity=CAPACITY, graph=topo), net=[net]
 )
 print(nodes)
 
@@ -57,7 +63,7 @@ ping_receiver = pons.apps.PingApp(dst=1, interval=-1, ttl=3600, size=100)
 nodes[0].router.apps = [ping_sender]
 nodes[3].router.apps = [ping_receiver]
 
-netsim = pons.NetSim(SIM_TIME, WORLD_SIZE, nodes, [], config=config)
+netsim = pons.NetSim(SIM_TIME, nodes, world_size=WORLD_SIZE, config=config)
 
 netsim.setup()
 print(nodes[0].router.routes)
