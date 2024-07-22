@@ -1,10 +1,10 @@
 import time
-from typing import List, Dict, Tuple
+from typing import List, Dict, Optional, Tuple
 from copy import deepcopy
 
 from pons.event_log import event_log, open_log, close_log, is_logging
 import pons.event_log
-import simpy
+from simpy import Environment
 
 import pons
 from pons.node import Node
@@ -19,19 +19,25 @@ class NetSim(object):
         duration: int,
         nodes: List[Node],
         world_size: Tuple[int, int] = (0, 0),
-        movements=[],
-        msggens=None,
-        config={},
-        name_to_id_map: Dict[str, int] = {},
+        movements: Optional[list] = None,
+        msggens: Optional[list] = None,
+        config: Optional[dict] = None,
+        name_to_id_map: Optional[Dict[str, int]] = None,
     ):
-        self.env = simpy.Environment()
+        self.env = Environment()
         self.duration = duration
         # convert list from Node to dict with id as key
         self.nodes = {n.id: n for n in nodes}
         # self.nodes = nodes
         self.world = world_size
+        if movements is None:
+            movements = []
         self.movements = movements
+        if msggens is None:
+            msggens = []
         self.msggens = msggens
+        if config is None:
+            config = {}
         self.config = config
 
         self.net_stats = {"tx": 0, "rx": 0, "drop": 0, "loss": 0}
@@ -53,6 +59,8 @@ class NetSim(object):
         }
         self.router_stats = {}
 
+        if name_to_id_map is None:
+            name_to_id_map = {}
         self.name_to_id_map = name_to_id_map
         if len(self.name_to_id_map) == 0:
             for n in self.nodes.values():

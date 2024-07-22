@@ -6,13 +6,15 @@ HELLO_MSG_SIZE = 42
 
 
 class Router(object):
-    def __init__(self, scan_interval=2.0, capacity=0, apps=[]):
+    def __init__(self, scan_interval=2.0, capacity=0, apps=None):
         self.scan_interval = scan_interval
         self.peers = []
         self.history = {}
         self.store = []
         self.capacity = capacity
         self.used = 0
+        if apps is None:
+            apps = []
         self.apps = apps
         self.stats = {
             "rx": 0,

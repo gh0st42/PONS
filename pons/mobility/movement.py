@@ -1,20 +1,25 @@
 import random
 import math
 from typing import Dict
-import simpy
+from dataclasses import dataclass
 
 from pons.node import Node
 from pons.simulation import event_log
 
 
+@dataclass
 class OneMovement(object):
     """A The ONE movement file."""
 
-    def __init__(self, duration, num_nodes, width, height, moves=[]):
+    def __init__(
+        self, duration: float, num_nodes: int, width: int, height: int, moves=None
+    ):
         self.duration = duration
         self.num_nodes = num_nodes
         self.width = width
         self.height = height
+        if moves is None:
+            moves = []
         self.moves = moves
 
     def __str__(self):
@@ -140,7 +145,7 @@ def generate_randomwaypoint_movement(
                 y += step_y
                 moves.append((cur_time, i, x, y, z))
 
-    # sort movees by time and node id
+    # sort moves by time and node id
     moves.sort(key=lambda x: (x[0], x[1]))
 
     return moves

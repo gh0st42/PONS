@@ -1,5 +1,5 @@
 from __future__ import annotations
-import math
+from dataclasses import dataclass
 
 from typing import TYPE_CHECKING, Dict, List, Tuple, Optional
 
@@ -32,44 +32,14 @@ class CommonContactPlan(object):
         raise NotImplementedError()
 
 
+@dataclass(frozen=True)
 class CoreContact(object):
-    def __init__(
-        self,
-        timespan: Tuple[int, int],
-        nodes: Tuple[int, int],
-        bw: int,
-        loss: float,
-        delay: float,
-        jitter: float,
-    ) -> None:
-        self.timespan = timespan
-        self.nodes = nodes
-        self.bw = bw
-        self.loss = loss
-        self.delay = delay
-        self.jitter = jitter
-
-    def __eq__(self, value: object) -> bool:
-        if not isinstance(value, CoreContact):
-            return False
-        if self.timespan != value.timespan:
-            return False
-        if self.nodes != value.nodes:
-            return False
-        if self.bw != value.bw:
-            return False
-        if self.loss != value.loss:
-            return False
-        if self.delay != value.delay:
-            return False
-        if self.jitter != value.jitter:
-            return False
-        return True
-
-    def __hash__(self) -> int:
-        return hash(
-            (self.timespan, self.nodes, self.bw, self.loss, self.delay, self.jitter)
-        )
+    timespan: Tuple[int, int]
+    nodes: Tuple[int, int]
+    bw: int
+    loss: float
+    delay: float
+    jitter: float
 
     def __str__(self) -> str:
         return (
@@ -78,7 +48,11 @@ class CoreContact(object):
         )
 
     @classmethod
-    def from_string(cls, line: str, mapping: Dict[str, int] = {}) -> "CoreContact":
+    def from_string(
+        cls, line: str, mapping: Optional[Dict[str, int]] = None
+    ) -> "CoreContact":
+        if mapping is None:
+            mapping = {}
         line = line.strip()
         if line.startswith("a contact"):
             line = line[9:].strip()
@@ -116,11 +90,15 @@ class CoreContactPlan(object):
     def __init__(
         self,
         filename: str = None,
-        contacts: List[CoreContact] = {},
-        mapping: Dict[str, int] = {},
+        contacts: Optional[List[CoreContact]] = None,
+        mapping: Optional[Dict[str, int]] = None,
     ) -> None:
         self.loop = False
+        if contacts is None:
+            contacts = []
         self.contacts = contacts
+        if mapping is None:
+            mapping = {}
         if filename:
             self.load(filename, mapping=mapping)
         self.max_time = max([c.timespan[1] for c in self.contacts])
@@ -128,7 +106,11 @@ class CoreContactPlan(object):
         self.last_cache = []
 
     @classmethod
-    def from_file(cls, filename, mapping: Dict[str, int] = {}) -> CoreContactPlan:
+    def from_file(
+        cls, filename, mapping: Optional[Dict[str, int]] = None
+    ) -> CoreContactPlan:
+        if mapping is None:
+            mapping = {}
         plan = cls(filename, mapping=mapping)
         return plan
 
@@ -153,7 +135,9 @@ class CoreContactPlan(object):
             len(self.contacts),
         )
 
-    def load(self, filename: str, mapping: Dict[str, int] = {}) -> None:
+    def load(self, filename: str, mapping: Optional[Dict[str, int]] = None) -> None:
+        if mapping is None:
+            mapping = {}
         contacts = []
         with open(filename, "r") as f:
             for line in f:
@@ -263,15 +247,19 @@ class CoreContactPlan(object):
 class ContactPlan(CommonContactPlan):
     """A ContactPlan file."""
 
-    def __init__(self, name: str, contacts=[]):
+    def __init__(self, name: str, contacts=None):
         self.name = name
+        if contacts is None:
+            self.contacts = []
         self.contacts = contacts
 
     def __str__(self):
         return "ContactPlan(%s, %d)" % (self.name, len(self.contacts))
 
     @classmethod
-    def from_file(cls, filename, mapping: Dict[str, int] = {}):
+    def from_file(cls, filename, mapping: Optional[Dict[str, int]] = None):
+        if mapping is None:
+            mapping = {}
         contacts = []
         with open(filename, "r") as f:
             lines = f.readlines()

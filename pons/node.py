@@ -3,58 +3,12 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import List
 import pons
-import sys
+from pons.message import Message
 
 from pons.net.common import BROADCAST_ADDR, NetworkSettings
 from simpy.util import start_delayed
 import networkx as nx
-
-
-class Message(object):
-    """A message."""
-
-    def __init__(
-        self,
-        msgid: str,
-        src: int,
-        dst: int,
-        size: int,
-        created,
-        hops=0,
-        ttl=3600,
-        src_service: int = 0,
-        dst_service: int = 0,
-        content={},
-        metadata={},
-    ):
-        self.id = msgid
-        self.src = src
-        self.dst = dst
-        self.size = size
-        self.created = created
-        self.hops = hops
-        self.ttl = ttl
-        self.src_service = src_service
-        self.dst_service = dst_service
-        self.content = content
-        self.metadata = metadata
-
-    def __str__(self):
-        return "Message(%s, src=%d.%d, dst=%d.%d, size=%d)" % (
-            self.id,
-            self.src,
-            self.src_service,
-            self.dst,
-            self.dst_service,
-            self.size,
-        )
-
-    def unique_id(self) -> str:
-        return "%s-%d-%d" % (self.id, self.src, self.created)
-
-    def is_expired(self, now):
-        # print("is_expired: %d + %d > %d" % (self.created, self.ttl, now))
-        return now - self.created > self.ttl
+from dataclasses import dataclass
 
 
 class Node(object):

@@ -5,8 +5,10 @@ import math
 
 
 class SprayAndWaitRouter(Router):
-    def __init__(self, copies=7, binary=False, scan_interval=2.0):
-        super(SprayAndWaitRouter, self).__init__(scan_interval)
+    def __init__(
+        self, copies=7, binary=False, scan_interval=2.0, capacity=0, apps=None
+    ):
+        super(SprayAndWaitRouter, self).__init__(scan_interval, capacity, apps)
         self.store = []
         self.copies = copies
         self.binary = binary

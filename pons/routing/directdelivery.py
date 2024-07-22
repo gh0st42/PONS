@@ -2,8 +2,8 @@ from .router import Router
 
 
 class DirectDeliveryRouter(Router):
-    def __init__(self, scan_interval=2.0, capacity=0):
-        super(DirectDeliveryRouter, self).__init__(scan_interval, capacity)
+    def __init__(self, scan_interval=2.0, capacity=0, apps=None):
+        super(DirectDeliveryRouter, self).__init__(scan_interval, capacity, apps=apps)
 
     def __str__(self):
         return "DirectDeliveryRouter"

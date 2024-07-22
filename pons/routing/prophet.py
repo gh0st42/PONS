@@ -39,8 +39,10 @@ class PRoPHETRouter(Router):
     Implements the PRoPHET Router
     """
 
-    def __init__(self, scan_interval=2.0, capacity=0, config: PRoPHETConfig = None):
-        super().__init__(scan_interval, capacity)
+    def __init__(
+        self, scan_interval=2.0, capacity=0, config: PRoPHETConfig = None, apps=None
+    ):
+        super().__init__(scan_interval, capacity, apps=apps)
         self.store = []
         self.predictabilities = {}
         self.config = PRoPHETConfig() if config is None else config

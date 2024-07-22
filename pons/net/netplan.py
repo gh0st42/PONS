@@ -96,7 +96,7 @@ class NetworkPlan(CommonContactPlan):
             return static_links + dyn_links
 
     @classmethod
-    def from_graphml(cls, filename) -> NetworkPlan:
+    def from_graphml(cls, filename: str) -> NetworkPlan:
         G = nx.read_graphml(filename)
         # if there are nodes starting with net_ remove them and directly add edges between their adjacent nodes
         from copy import deepcopy

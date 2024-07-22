@@ -2,8 +2,8 @@ from .router import Router
 
 
 class FirstContactRouter(Router):
-    def __init__(self, scan_interval=2.0):
-        super(FirstContactRouter, self).__init__(scan_interval)
+    def __init__(self, scan_interval=2.0, capacity=0, apps=None):
+        super(FirstContactRouter, self).__init__(scan_interval, capacity, apps)
         self.store = []
 
     def __str__(self):

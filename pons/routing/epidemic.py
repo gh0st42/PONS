@@ -2,7 +2,7 @@ from .router import Router
 
 
 class EpidemicRouter(Router):
-    def __init__(self, scan_interval=2.0, capacity=0, apps=[]):
+    def __init__(self, scan_interval=2.0, capacity=0, apps=None):
         super(EpidemicRouter, self).__init__(scan_interval, capacity, apps)
 
     def __str__(self):

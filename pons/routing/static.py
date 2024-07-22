@@ -1,6 +1,6 @@
 from typing import List, Optional
 from pons.node import Message
-
+from dataclasses import dataclass
 from pons.simulation import NetSim
 from .router import Router
 import networkx as nx
@@ -8,15 +8,15 @@ import fnmatch
 import random
 
 
+@dataclass
 class RouteEntry:
-    def __init__(self, dst, next_hop, hops=None, src=None):
-        self.dst = dst
-        self.next_hop = next_hop
-        self.hops = hops
-        self.src = src
+    dst: str
+    next_hop: int
+    hops: Optional[int] = None
+    src: Optional[str] = None
 
     def __str__(self):
-        return "RouteEntry(dst=%s, next_hop=%d, hops=%s, src=%s)" % (
+        return "RouteEntry(dst=%s, next_hop=%d, hops=%d, src=%s)" % (
             self.dst,
             self.next_hop,
             self.hops,
@@ -39,12 +39,14 @@ class RouteEntry:
 class StaticRouter(Router):
     def __init__(
         self,
-        routes: List[RouteEntry] = [],
+        routes: Optional[List[RouteEntry]] = None,
         graph: nx.Graph = None,
         scan_interval=2.0,
         capacity=0,
     ):
         super(StaticRouter, self).__init__(scan_interval, capacity)
+        if routes is None:
+            routes = []
         self.routes = routes
         self.graph = graph
 
