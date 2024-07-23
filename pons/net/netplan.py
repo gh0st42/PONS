@@ -18,6 +18,18 @@ class NetworkPlan(CommonContactPlan):
         self.set_contacts(contacts)
         self.mapping = {}
 
+    def active_links_at(self, time: int) -> List[Tuple[int, int]]:
+        contacts = []
+        if self.contacts is not None:
+            for c in self.contacts.at(time):
+                contacts.append(c.nodes)
+        for e in self.G.edges():
+            contacts.append(e)
+        return contacts
+
+    def fixed_links(self) -> List[Tuple[int, int]]:
+        return self.G.edges()
+
     def next_event(self, time: int) -> int | None:
         if self.contacts is not None:
             return self.contacts.next_event(time)

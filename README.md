@@ -25,7 +25,7 @@ Features:
 - simulated user applications
 - tools
   - `netedit-tk` for generating graphml topologies
-  - `netreplay` for generating animated gifs from graphml topologies with a contact plan
+  - `netreplay` for generating animated gifs from graphml topologies with a contact plan or event logs
 
 ## Requirements
 
@@ -36,6 +36,9 @@ Features:
   - pandas
   - matplotlib
   - numpy
+- tools:
+  - pillow
+  - tkinter
 
 
 ## Example
@@ -63,7 +66,7 @@ net = pons.NetworkSettings("NET1", range=NET_RANGE)
 epidemic = pons.routing.EpidemicRouter()
 
 nodes = pons.generate_nodes(NUM_NODES, net=[net], router=epidemic)
-config = {"movement_logger": False, "peers_logger": False}
+config = {"movement_logger": False, "peers_logger": False, "event_logger": True}
 
 msggenconfig = {"type": "single", "interval": 30, 
   "src": (0, NUM_NODES), "dst": (0, NUM_NODES), 

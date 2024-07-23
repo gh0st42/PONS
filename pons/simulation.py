@@ -11,6 +11,37 @@ from pons.node import Node
 from pons.event_log import event_log
 
 
+def printProgressBar(
+    iteration,
+    total,
+    prefix="",
+    suffix="",
+    decimals=1,
+    length=100,
+    fill="█",
+    printEnd="\r",
+):
+    """
+    Call in a loop to create terminal progress bar
+    @params:
+        iteration   - Required  : current iteration (Int)
+        total       - Required  : total iterations (Int)
+        prefix      - Optional  : prefix string (Str)
+        suffix      - Optional  : suffix string (Str)
+        decimals    - Optional  : positive number of decimals in percent complete (Int)
+        length      - Optional  : character length of bar (Int)
+        fill        - Optional  : bar fill character (Str)
+        printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
+    """
+    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+    filledLength = int(length * iteration // total)
+    bar = fill * filledLength + "-" * (length - filledLength)
+    print(f"\r{prefix} |{bar}| {percent}% {suffix}", end=printEnd)
+    # Print New Line on Complete
+    if iteration == total:
+        print()
+
+
 class NetSim(object):
     """A network simulator."""
 
@@ -190,6 +221,7 @@ class NetSim(object):
                 {
                     "event": "START",
                     "id": n.id,
+                    "name": n.name,
                     "x": n.x,
                     "y": n.y,
                     "capacity": n.router.capacity,
@@ -213,14 +245,40 @@ class NetSim(object):
         last_real = start_real
         last_sim = 0.0
 
-        if not self.using_contactplan():
+        if self.using_contactplan():
+            contacts = set()
+            for n in self.nodes.values():
+                n.add_all_neighbors(self.env.now, self.nodes.values())
+                for net in n.net.values():
+                    contacts.update(net.contactplan.fixed_links())
+
+                # print(
+                #     "node %f %d: %d %d"
+                #     % (
+                #         self.env.now,
+                #         n.id,
+                #         len(n.net[list(n.net.keys())[0]].contactplan.at(0)),
+                #         len(n.neighbors[list(n.neighbors.keys())[0]]),
+                #     )
+                # )
+            print("global number of unique contacts: ", len(contacts), contacts)
+            for c in contacts:
+                event_log(
+                    0,
+                    "LINK",
+                    {
+                        "event": "SET",
+                        "node1": c[0],
+                        "node2": c[1],
+                    },
+                )
+
+        else:
             now_sim = self.env.now
             for n in self.nodes.values():
                 n.calc_neighbors(now_sim, self.nodes.values())
-        else:
-            for n in self.nodes.values():
-                n.add_all_neighbors(self.env.now, self.nodes.values())
 
+        print("")
         while self.env.now < self.duration + 1.0:
             # self.env.run(until=self.duration)
             now_sim = self.env.now
@@ -231,15 +289,23 @@ class NetSim(object):
             if diff > 60:
                 rate = (now_sim - last_sim) / diff
                 print(
-                    "simulated %d seconds in %d seconds (%.2f x real time)"
+                    "\n\nsimulated %d seconds in %d seconds (%.2f x real time)"
                     % (now_sim - last_sim, diff, rate)
                 )
                 print(
                     "real: %f, sim: %d rate: %.02f steps/s"
                     % (now_real - start_real, now_sim, rate)
                 )
+                print()
                 last_real = now_real
                 last_sim = now_sim
+            printProgressBar(
+                now_sim,
+                self.duration,
+                prefix="Progress:",
+                suffix="Complete",
+                length=50,
+            )
 
         # self.env.run(until=self.duration)
         now_real = time.time()
