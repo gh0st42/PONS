@@ -2,11 +2,16 @@ import random
 import json
 import sys
 
-sys.path.append("..")
+import pathlib
 
-# import cProfile
+SCRIPT_DIR = pathlib.Path(__file__).parent.resolve()
+try:
+    import pons
+except ImportError:
+    sys.path.append(str(SCRIPT_DIR.parent.resolve()))
+    import pons
+SCRIPT_DIR = str(SCRIPT_DIR)
 
-import pons
 import pons.routing
 
 
@@ -21,7 +26,7 @@ CAPACITY = 10000
 print("Python Opportunistic Network Simulator")
 
 # plan = pons.ContactPlan.from_file("data/contactPlan_simple.txt")
-plan = pons.CoreContactPlan.from_file("data/simple.ccm")
+plan = pons.CoreContactPlan.from_file(SCRIPT_DIR + "/data/simple.ccm")
 
 print(plan.get_max_time())
 
@@ -57,7 +62,7 @@ print(json.dumps(netsim.routing_stats, indent=4))
 SIM_TIME = 120
 NUM_NODES = 3
 
-plan = pons.CoreContactPlan.from_file("data/3n.ccm")
+plan = pons.CoreContactPlan.from_file(SCRIPT_DIR + "/data/3n.ccm")
 
 random.seed(RANDOM_SEED)
 

@@ -3,11 +3,16 @@ import json
 
 import sys
 
-sys.path.append("..")
+import pathlib
 
-# import cProfile
+SCRIPT_DIR = pathlib.Path(__file__).parent.resolve()
+try:
+    import pons
+except ImportError:
+    sys.path.append(str(SCRIPT_DIR.parent.resolve()))
+    import pons
+SCRIPT_DIR = str(SCRIPT_DIR)
 
-import pons
 import pons.routing
 
 RANDOM_SEED = 42
@@ -23,7 +28,9 @@ CAPACITY = 10000
 print("Python Opportunistic Network Simulator")
 random.seed(RANDOM_SEED)
 
-mov = pons.Ns2Movement.from_file("../tests/mobility/ns2_example_0_3600_18_3035.txt")
+mov = pons.Ns2Movement.from_file(
+    SCRIPT_DIR + "/../tests/mobility/ns2_example_0_3600_18_3035.txt"
+)
 moves = mov.moves
 SIM_TIME = mov.end
 # moves = pons.generate_randomwaypoint_movement(

@@ -2,11 +2,16 @@ import random
 import json
 import sys
 
-sys.path.append("..")
+import pathlib
 
-# import cProfile
+SCRIPT_DIR = pathlib.Path(__file__).parent.resolve()
+try:
+    import pons
+except ImportError:
+    sys.path.append(str(SCRIPT_DIR.parent.resolve()))
+    import pons
+SCRIPT_DIR = str(SCRIPT_DIR)
 
-import pons
 import pons.routing
 
 RANDOM_SEED = 42

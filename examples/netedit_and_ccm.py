@@ -4,11 +4,16 @@ import sys
 import networkx as nx
 import sys
 
-sys.path.append("..")
+import pathlib
 
-# import cProfile
+SCRIPT_DIR = pathlib.Path(__file__).parent.resolve()
+try:
+    import pons
+except ImportError:
+    sys.path.append(str(SCRIPT_DIR.parent.resolve()))
+    import pons
+SCRIPT_DIR = str(SCRIPT_DIR)
 
-import pons
 import pons.routing
 
 
@@ -25,12 +30,14 @@ NUM_NODES = 3
 # plan = pons.net.NetworkPlan.from_graphml("data/3n-exported.graphml")
 
 # 3n netedit is mapped from node IDs 1 to 3
-plan = pons.net.NetworkPlan.from_graphml("data/3n-netedit.graphml")
+plan = pons.net.NetworkPlan.from_graphml(SCRIPT_DIR + "/data/3n-netedit.graphml")
 
 print(plan.nodes())
 print(plan.connections())
 
-plan2 = pons.CoreContactPlan.from_file("data/3n-exported.ccm", plan.mapping)
+plan2 = pons.CoreContactPlan.from_file(
+    SCRIPT_DIR + "/data/3n-exported.ccm", plan.mapping
+)
 plan.set_contacts(plan2)
 
 net = pons.NetworkSettings("networkplan", range=0, contactplan=plan)

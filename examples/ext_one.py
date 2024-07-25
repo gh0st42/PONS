@@ -5,9 +5,16 @@ import simpy
 import json
 import sys
 
-sys.path.append("..")
+import pathlib
 
-import pons
+SCRIPT_DIR = pathlib.Path(__file__).parent.resolve()
+try:
+    import pons
+except ImportError:
+    sys.path.append(str(SCRIPT_DIR.parent.resolve()))
+    import pons
+SCRIPT_DIR = str(SCRIPT_DIR)
+
 import pons.routing
 
 RANDOM_SEED = 42
@@ -20,7 +27,7 @@ WORLD_SIZE = (1000, 1000)
 print("Python Opportunistic Network Simulator")
 random.seed(RANDOM_SEED)
 
-moves = pons.OneMovement.from_file("data/movements.one")
+moves = pons.OneMovement.from_file(SCRIPT_DIR + "/data/movements.one")
 
 print(moves)
 

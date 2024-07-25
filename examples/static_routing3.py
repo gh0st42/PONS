@@ -5,9 +5,16 @@ import networkx as nx
 import sys
 
 
-sys.path.append("..")
+import pathlib
 
-import pons
+SCRIPT_DIR = pathlib.Path(__file__).parent.resolve()
+try:
+    import pons
+except ImportError:
+    sys.path.append(str(SCRIPT_DIR.parent.resolve()))
+    import pons
+SCRIPT_DIR = str(SCRIPT_DIR)
+
 import pons.routing
 from pons.routing.static import RouteEntry
 

@@ -2,13 +2,16 @@ import random
 import json
 import sys
 
-import sys
+import pathlib
 
-sys.path.append("..")
+SCRIPT_DIR = pathlib.Path(__file__).parent.resolve()
+try:
+    import pons
+except ImportError:
+    sys.path.append(str(SCRIPT_DIR.parent.resolve()))
+    import pons
+SCRIPT_DIR = str(SCRIPT_DIR)
 
-# import cProfile
-
-import pons
 import pons.routing
 
 
@@ -22,7 +25,7 @@ CAPACITY = 10000
 
 print("Python Opportunistic Network Simulator")
 
-plan = pons.ContactPlan.from_file("data/contactPlan_simple.txt")
+plan = pons.ContactPlan.from_file(SCRIPT_DIR + "/data/contactPlan_simple.txt")
 print(plan)
 print("snapshot at time 0")
 print(plan.get_contacts(0))
