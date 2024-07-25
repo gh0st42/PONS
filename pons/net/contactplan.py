@@ -31,6 +31,9 @@ class CommonContactPlan(object):
     def __hash__(self) -> int:
         raise NotImplementedError()
 
+    def fixed_links(self) -> List[Tuple[int, int]]:
+        return []
+
 
 @dataclass(frozen=True)
 class CoreContact(object):
@@ -243,6 +246,9 @@ class CoreContactPlan(object):
                 return size / c.bw + c.delay
         raise Exception("no contact found")
 
+    def fixed_links(self) -> List[Tuple[int, int]]:
+        return []
+
 
 class ContactPlan(CommonContactPlan):
     """A ContactPlan file."""
@@ -255,6 +261,9 @@ class ContactPlan(CommonContactPlan):
 
     def __str__(self):
         return "ContactPlan(%s, %d)" % (self.name, len(self.contacts))
+
+    def fixed_links(self) -> List[Tuple[int, int]]:
+        return []
 
     @classmethod
     def from_file(cls, filename, mapping: Optional[Dict[str, int]] = None):

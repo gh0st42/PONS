@@ -32,7 +32,7 @@ RUN touch /root/.Xauthority
 
 COPY netedit-tk.py /data/netedit
 COPY gui /data/netedit/gui
-RUN ln -s /data/netedit/netedit-tk.py /usr/local/bin/netedit
+RUN ln -s /data/netedit/netedit.py /usr/local/bin/netedit
 
 RUN echo "export USER=root" >> /root/.bashrc
 ENV USER root

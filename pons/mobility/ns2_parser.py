@@ -4,11 +4,12 @@ from enum import Enum
 from string import digits
 from typing import List, Tuple, Union
 
-from utils import Vector
+from pons.utils import Vector
 
 
 class Token(Enum):
     """enum for all tokens"""
+
     NODE = "$node"
     PARAN_LEFT = "("
     PARAN_RIGHT = ")"
@@ -19,7 +20,7 @@ class Token(Enum):
     UNDERLINE = "_"
     NS = "$ns"
     AT = "at"
-    QUOTE = "\""
+    QUOTE = '"'
     SET_DEST = "setdest"
     BACKSLASH = "\\"
     NEWLINE = "\n"
@@ -32,6 +33,7 @@ TOKENS = [e.value for e in Token]
 @dataclass
 class Ns2Entry:
     """dataclass for ns2 entries"""
+
     node: int
     time: float = None
     x: float = None
@@ -59,9 +61,12 @@ class Ns2Parser:
             for i in range(1, len(token)):
                 last_symbol = token[i - 1]
                 current_symbol = token[i]
-                if (last_symbol in TOKENS and current_symbol in digits) \
-                        or (last_symbol in digits and current_symbol in TOKENS) \
-                        or (current_symbol in TOKENS) or (last_symbol in TOKENS):
+                if (
+                    (last_symbol in TOKENS and current_symbol in digits)
+                    or (last_symbol in digits and current_symbol in TOKENS)
+                    or (current_symbol in TOKENS)
+                    or (last_symbol in TOKENS)
+                ):
                     tokens.append(token[substr_index:i])
                     substr_index = i
             tokens.append(token[substr_index:])
@@ -87,12 +92,16 @@ class Ns2Parser:
                 tokens = [tokens]
             if not self._check(tokens):
                 # if the current token is not one of the given tokens
-                raise Exception(f"expected {', '.join([token.value for token in tokens])} - got {self._current_token}")
+                raise Exception(
+                    f"expected {', '.join([token.value for token in tokens])} - got {self._current_token}"
+                )
         # select new current token
         self._current_index += 1
         self._current_token = self._tokens[self._current_index]
         next_index = self._current_index + 1
-        self._next_token = self._tokens[next_index] if next_index < len(self._tokens) else None
+        self._next_token = (
+            self._tokens[next_index] if next_index < len(self._tokens) else None
+        )
 
     def parse(self) -> List[Ns2Entry]:
         """parses the file and returns a list of ns2 entries"""
@@ -115,7 +124,6 @@ class Ns2Parser:
         while not self._check(Token.NEWLINE):
             self._accept()
 
-
     def _parse_row(self) -> Ns2Entry:
         """parses a ns2 row"""
         # row starts with $node
@@ -124,7 +132,9 @@ class Ns2Parser:
         # row starts with $ns
         if self._check(Token.NS):
             return self._parse_default_row()
-        raise Exception(f"entries either have to start with {Token.NODE.value} or {Token.NS.value}")
+        raise Exception(
+            f"entries either have to start with {Token.NODE.value} or {Token.NS.value}"
+        )
 
     def _parse_init_row(self) -> Union[Ns2Entry, None]:
         """parses a row of the form $node_(<node_id>) set <coordinate>_ <value>"""
@@ -177,7 +187,9 @@ class Ns2Parser:
         """
         # check, if token is either x, y or z
         if not self._check([Token.X, Token.Y, Token.Z]):
-            raise Exception(f"expected {Token.X.value}, {Token.Y.value} or {Token.Z.value} - got {self._current_token}")
+            raise Exception(
+                f"expected {Token.X.value}, {Token.Y.value} or {Token.Z.value} - got {self._current_token}"
+            )
         # save the coordinate (x,y,z)
         coordinate = self._current_token
         self._accept()
@@ -215,6 +227,7 @@ class Ns2Parser:
 
 class Ns2Movement:
     """ns2 movement"""
+
     def __init__(self, num_nodes, moves, start, end):
         self.num_nodes = num_nodes
         self.moves = moves
@@ -222,7 +235,9 @@ class Ns2Movement:
         self.end = end
 
     @classmethod
-    def _get_init_coordinates(cls, node: int, entries: List[Ns2Entry]) -> Tuple[float, float]:
+    def _get_init_coordinates(
+        cls, node: int, entries: List[Ns2Entry]
+    ) -> Tuple[float, float]:
         """
         returns the initial coordinates for a node set by the init entries
         @param node: the node id
@@ -243,13 +258,13 @@ class Ns2Movement:
 
     @classmethod
     def _get_initial_until(
-            cls,
-            start: int,
-            until: float,
-            node: int,
-            x: float,
-            y: float,
-            end_time: float = None
+        cls,
+        start: int,
+        until: float,
+        node: int,
+        x: float,
+        y: float,
+        end_time: float = None,
     ) -> List:
         """
         returns a list of initial moves from a start time until a given time
@@ -265,13 +280,23 @@ class Ns2Movement:
             until = min(until, end_time)
         if until < start:
             return [(start, node, x, y)]
-        moves = [(float(time), node, x, y) for time in range(start, math.floor(until) + 1)]
+        moves = [
+            (float(time), node, x, y) for time in range(start, math.floor(until) + 1)
+        ]
         # add exact time until move
         moves.append((until, node, x, y))
         return moves
 
     @classmethod
-    def _get_moves_for_entry(cls, node: int, node_moves, entry: Ns2Entry, next_entry: Ns2Entry, start_time: float = None, end_time: float = None):
+    def _get_moves_for_entry(
+        cls,
+        node: int,
+        node_moves,
+        entry: Ns2Entry,
+        next_entry: Ns2Entry,
+        start_time: float = None,
+        end_time: float = None,
+    ):
         """
         generates moves for an entry and appends it to node_moves
         @param node: the node to generate for
@@ -331,7 +356,12 @@ class Ns2Movement:
             node_moves.append((until, node, next.x, next.y))
 
         # fill up until end_time
-        if next_entry is None and end_time is not None and end_time > until and end_time >= start_time:
+        if (
+            next_entry is None
+            and end_time is not None
+            and end_time > until
+            and end_time >= start_time
+        ):
             for time in range(last_full + 1, end_time):
                 node_moves.append((time, node, next.x, next.y))
 
@@ -356,14 +386,18 @@ class Ns2Movement:
         """
         # get min and max time and nodes
         if start_time is None:
-            start_time = min(0, math.floor(min(entry.time for entry in entries if not entry.is_init)))
-        #if end_time is None:
+            start_time = min(
+                0, math.floor(min(entry.time for entry in entries if not entry.is_init))
+            )
+        # if end_time is None:
         #    math.floor(max(entry.time for entry in entries if not entry.is_init))
         nodes = set(entry.node for entry in entries)
         moves = []
 
         # create dict assigning entries to nodes
-        non_init_entries = sorted(list(filter(lambda e: not e.is_init, entries)), key=lambda e: e.time)
+        non_init_entries = sorted(
+            list(filter(lambda e: not e.is_init, entries)), key=lambda e: e.time
+        )
         entry_dict = {node: [] for node in nodes}
         for entry in non_init_entries:
             entry_dict[entry.node].append(entry)
@@ -375,17 +409,23 @@ class Ns2Movement:
             # get initial coordinates
             x, y = cls._get_init_coordinates(node, entries)
             # fill moves with init coordinates until first entry
-            node_moves += cls._get_initial_until(start_time, entry_dict[node][0].time, node, x, y, end_time)
+            node_moves += cls._get_initial_until(
+                start_time, entry_dict[node][0].time, node, x, y, end_time
+            )
             # for every entry except last one
             for i in range(0, len(node_entries) - 1):
                 # get current and next entry
                 current_entry = node_entries[i]
                 next_entry = node_entries[i + 1]
 
-                cls._get_moves_for_entry(node, node_moves, current_entry, next_entry, start_time, end_time)
+                cls._get_moves_for_entry(
+                    node, node_moves, current_entry, next_entry, start_time, end_time
+                )
 
             last_entry = node_entries[-1]
-            cls._get_moves_for_entry(node, node_moves, last_entry, None, start_time, end_time)
+            cls._get_moves_for_entry(
+                node, node_moves, last_entry, None, start_time, end_time
+            )
 
             moves += node_moves
         # build class from num_nodes, moves, min and max time

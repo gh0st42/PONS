@@ -5,7 +5,7 @@ from tkinter import ttk
 from tkinter import messagebox, filedialog
 import networkx as nx
 
-from gui.dialogs import *
+from .gui.dialogs import *
 
 next_node_num = 1
 selected_node = 0
@@ -579,4 +579,10 @@ root.columnconfigure(1, weight=0)
 root.rowconfigure(1, weight=2)
 
 
-root.mainloop()
+def main():
+    global root
+    root.mainloop()
+
+
+if __name__ == "__main__":
+    main()
