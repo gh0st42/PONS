@@ -1,2 +1,2 @@
-networkx==3.2.1
-simpy==4.0.1
+networkx~=3.3
+simpy~=4.1.1
