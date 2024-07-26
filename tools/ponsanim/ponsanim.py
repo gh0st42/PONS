@@ -295,6 +295,16 @@ def main():
         for frame in frames:
             out.write(frame)
         out.release()
+        print()
+        print(
+            f"{args.output} is an uncompressed MP4. You might want to use ffmpeg to compress it."
+        )
+        print(
+            "You can use the following command to compress the MP4 file using ffmpeg:"
+        )
+        print(
+            f"ffmpeg -i {args.output} -c:v libx264 -pix_fmt yuv420p {args.output}.compressed.mp4"
+        )
     else:
         print("Saving GIF...")
         frame_one = frames[0]
