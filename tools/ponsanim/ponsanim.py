@@ -58,37 +58,77 @@ def draw_progress(draw, x, y, progress, max_width):
     # draw.text((x, y + 20), "Max time: %ds" % max_time, fill="black")
 
 
-def draw_node(img, x, y, name=""):
+def draw_node(img, x, y, name="", store_usage=None):
     if name:
         img.text((x + 6, y + 6), name, fill="black")
+    if store_usage is not None:
+        # img.text((x + 6, y + 20), "Store: %d%%" % store_usage, fill="black")
+        # draw up to four blocks representing the store usage
+        if store_usage > 0:
+            num_blocks = store_usage // 25
+
+            num_blocks += 1
+            for i in range(num_blocks):
+                color = "blue"
+                if store_usage > 95:
+                    color = "red"
+                if i > 4:
+                    break
+                # img.rectangle(
+                #     [x + 6 + i * 5 + i * 2, y + 20, x + 10 + i * 5 + i * 2, y + 24],
+                #     fill=color,
+                # )
+                img.rectangle(
+                    [x + 14, y - i * 5 - i * 2, x + 18, y + 4 - i * 5 - i * 2],
+                    fill=color,
+                )
+
     img.circle((x, y), 8, fill="blue")
 
 
-def draw_network(g, connections=[]):
+def draw_network(g, connections=[], i=0, active_links=[]):
+    global max_x, max_y, img_size, max_time
     image = Image.new("RGB", (max_x + 50, max_y + 50), "white")
     draw = ImageDraw.Draw(image)
 
     # draw the links
     for edge in connections:
+        color = "black"
+        w = 1
+        link = tuple(sorted([edge[0], edge[1]]))
+        if link in active_links:
+            color = "green"
+            w = 4
         x1 = int(g.nodes[edge[0]]["x"])
         y1 = int(g.nodes[edge[0]]["y"])
         x2 = int(g.nodes[edge[1]]["x"])
         y2 = int(g.nodes[edge[1]]["y"])
-        draw.line((x1, y1, x2, y2), fill="black")
+        draw.line((x1, y1, x2, y2), fill=color, width=w)
 
     # draw the nodes
     for node in g.nodes.data():
         x = int(node[1]["x"])
         y = int(node[1]["y"])
-        draw_node(draw, x, y, node[1]["name"])
+        store_usage = None
+        if "store" in node[1]:
+            store_usage = node[1]["store"]
+        else:
+            print("No store usage information for node %d" % node[0])
+        draw_node(draw, x, y, node[1]["name"], store_usage=store_usage)
 
     draw.text((10, 10), "Time: %ds" % i, fill="black")
-    draw_progress(draw, 10, img_size[1] - 10, i / max_time, img_size[0] - 20)
+    draw_progress(draw, 10, image.height - 10, i / max_time, image.width - 20)
 
     return image
 
 
+max_x = 0
+max_y = 0
+max_time = 0
+
+
 def main():
+    global max_x, max_y, max_time
     parser = argparse.ArgumentParser(description="Animate a network replay / event log")
     parser.add_argument(
         "-o", "--output", type=str, help="The output image file", required=True
@@ -101,7 +141,20 @@ def main():
     )
     parser.add_argument("-g", "--graph", type=str, help="Input graphml file")
     parser.add_argument("-c", "--contacts", type=str, help="The network contacts file")
+    parser.add_argument(
+        "-t",
+        "--time-limit",
+        type=int,
+        help="The maximum simulation time to animate, default is taken from the event log / contact plan",
+    )
     parser.add_argument("-e", "--event-log", type=str, help="The event log file")
+    parser.add_argument(
+        "-x",
+        "--extra-information",
+        action="append",
+        help="Extra information to plot, e.g., store usage or bundle transmissions",
+        choices=["store", "bundles_rxtx"],
+    )
 
     args = parser.parse_args()
     modeContactGraph = False
@@ -115,10 +168,8 @@ def main():
         sys.exit(1)
 
     frames = []
-    max_x = 0
-    max_y = 0
+
     node_map = {}
-    max_time = 0
 
     if modeContactGraph:
         # print(args.graph)
@@ -135,7 +186,12 @@ def main():
         max_time = cplan.get_max_time()
 
     else:
-        events = load_event_log(args.event_log, filter_in=["CONFIG", "LINK", "MOVE"])
+        filter_in = ["CONFIG", "LINK", "MOVE"]
+        if "store" in args.extra_information:
+            filter_in.append("STORE")
+        if "bundles_rxtx" in args.extra_information:
+            filter_in.append("ROUTER")
+        events = load_event_log(args.event_log, filter_in=filter_in)
         g = nx.Graph()
         contacts = []
         for ts, e_list in events.items():
@@ -160,14 +216,19 @@ def main():
                                 contacts.append(c)
                     if event["event"] == "SET":
                         g.add_edge(event["node1"], event["node2"])
+
+        for n in g.nodes.keys():
+            if "store" in args.extra_information:
+                g.nodes[n]["store"] = 0
+
         if len(contacts) > 0:
             cplan = CoreContactPlan(contacts=contacts)
         else:
             cplan = None
         max_time = sorted(events.keys())[-1]
 
-    print("Max time: %d" % max_time)
-    img_size = (max_x + 50, max_y + 50)
+    if args.time_limit is not None:
+        max_time = args.time_limit
     print(max_x + 50, max_y + 50)
 
     plan = NetworkPlan(g, cplan)
@@ -181,13 +242,31 @@ def main():
         length=50,
     ):
         if not modeContactGraph:
+            active_links = set()
             for ts, cat, event in get_events_in_range(events, i - args.step_size, i):
                 if cat == "MOVE":
                     if event["event"] == "SET":
                         g.nodes[event["id"]]["x"] = int(event["x"])
                         g.nodes[event["id"]]["y"] = int(event["y"])
+                elif cat == "STORE" and "store" in args.extra_information:
+                    if event["capacity"] > 0:
+                        usage = int(event["used"] / event["capacity"] * 100)
+                        g.nodes[event["id"]]["store"] = usage
+                        # print("Store usage: %d%% on node %d" % (usage, event["id"]))
+                    else:
+                        print(
+                            "Capacity is 0 - deactivating store visualization for node %d"
+                            % event["id"]
+                        )
+                        g.nodes[event["id"]]["store"] = None
+                elif cat == "ROUTER" and "bundles_rxtx" in args.extra_information:
 
-        image = draw_network(g, plan.connections_at_time(i))
+                    if event["event"] == "TX" or event["event"] == "RX":
+                        link = sorted([int(event["src"]), int(event["dst"])])
+                        active_links.add(tuple(link))
+        image = draw_network(
+            g, plan.connections_at_time(i), i, active_links=list(active_links)
+        )
         frames.append(image)
 
         # sys.exit(0)
