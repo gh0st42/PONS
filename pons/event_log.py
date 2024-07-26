@@ -35,21 +35,22 @@ def close_log():
 
 def load_event_log(
     filename: str = "/tmp/events.log", filter_out: list = [], filter_in: list = []
-):
+) -> tuple[dict, float]:
     events = {}
+    max_time = 0
     with open(filename) as fh:
         for line in fh.readlines():
             ts, category, msg = line.strip().split(maxsplit=2)
+            ts_slot = round(float(ts))
+            max_time = max(max_time, int(ts_slot))
             if category in filter_out:
                 continue
-            if len(filter_in) > 0 and category not in filter_in:
-                continue
-            # round ts to 1 decimal
-            ts = round(float(ts))
-            if ts not in events:
-                events[ts] = []
-            events[ts].append((ts, category, loads(msg)))
-    return events
+            if category in filter_in:
+                # round ts to 1 decimal
+                if ts_slot not in events.keys():
+                    events[ts_slot] = []
+                events[ts_slot].append((float(ts), category, loads(msg)))
+    return (events, max_time)
 
 
 def get_events_in_range(

@@ -157,6 +157,8 @@ def main():
     )
 
     args = parser.parse_args()
+    # calculate fps from delay in ms per frame
+    fps = 1000 / args.delay
     modeContactGraph = False
     if args.graph is not None and args.contacts is not None:
         modeContactGraph = True
@@ -170,6 +172,14 @@ def main():
     frames = []
 
     node_map = {}
+    output_mp4 = False
+    if args.output.endswith(".mp4"):
+        output_mp4 = True
+        try:
+            import cv2
+            import numpy as np
+        except ImportError:
+            print("You need to have OpenCV installed to save to MP4")
 
     if modeContactGraph:
         # print(args.graph)
@@ -187,11 +197,14 @@ def main():
 
     else:
         filter_in = ["CONFIG", "LINK", "MOVE"]
+        if args.extra_information is None:
+            args.extra_information = []
         if "store" in args.extra_information:
             filter_in.append("STORE")
         if "bundles_rxtx" in args.extra_information:
             filter_in.append("ROUTER")
-        events = load_event_log(args.event_log, filter_in=filter_in)
+
+        events, max_time = load_event_log(args.event_log, filter_in=filter_in)
         g = nx.Graph()
         contacts = []
         for ts, e_list in events.items():
@@ -225,12 +238,11 @@ def main():
             cplan = CoreContactPlan(contacts=contacts)
         else:
             cplan = None
-        max_time = sorted(events.keys())[-1]
 
     if args.time_limit is not None:
         max_time = args.time_limit
     print(max_x + 50, max_y + 50)
-
+    print(max_time)
     plan = NetworkPlan(g, cplan)
 
     max_steps = max_time
@@ -267,21 +279,34 @@ def main():
         image = draw_network(
             g, plan.connections_at_time(i), i, active_links=list(active_links)
         )
+        if output_mp4:
+            image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+
         frames.append(image)
 
-        # sys.exit(0)
-
-    print("Saving GIF...")
-    frame_one = frames[0]
-    frame_one.save(
-        args.output,
-        format="GIF",
-        append_images=frames,
-        save_all=True,
-        duration=args.delay,
-        loop=0,
-        optimize=True,
-    )
+    if output_mp4:
+        print("Saving MP4...")
+        out = cv2.VideoWriter(
+            args.output,
+            cv2.VideoWriter_fourcc(*"mp4v"),
+            fps,
+            (max_x + 50, max_y + 50),
+        )
+        for frame in frames:
+            out.write(frame)
+        out.release()
+    else:
+        print("Saving GIF...")
+        frame_one = frames[0]
+        frame_one.save(
+            args.output,
+            format="GIF",
+            append_images=frames,
+            save_all=True,
+            duration=args.delay,
+            loop=0,
+            optimize=True,
+        )
     print("Done.")
 
 
