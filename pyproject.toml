@@ -7,7 +7,7 @@ packages = ["pons", "tools/netedit", "tools/ponsanim"]
 
 [project]
 name = "pons-dtn"
-version = "0.1.1"
+version = "0.1.2"
 authors = [
   { name = "Lars Baumgaertner", email = "1264131+gh0st42@users.noreply.github.com" },
 ]
@@ -33,8 +33,8 @@ keywords = [
 ]
 dependencies = ["networkx~=3.3", "simpy~=4.1.1", "pillow~=10.4.0"]
 
-# [project.optional-dependencies]
-# cli = ["pillow~=10.4.0"]
+[project.optional-dependencies]
+mp4 = ["opencv-python"]
 
 [project.scripts]
 ponsanim = "ponsanim.ponsanim:main"
