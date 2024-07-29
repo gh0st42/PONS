@@ -187,6 +187,12 @@ class NetSim(object):
         if contactplan is None:
             print("No contact plan")
             return
+        initial_events = contactplan.at(0)
+        if len(initial_events) != 0:
+            for e in initial_events:
+                if e.timespan[0] == 0:
+                    event_log(0, "LINK", {"event": "UP", "nodes": e.nodes})
+
         next_event = contactplan.next_event(0)
         if next_event is None:
             print("No events in contact plan")
