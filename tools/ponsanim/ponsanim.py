@@ -113,7 +113,8 @@ def draw_network(g, connections=[], i=0, active_links=[]):
         if "store" in node[1]:
             store_usage = node[1]["store"]
         else:
-            print("No store usage information for node %d" % node[0])
+            # print("No store usage information for node %d" % node[0])
+            pass
         draw_node(draw, x, y, node[1]["name"], store_usage=store_usage)
 
     draw.text((10, 10), "Time: %ds" % i, fill="black")
