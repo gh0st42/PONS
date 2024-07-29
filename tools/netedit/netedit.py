@@ -4,8 +4,13 @@ from tkinter import *
 from tkinter import ttk
 from tkinter import messagebox, filedialog
 import networkx as nx
+import sys
+import os
 
-from .gui.dialogs import *
+if __name__ == "__main__":
+    from gui.dialogs import *
+else:
+    from .gui.dialogs import *
 
 next_node_num = 1
 selected_node = 0
@@ -581,6 +586,30 @@ root.rowconfigure(1, weight=2)
 
 def main():
     global root
+    global graph
+    global current_filename
+    global root
+    global selected_node
+    global next_node_num
+    # check if sys.argv[1] is a file
+    # if so, open it
+    if len(sys.argv) > 1:
+        if os.path.isfile(sys.argv[1]):
+            current_filename = sys.argv[1]
+            graph = nx.read_graphml(current_filename)
+            root.title(f"NetEdit - {current_filename}")
+            selected_node = 0
+            # get highest node number from graph.nodes
+            next_node_num = int(sorted(list(graph.nodes))[-1]) + 1
+            update_ui()
+    else:
+        graph = nx.Graph()
+        current_filename = ""
+        root.title("NetEdit")
+        selected_node = 0
+        next_node_num = 1
+        update_ui()
+
     root.mainloop()
 
 
