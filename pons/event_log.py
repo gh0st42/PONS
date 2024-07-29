@@ -1,4 +1,5 @@
 from json import dumps, loads
+from typing import Tuple
 
 event_log_fh = None
 event_filter = []
@@ -35,7 +36,7 @@ def close_log():
 
 def load_event_log(
     filename: str = "/tmp/events.log", filter_out: list = [], filter_in: list = []
-) -> tuple[dict, float]:
+) -> Tuple[dict, float]:
     events = {}
     max_time = 0
     with open(filename) as fh:
