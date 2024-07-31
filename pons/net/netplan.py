@@ -53,6 +53,7 @@ class NetworkPlan(CommonContactPlan):
         self.contacts = contacts
         if contacts is not None:
             for c in self.contacts.all_contacts():
+                self.full_graph.add_edge(c[0], c[1])
                 try:
                     self.G.remove_edge(c[0], c[1])
                 except nx.NetworkXError:
