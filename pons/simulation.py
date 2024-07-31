@@ -145,9 +145,14 @@ class NetSim(object):
             if self.config.get("peers_logger", True):
                 self.env.process(self.start_peers_logger())
 
+            if "LOG_FILE" in os.environ:
+                print(
+                    "ENV LOG_FILE found! Activating event logging using log file: ",
+                    os.getenv("LOG_FILE"),
+                )
+                self.config["event_logging"] = True
+
             if self.config.get("event_logging", False):
-                if "LOG_FILE" in os.environ:
-                    print("ENV LOG_FILE found! Using log file: ", os.getenv("LOG_FILE"))
                 log_file = os.getenv("LOG_FILE", "/tmp/events.log")
                 # if OS is windows replace /tmp/ with C:/temp/
                 if os.name == "nt":
