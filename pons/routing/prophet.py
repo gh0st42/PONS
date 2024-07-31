@@ -69,7 +69,7 @@ class PRoPHETRouter(Router):
             # self.netsim.env.process(
             self.send(msg.dst, msg)
             # )
-            self.remember(msg.dst, msg)
+            self.remember(msg.dst, msg.unique_id())
             self.store.remove(msg)
         else:
             # self.log("broadcasting to peers ", self.peers)
@@ -84,7 +84,7 @@ class PRoPHETRouter(Router):
                         # self.netsim.env.process(
                         self.send(peer, msg)
                         # )
-                        self.remember(peer, msg)
+                        self.remember(peer, msg.unique_id())
 
     def on_peer_discovered(self, peer_id):
         self._update_predictability(peer_id)

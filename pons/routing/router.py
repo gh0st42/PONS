@@ -84,6 +84,12 @@ class Router(object):
             },
         )
 
+    def store_del_by_id(self, msg_id: str):
+        for msg in self.store:
+            if msg.unique_id() == msg_id:
+                self.store_del(msg)
+                return
+
     def store_cleanup(self):
         # [self.store_del(msg)
         # for msg in self.store if msg.is_expired(self.netsim.env.now)]
@@ -142,6 +148,7 @@ class Router(object):
 
     def _on_tx_failed(self, msg_id: str, remote_id: int):
         self.stats["failed"] += 1
+        self.forget(remote_id, msg_id)
         self.on_tx_failed(msg_id, remote_id)
 
     def on_tx_failed(self, msg_id: str, remote_id: int):
@@ -182,7 +189,7 @@ class Router(object):
         self.netsim.routing_stats["relayed"] += 1
         was_known = self.is_msg_known(msg)
         if not was_known:
-            self.remember(remote_id, msg)
+            self.remember(remote_id, msg.unique_id())
             msg.hops += 1
             if msg.dst == self.my_id:
                 # self.log("msg (%s) arrived on %s" % (msg.id, self.my_id))
@@ -201,15 +208,21 @@ class Router(object):
     def on_msg_received(self, msg: pons.Message, remote_id: int, was_known: bool):
         self.log("msg received: %s from %d" % (msg, remote_id))
 
-    def remember(self, peer_id, msg: pons.Message):
-        if msg.unique_id() not in self.history:
-            self.history[msg.unique_id()] = set()
+    def remember(self, peer_id, msg_id: str):
+        if isinstance(msg_id, pons.Message):
+            msg_id = msg_id.unique_id()
 
-        self.history[msg.unique_id()].add(peer_id)
+        if msg_id not in self.history:
+            self.history[msg_id] = set()
 
-    def forget(self, peer_id, msg: pons.Message):
-        if msg.unique_id() in self.history:
-            self.history[msg.unique_id()].remove(peer_id)
+        self.history[msg_id].add(peer_id)
+
+    def forget(self, peer_id, msg_id: str):
+        if isinstance(msg_id, pons.Message):
+            msg_id = msg_id.unique_id()
+
+        if msg_id in self.history:
+            self.history[msg_id].remove(peer_id)
 
     def is_msg_known(self, msg: pons.Message):
         return msg.unique_id() in self.history

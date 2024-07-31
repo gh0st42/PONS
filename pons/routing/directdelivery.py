@@ -20,7 +20,7 @@ class DirectDeliveryRouter(Router):
             # self.netsim.env.process(
             self.send(msg.dst, msg)
             # )
-            self.remember(msg.dst, msg)
+            self.remember(msg.dst, msg.unique_id())
             self.store_del(msg)
 
     def on_peer_discovered(self, peer_id):

@@ -86,8 +86,8 @@ class StaticRouter(Router):
             # self.netsim.env.process(
             self.send(msg.dst, msg)
             # )
-            self.remember(msg.dst, msg)
-            self.store_del(msg)
+            self.remember(msg.dst, msg.unique_id())
+            # self.store_del(msg)
             return
 
         next_hops = []
@@ -112,8 +112,17 @@ class StaticRouter(Router):
             # self.netsim.env.process(
             self.send(next_hop, msg)
             # )
-            self.remember(next_hop, msg)
-            self.store_del(msg)
+            self.remember(next_hop, msg.unique_id())
+            # only delete if tx was successful
+            # self.store_del(msg)
+
+    def on_tx_succeeded(self, msg_id, remote_id):
+        # self.log("msg %s sent to %d" % (msg_id, remote_id))
+        self.store_del_by_id(msg_id)
+
+    def on_tx_failed(self, msg_id: str, remote_id: int):
+        # self.log("msg %s failed to send to %d" % (msg_id, remote_id))
+        pass
 
     def on_peer_discovered(self, peer_id):
         # self.log("peer discovered: %d" % peer_id)

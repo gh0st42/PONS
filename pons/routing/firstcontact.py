@@ -21,7 +21,7 @@ class FirstContactRouter(Router):
             # self.netsim.env.process(
             self.send(msg.dst, msg)
             # )
-            self.remember(msg.dst, msg)
+            self.remember(msg.dst, msg.unique_id())
             self.store_del(msg)
         else:
             # self.log("broadcasting to peers ", self.peers)
@@ -32,7 +32,7 @@ class FirstContactRouter(Router):
                     # self.netsim.env.process(
                     self.send(peer, msg)
                     # )
-                    self.remember(peer, msg)
+                    self.remember(peer, msg.unique_id())
                     self.store_del(msg)
                     return
 
