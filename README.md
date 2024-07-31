@@ -38,6 +38,7 @@ Features:
   - numpy
 - tools:
   - pillow
+  - opencv-python
   - tkinter
 
 
@@ -86,3 +87,11 @@ print(json.dumps(netsim.routing_stats, indent=4))
 ```
 
 Run using `python3` or for improved performance use `pypy3`.
+
+## Magic ENV Variables
+
+Some of the simulation core functions can be set during runtime without having to change your simulation code.
+
+- `LOG_FILE` can be set to change the default event log file from `/tmp/events.log` to something else
+- `SIM_DURATION` can be used to override the calculated simulation duration
+

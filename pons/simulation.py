@@ -1,6 +1,7 @@
 import time
 from typing import List, Dict, Optional, Tuple
 from copy import deepcopy
+import os
 
 from pons.event_log import event_log, open_log, close_log, is_logging
 import pons.event_log
@@ -57,6 +58,10 @@ class NetSim(object):
     ):
         self.env = Environment()
         self.duration = duration
+        if "SIM_DURATION" in os.environ:
+            print("ENV SIM_DURATION found! Using duration: ", os.getenv("SIM_DURATION"))
+            self.duration = int(os.getenv("SIM_DURATION"))
+
         # convert list from Node to dict with id as key
         self.nodes = {n.id: n for n in nodes}
         # self.nodes = nodes
@@ -141,7 +146,14 @@ class NetSim(object):
                 self.env.process(self.start_peers_logger())
 
             if self.config.get("event_logging", False):
-                open_log()
+                if "LOG_FILE" in os.environ:
+                    print("ENV LOG_FILE found! Using log file: ", os.getenv("LOG_FILE"))
+                log_file = os.getenv("LOG_FILE", "/tmp/events.log")
+                # if OS is windows replace /tmp/ with C:/temp/
+                if os.name == "nt":
+                    log_file = log_file.replace("/tmp/", "C:/temp/")
+
+                open_log(log_file)
 
             pons.event_log.event_filter = self.config.get("event_filter", [])
 
