@@ -58,7 +58,7 @@ def draw_progress(draw, x, y, progress, max_width):
     # draw.text((x, y + 20), "Max time: %ds" % max_time, fill="black")
 
 
-def draw_node(img, x, y, name="", store_usage=None):
+def draw_node(img, x, y, name="", store_usage=None, app_rx=False, app_tx=False):
     if name:
         img.text((x + 6, y + 6), name, fill="black")
     if store_usage is not None:
@@ -84,9 +84,13 @@ def draw_node(img, x, y, name="", store_usage=None):
                 )
 
     img.circle((x, y), 8, fill="blue")
+    if app_rx:
+        img.circle((x, y), 14, outline="green", width=2)
+    if app_tx:
+        img.circle((x, y), 12, outline="blue", width=2)
 
 
-def draw_network(g, connections=[], i=0, active_links=[]):
+def draw_network(g, connections=[], i=0, active_links=[], app_rx=[], app_tx=[]):
     global max_x, max_y, img_size, max_time
     image = Image.new("RGB", (max_x + 50, max_y + 50), "white")
     draw = ImageDraw.Draw(image)
@@ -115,7 +119,15 @@ def draw_network(g, connections=[], i=0, active_links=[]):
         else:
             # print("No store usage information for node %d" % node[0])
             pass
-        draw_node(draw, x, y, node[1]["name"], store_usage=store_usage)
+        draw_node(
+            draw,
+            x,
+            y,
+            node[1]["name"],
+            store_usage=store_usage,
+            app_tx=node[0] in app_tx,
+            app_rx=node[0] in app_rx,
+        )
 
     draw.text((10, 10), "Time: %ds" % i, fill="black")
     draw_progress(draw, 10, image.height - 10, i / max_time, image.width - 20)
@@ -154,7 +166,7 @@ def main():
         "--extra-information",
         action="append",
         help="Extra information to plot, e.g., store usage or bundle transmissions",
-        choices=["store", "bundles_rxtx"],
+        choices=["store", "bundles_rxtx", "app_rxtx"],
     )
 
     args = parser.parse_args()
@@ -204,6 +216,8 @@ def main():
             filter_in.append("STORE")
         if "bundles_rxtx" in args.extra_information:
             filter_in.append("ROUTER")
+        if "app_rxtx" in args.extra_information:
+            filter_in.append("APP")
 
         events, max_time = load_event_log(args.event_log, filter_in=filter_in)
         g = nx.Graph()
@@ -254,8 +268,10 @@ def main():
         suffix="Complete",
         length=50,
     ):
+        active_links = set()
+        apps_rx = set()
+        apps_tx = set()
         if not modeContactGraph:
-            active_links = set()
             for ts, cat, event in get_events_in_range(events, i - args.step_size, i):
                 if cat == "MOVE":
                     if event["event"] == "SET":
@@ -277,8 +293,18 @@ def main():
                     if event["event"] == "TX" or event["event"] == "RX":
                         link = sorted([int(event["src"]), int(event["dst"])])
                         active_links.add(tuple(link))
+                elif cat == "APP" and "app_rxtx" in args.extra_information:
+                    if event["event"] == "TX":
+                        apps_tx.add(int(event["src"]))
+                    if event["event"] == "RX":
+                        apps_rx.add(int(event["id"]))
         image = draw_network(
-            g, plan.connections_at_time(i), i, active_links=list(active_links)
+            g,
+            plan.connections_at_time(i),
+            i,
+            active_links=list(active_links),
+            app_rx=list(apps_rx),
+            app_tx=list(apps_tx),
         )
         if output_mp4:
             image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
