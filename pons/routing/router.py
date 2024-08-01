@@ -121,28 +121,37 @@ class Router(object):
         while True:
             # print("[%s] scanning..." % self.my_id)
 
-            # assume some kind of peer discovery mechanism
-            # old_peers = copy(self.peers)
-            # self.peers = copy(self.netsim.nodes[self.my_id].neighbors)
-
-            # new_peers = [p for p in self.peers if p not in old_peers]
-
-            # for peer in new_peers:
-            #    self.on_peer_discovered(peer)
-
-            # do actual peer discovery with a hello message
-            self.peers.clear()
-            self.netsim.nodes[self.my_id].send(
-                self.netsim,
-                pons.BROADCAST_ADDR,
-                pons.Message(
-                    "HELLO",
-                    self.my_id,
+            if self.netsim.do_actual_scan:
+                # do actual peer discovery with a hello message
+                self.peers.clear()
+                self.netsim.nodes[self.my_id].send(
+                    self.netsim,
                     pons.BROADCAST_ADDR,
-                    HELLO_MSG_SIZE,
-                    self.netsim.env.now,
-                ),
-            )
+                    pons.Message(
+                        "HELLO",
+                        self.my_id,
+                        pons.BROADCAST_ADDR,
+                        HELLO_MSG_SIZE,
+                        self.netsim.env.now,
+                    ),
+                )
+            else:
+                # assume some kind of peer discovery mechanism
+                self.netsim.nodes[self.my_id].calc_neighbors(
+                    self.netsim.env.now, self.netsim.nodes.values()
+                )
+
+                old_peers = copy(self.peers)
+                peers = set()
+                for net in self.netsim.nodes[self.my_id].neighbors.values():
+                    peers.update(net)
+                self.peers = list(peers)
+                # self.peers = copy(self.netsim.nodes[self.my_id].neighbors)
+
+                new_peers = [p for p in self.peers if p not in old_peers]
+
+                for peer in new_peers:
+                    self.on_peer_discovered(peer)
 
             yield self.env.timeout(self.scan_interval)
 

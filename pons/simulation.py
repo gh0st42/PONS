@@ -76,6 +76,8 @@ class NetSim(object):
             config = {}
         self.config = config
 
+        self.do_actual_scan = config.get("real_scan", False)
+
         self.net_stats = {"tx": 0, "rx": 0, "drop": 0, "loss": 0}
         self.routing_stats = {
             "created": 0,
