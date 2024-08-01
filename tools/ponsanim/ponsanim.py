@@ -92,7 +92,7 @@ def draw_node(img, x, y, name="", store_usage=None, app_rx=False, app_tx=False):
 
 def draw_network(g, connections=[], i=0, active_links=[], app_rx=[], app_tx=[]):
     global max_x, max_y, img_size, max_time
-    image = Image.new("RGB", (max_x + 50, max_y + 50), "white")
+    image = Image.new("RGB", img_size, "white")
     draw = ImageDraw.Draw(image)
 
     # draw the links
@@ -135,13 +135,20 @@ def draw_network(g, connections=[], i=0, active_links=[], app_rx=[], app_tx=[]):
     return image
 
 
+import math
+
 max_x = 0
 max_y = 0
+extra_x = 50
+extra_y = 50
+min_x = math.inf
+min_y = math.inf
 max_time = 0
+img_size = (0, 0)
 
 
 def main():
-    global max_x, max_y, max_time
+    global max_x, max_y, max_time, img_size, min_x, min_y, extra_x, extra_y
     parser = argparse.ArgumentParser(description="Animate a network replay / event log")
     parser.add_argument(
         "-o", "--output", type=str, help="The output image file", required=True
@@ -202,6 +209,8 @@ def main():
             print(node)
             x = int(node[1]["x"])
             y = int(node[1]["y"])
+            min_x = min(min_x, x)
+            min_y = min(min_y, y)
             max_x = max(max_x, x)
             max_y = max(max_y, y)
             node_map[node[1]["name"]] = node[0]
@@ -228,6 +237,8 @@ def main():
                 if cat == "CONFIG":
                     x = int(event["x"])
                     y = int(event["y"])
+                    min_x = min(min_x, x)
+                    min_y = min(min_y, y)
                     max_x = max(max_x, x)
                     max_y = max(max_y, y)
                     g.add_node(event["id"], x=x, y=y, name=event["name"])
@@ -256,7 +267,10 @@ def main():
 
     if args.time_limit is not None:
         max_time = args.time_limit
-    print(max_x + 50, max_y + 50)
+    extra_x = max(extra_x, min_x)
+    extra_y = max(extra_y, min_y)
+    img_size = (max_x + extra_x, max_y + extra_y)
+    print(img_size)
     print(max_time)
     plan = NetworkPlan(g, cplan)
 
@@ -317,7 +331,7 @@ def main():
             args.output,
             cv2.VideoWriter_fourcc(*"mp4v"),
             fps,
-            (max_x + 50, max_y + 50),
+            img_size,
         )
         for frame in frames:
             out.write(frame)
@@ -342,8 +356,12 @@ def main():
             save_all=True,
             duration=args.delay,
             loop=0,
-            optimize=True,
+            optimize=False,
         )
+        print()
+        print(f"Saved unoptimized GIF to {args.output}. You might want to optimize it.")
+        print("You can use the following command to optimize the GIF using gifsicle:")
+        print(f"gifsicle -O3 --colors 16 {args.output} -o {args.output}.optimized.gif")
     print("Done.")
 
 
