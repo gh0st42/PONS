@@ -375,7 +375,7 @@ def on_menu_open_file():
         root.title(f"NetEdit - {current_filename}")
         selected_node = 0
         # get highest node number from graph.nodes
-        next_node_num = int(sorted(list(graph.nodes))[-1]) + 1
+        next_node_num = sorted([int(n) for n in graph.nodes])[-1] + 1
         update_ui()
 
 
