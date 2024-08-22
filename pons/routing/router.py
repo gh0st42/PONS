@@ -19,8 +19,10 @@ class Router(object):
         self.stats = {
             "rx": 0,
             "tx": 0,
-            "failed": 0,
+            "aborted": 0,
             "delivered": 0,
+            "dropped": 0,
+            "removed": 0,
         }
 
     def __str__(self):
@@ -69,25 +71,32 @@ class Router(object):
         )
         return True
 
-    def store_del(self, msg: pons.Message):
+    def store_del(self, msg: pons.Message, dropped: bool = False):
         self.used -= msg.size
         self.store.remove(msg)
+        event = "DROPPED" if dropped else "REMOVED"
         event_log(
             self.env.now,
             "STORE",
             {
-                "event": "REMOVED",
+                "event": event,
                 "id": self.my_id,
                 "msg": msg.unique_id(),
                 "used": self.used,
                 "capacity": self.capacity,
             },
         )
+        if dropped:
+            self.stats["dropped"] += 1
+            self.netsim.routing_stats["dropped"] += 1
+        else:
+            self.stats["removed"] += 1
+            self.netsim.routing_stats["removed"] += 1
 
-    def store_del_by_id(self, msg_id: str):
+    def store_del_by_id(self, msg_id: str, dropped: bool = False):
         for msg in self.store:
             if msg.unique_id() == msg_id:
-                self.store_del(msg)
+                self.store_del(msg, dropped)
                 return
 
     def store_cleanup(self):
@@ -97,7 +106,7 @@ class Router(object):
         for msg in self.store:
             if msg.is_expired(self.netsim.env.now):
                 # self.log("removing expired msg %s" % msg.id)
-                self.store_del(msg)
+                self.store_del(msg, dropped=True)
 
     def make_room_for(self, msg: pons.Message):
         if msg.size < self.capacity:
@@ -105,7 +114,7 @@ class Router(object):
             self.store.sort(key=lambda m: (m.size, m.created))
             while self.used + msg.size > self.capacity:
                 # self.log("removing msg %s" % self.store[0].id)
-                self.store_del(self.store[0])
+                self.store_del(self.store[0], dropped=True)
 
     def start(self, netsim: pons.NetSim, my_id: int):
         self.netsim = netsim
@@ -156,7 +165,8 @@ class Router(object):
             yield self.env.timeout(self.scan_interval)
 
     def _on_tx_failed(self, msg_id: str, remote_id: int):
-        self.stats["failed"] += 1
+        self.stats["aborted"] += 1
+        self.netsim.routing_stats["aborted"] += 1
         self.forget(remote_id, msg_id)
         self.on_tx_failed(msg_id, remote_id)
 
