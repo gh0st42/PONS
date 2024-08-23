@@ -127,6 +127,8 @@ class Router(object):
         self.env.process(self.scan())
 
     def scan(self):
+        self.last_peer_found = self.netsim.env.now
+
         while True:
             # print("[%s] scanning..." % self.my_id)
 
@@ -161,6 +163,22 @@ class Router(object):
 
                 for peer in new_peers:
                     self.on_peer_discovered(peer)
+
+                if len(old_peers) == 0 and len(self.peers) > 0:
+                    diff = self.netsim.env.now - self.last_peer_found
+                    event_log(
+                        self.netsim.env.now,
+                        "PEERS",
+                        {
+                            "event": "NO_PEERS_PERIOD",
+                            "id": self.my_id,
+                            "duration": diff,
+                        },
+                    )
+                elif len(old_peers) > 0 and len(self.peers) == 0:
+                    self.last_peer_found = self.netsim.env.now
+
+                    # report period without peers
 
             yield self.env.timeout(self.scan_interval)
 
