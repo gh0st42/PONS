@@ -41,6 +41,23 @@ def focus_out(event):
     root.bind("4", lambda e: toolbtn_click(btns[3], btns))
 
 
+def add_label_entry(frame, text, row):
+    textvar = StringVar()
+    # subframe = ttk.Frame(frame)
+    subframe = frame
+    label = ttk.Label(subframe, text=text)
+    label.grid(row=row, column=0, padx=10, pady=10)
+    entry = ttk.Entry(subframe, textvariable=textvar)
+    entry.bind("<FocusIn>", focus_in)
+    entry.bind("<FocusOut>", focus_out)
+    entry.grid(row=row, column=1, padx=10, pady=10)
+    # subframe.pack()
+    # textvar.trace_add("write", prop_changed)
+    entry.bind("<FocusOut>", prop_changed)
+    entry.bind("<Return>", prop_changed)
+    return textvar
+
+
 def update_ui():
     global canvas
     global frame_links
@@ -337,7 +354,13 @@ def canvas_release(event):
     dst_node = node_at(lastx, lasty)
     if dst_node != 0 and dst_node != selected_node:
         if active_tool == "Link":
-            graph.add_edge(selected_node, dst_node)
+            default_link_props = {
+                "bw": 0,
+                "delay": 0.0,
+                "jitter": 0.0,
+                "loss": 0.0,
+            }
+            graph.add_edge(selected_node, dst_node, **default_link_props)
             selected_node = dst_node
     update_ui()
 
@@ -365,6 +388,8 @@ def on_menu_open_file():
     global root
     global selected_node
     global next_node_num
+    global active_tool
+    global btns
 
     current_filename = filedialog.askopenfilename(
         defaultextension=".graphml",
@@ -374,6 +399,8 @@ def on_menu_open_file():
         graph = nx.read_graphml(current_filename)
         root.title(f"NetEdit - {current_filename}")
         selected_node = 0
+        active_tool = "Select"
+        toolbtn_click(btns[0], btns)
         # get highest node number from graph.nodes
         next_node_num = sorted([int(n) for n in graph.nodes])[-1] + 1
         update_ui()
@@ -482,23 +509,6 @@ properties = ttk.LabelFrame(p, text="Properties")
 # p.add(properties)
 
 
-def add_label_entry(frame, text, row):
-    textvar = StringVar()
-    # subframe = ttk.Frame(frame)
-    subframe = frame
-    label = ttk.Label(subframe, text=text)
-    label.grid(row=row, column=0, padx=10, pady=10)
-    entry = ttk.Entry(subframe, textvariable=textvar)
-    entry.bind("<FocusIn>", focus_in)
-    entry.bind("<FocusOut>", focus_out)
-    entry.grid(row=row, column=1, padx=10, pady=10)
-    # subframe.pack()
-    # textvar.trace_add("write", prop_changed)
-    entry.bind("<FocusOut>", prop_changed)
-    entry.bind("<Return>", prop_changed)
-    return textvar
-
-
 prop_name = add_label_entry(properties, "Name", 0)
 prop_nodeid = add_label_entry(properties, "NODE_ID", 1)
 prop_x = add_label_entry(properties, "X", 2)
@@ -540,6 +550,14 @@ def draw_prop_links(frame):
         ttk.Button(
             frame, text="Delete", command=lambda link=link: delete_link(link)
         ).grid(row=i, column=1, padx=10, pady=10)
+        edge = (selected_node, link)
+
+        ttk.Button(
+            frame,
+            text="Properties",
+            command=lambda edge=edge: dialog_link_properties(edge[0], edge[1], graph),
+        ).grid(row=i, column=2, padx=10, pady=10)
+        print(link)
 
 
 draw_prop_links(frame_links)
@@ -591,6 +609,9 @@ def main():
     global root
     global selected_node
     global next_node_num
+    global active_tool
+    global btns
+
     # check if sys.argv[1] is a file
     # if so, open it
     if len(sys.argv) > 1:
@@ -599,6 +620,8 @@ def main():
             graph = nx.read_graphml(current_filename)
             root.title(f"NetEdit - {current_filename}")
             selected_node = 0
+            active_tool = "Select"
+            toolbtn_click(btns[0], btns)
             # get highest node number from graph.nodes
             next_node_num = int(sorted(list(graph.nodes))[-1]) + 1
             update_ui()
