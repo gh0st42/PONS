@@ -88,6 +88,8 @@ class Node(object):
                                 netsim.env.now, self.id, nid, msg.size
                             )
                         except:
+                            print("Tx Time Error (%s %s): %s" % (self.id, to_nid, e))
+
                             continue
                         # print("tx_time: %f" % tx_time)
                         receiver = netsim.nodes[nid]
@@ -129,6 +131,7 @@ class Node(object):
                             )
                             # print("tx_time: %f" % tx_time)
                         except Exception as e:
+                            print("Tx Time Error (%s %s): %s" % (self.id, to_nid, e))
                             # tx_time = 0.050001
                             continue
                         # self.log("sending msg %s to %d" % (msg, to_nid))

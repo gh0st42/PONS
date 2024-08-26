@@ -216,8 +216,10 @@ class Router(object):
             "ROUTER",
             {
                 "event": "RX",
-                "dst": self.my_id,
-                "src": remote_id,
+                "at": self.my_id,
+                "from": remote_id,
+                "src": msg.src,
+                "dst": msg.dst,
                 "msg": msg.unique_id(),
             },
         )
@@ -234,9 +236,33 @@ class Router(object):
                 self.netsim.routing_stats["delivered"] += 1
                 self.netsim.routing_stats["hops"] += msg.hops
                 self.netsim.routing_stats["latency"] += self.env.now - msg.created
+                delivered = False
                 for app in self.apps:
                     if app.service == msg.dst_service:
                         app._on_msg_received(msg)
+                        delivered = True
+                if delivered:
+                    event_log(
+                        self.env.now,
+                        "ROUTER",
+                        {
+                            "event": "DELIVERED",
+                            "src": msg.src,
+                            "dst": msg.dst,
+                            "msg": msg.unique_id(),
+                        },
+                    )
+                else:
+                    event_log(
+                        self.env.now,
+                        "ROUTER",
+                        {
+                            "event": "APP_NOT_FOUND",
+                            "src": msg.src,
+                            "dst": msg.dst,
+                            "msg": msg.unique_id(),
+                        },
+                    )
         else:
             # self.log("msg already known", self.history)
             self.netsim.routing_stats["dups"] += 1

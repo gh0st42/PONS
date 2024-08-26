@@ -93,7 +93,7 @@ class NetworkPlan(CommonContactPlan):
             return 0.000005 * size
         else:
             if self.G.has_edge(node1, node2):
-                link_props = self.graph.get_edge_data(
+                link_props = self.G.get_edge_data(
                     node1,
                     node2,
                     default={"loss": 0.0, "delay": 0.0, "jitter": 0.0, "bw": 0},
