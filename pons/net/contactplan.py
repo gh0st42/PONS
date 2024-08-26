@@ -1,5 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
+from dateutil.parser import parse
+
 
 from typing import TYPE_CHECKING, Dict, List, Tuple, Optional
 
@@ -92,7 +94,7 @@ class CoreContactPlan(object):
 
     def __init__(
         self,
-        filename: str = None,
+        filename: Optional[str] = None,
         contacts: Optional[List[CoreContact]] = None,
         mapping: Optional[Dict[str, int]] = None,
     ) -> None:
@@ -115,6 +117,91 @@ class CoreContactPlan(object):
         if mapping is None:
             mapping = {}
         plan = cls(filename, mapping=mapping)
+        return plan
+
+    @classmethod
+    def from_csv_file(
+        cls,
+        filename,
+        mapping: Optional[Dict[str, int]] = None,
+        parse_header: bool = False,
+        delimiter: str = ",",
+        node_rename_mapping: Optional[Dict[str, str]] = None,
+        speedup=1,
+    ) -> CoreContactPlan:
+        if mapping is None:
+            mapping = {}
+        if node_rename_mapping is None:
+            node_rename_mapping = {}
+        contacts = []
+        sim_start = 0
+        with open(filename, "r") as f:
+            if parse_header:
+                hdr = f.readline()
+                if "# Simulation starting time:" in hdr:
+                    sim_start = parse(hdr.split(":")[1].strip(), ignoretz=True)
+
+            for line in f.readlines():
+                line = line.strip()
+                fields = line.split(delimiter)
+                if len(fields) != 5:
+                    raise ValueError(
+                        "Invalid CSV contact line (expected: node1,node2,start,end,duration): %s"
+                        % line
+                    )
+
+                # strip all fields
+                fields = [f.strip() for f in fields]
+
+                start = parse(fields[2], ignoretz=True)
+                end = parse(fields[3], ignoretz=True)
+
+                node1 = fields[0]
+                node2 = fields[1]
+
+                if node1 in node_rename_mapping:
+                    node1 = node_rename_mapping[node1]
+                if node2 in node_rename_mapping:
+                    node2 = node_rename_mapping[node2]
+
+                if node1 in mapping:
+                    node1 = mapping[node1]
+                else:
+                    node1 = int(node1)
+                if node2 in mapping:
+                    node2 = mapping[node2]
+                else:
+                    node2 = int(node2)
+
+                nodes = (node1, node2)
+
+                contact = (start, end, node1, node2, int(fields[4]))
+                contacts.append(contact)
+        contacts.sort(key=lambda x: x[0])
+        if sim_start == 0:
+            sim_start = contacts[0][0]
+
+        # adjust start times relative in seconds to sim_start
+        contacts = [
+            (
+                int((start - sim_start).total_seconds()),
+                int((end - sim_start).total_seconds()),
+                src,
+                dst,
+                duration,
+            )
+            for start, end, src, dst, duration in contacts
+        ]
+        # apply speedup
+        contacts = [
+            (int(start / speedup), int(end / speedup), src, dst, duration)
+            for start, end, src, dst, duration in contacts
+        ]
+        contacts = [
+            CoreContact((start, end), (src, dst), 0, 0, 0, 0)
+            for start, end, src, dst, duration in contacts
+        ]
+        plan = cls(contacts=contacts, mapping=mapping)
         return plan
 
     def __eq__(self, value: object) -> bool:
@@ -240,6 +327,8 @@ class CoreContactPlan(object):
     ) -> float:
         current_contacts = self.at(simtime)
         for c in current_contacts:
+            if c.bw == 0:
+                return 0.000005 * size
             if c.nodes[0] == node1 and c.nodes[1] == node2:
                 return size / c.bw + c.delay
             if c.nodes[0] == node2 and c.nodes[1] == node1:
