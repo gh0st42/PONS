@@ -3,6 +3,7 @@ from copy import deepcopy
 
 import networkx as nx
 import sys
+from random import random
 
 from typing import TYPE_CHECKING, List, Tuple, Optional
 
@@ -65,7 +66,11 @@ class NetworkPlan(CommonContactPlan):
     # return the loss for a contact between two nodes
     def loss_for_contact(self, simtime: float, node1: int, node2: int) -> float:
         if self.G.has_edge(node1, node2):
-            return 0.0
+            link_props = self.G.get_edge_data(node1, node2, default={"loss": 0.0})
+            if "loss" in link_props:
+                return link_props["loss"]
+            else:
+                return 0.0
         if self.contacts is not None:
             return self.contacts.loss_for_contact(simtime, node1, node2)
         else:
@@ -88,7 +93,20 @@ class NetworkPlan(CommonContactPlan):
             return 0.000005 * size
         else:
             if self.G.has_edge(node1, node2):
-                return 0.000005 * size
+                link_props = self.graph.get_edge_data(
+                    node1,
+                    node2,
+                    default={"loss": 0.0, "delay": 0.0, "jitter": 0.0, "bw": 0},
+                )
+                jitter = link_props.get("jitter", 0)
+                if jitter > 0:
+                    jitter = jitter * (random() - 0.5)
+
+                tx_time = link_props.get("delay", 0) + jitter
+                bw = link_props.get("bw", 0)
+                if bw > 0:
+                    tx_time += size / bw
+                return tx_time
             else:
                 return self.contacts.tx_time_for_contact(simtime, node1, node2, size)
 

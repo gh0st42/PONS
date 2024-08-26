@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from dateutil.parser import parse
 
 
+from random import random
 from typing import TYPE_CHECKING, Dict, List, Tuple, Optional
 
 
@@ -320,6 +321,7 @@ class CoreContactPlan(object):
                 return c.loss
             if c.nodes[0] == node2 and c.nodes[1] == node1:
                 return c.loss
+
         return 0.0
 
     def tx_time_for_contact(
@@ -330,9 +332,16 @@ class CoreContactPlan(object):
             if c.bw == 0:
                 return 0.000005 * size
             if c.nodes[0] == node1 and c.nodes[1] == node2:
-                return size / c.bw + c.delay
+                # calculate jitter to apply
+                jitter = 0
+                if c.jitter > 0:
+                    jitter = (random() - 0.5) * c.jitter
+                return size / c.bw + c.delay + jitter
             if c.nodes[0] == node2 and c.nodes[1] == node1:
-                return size / c.bw + c.delay
+                jitter = 0
+                if c.jitter > 0:
+                    jitter = (random() - 0.5) * c.jitter
+                return size / c.bw + c.delay + jitter
         raise Exception("no contact found")
 
     def fixed_links(self) -> List[Tuple[int, int]]:
