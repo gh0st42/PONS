@@ -106,6 +106,9 @@ class NetworkPlan(CommonContactPlan):
                 bw = link_props.get("bw", 0)
                 if bw > 0:
                     tx_time += size / bw
+                if tx_time == 0:
+                    # 0 delay is not allowed for scheduling in the simulator
+                    tx_time = 0.000005 * size
                 return tx_time
             else:
                 return self.contacts.tx_time_for_contact(simtime, node1, node2, size)
