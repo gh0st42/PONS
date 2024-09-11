@@ -370,4 +370,17 @@ class NetSim(object):
         del self.routing_stats["hops"]
         del self.routing_stats["latency"]
 
+        event_log(
+            now_sim,
+            "STATS",
+            {
+                "event": "END",
+                "duration": now_sim,
+                "real_duration": diff,
+                "rate": rate,
+                "net": self.net_stats,
+                "routing": self.routing_stats,
+            },
+        )
+
         close_log()
