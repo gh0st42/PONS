@@ -90,7 +90,9 @@ def draw_node(img, x, y, name="", store_usage=None, app_rx=False, app_tx=False):
         img.circle((x, y), 12, outline="blue", width=2)
 
 
-def draw_network(g, connections=[], i=0, active_links=[], app_rx=[], app_tx=[]):
+def draw_network(
+    g, connections=[], i=0, active_links=[], app_rx=[], app_tx=[], human_readable=False
+):
     global max_x, max_y, img_size, max_time
     image = Image.new("RGB", img_size, "white")
     draw = ImageDraw.Draw(image)
@@ -128,8 +130,20 @@ def draw_network(g, connections=[], i=0, active_links=[], app_rx=[], app_tx=[]):
             app_tx=node[0] in app_tx,
             app_rx=node[0] in app_rx,
         )
+    time_str = "Time: %ds" % i
+    if human_readable:
+        days = i // (24 * 3600)
+        hours = (i % (24 * 3600)) // 3600
+        minutes = (i % 3600) // 60
+        seconds = i % 60
+        time_str = "Time: %sd %sh %sm %ss" % (
+            days,
+            str(hours).rjust(2, "0"),
+            str(minutes).rjust(2, "0"),
+            str(seconds).rjust(2, "0"),
+        )
 
-    draw.text((10, 10), "Time: %ds" % i, fill="black")
+    draw.text((10, 10), time_str, fill="black")
     draw_progress(draw, 10, image.height - 10, i / max_time, image.width - 20)
 
     return image
@@ -158,6 +172,12 @@ def main():
     )
     parser.add_argument(
         "-d", "--delay", type=int, help="Delay between frames in ms", default=100
+    )
+    parser.add_argument(
+        "-H",
+        "--human-readable-timestamp",
+        help="Convert timestamp from seconds to days, hours, minutes and seconds",
+        action="store_true",
     )
     parser.add_argument("-g", "--graph", type=str, help="Input graphml file")
     parser.add_argument("-c", "--contacts", type=str, help="The network contacts file")
@@ -199,7 +219,7 @@ def main():
             import cv2
             import numpy as np
         except ImportError:
-            print("You need to have OpenCV installed to save to MP4")
+            print("You need to have OpenCV (opencv-python) installed to save to MP4")
 
     if modeContactGraph:
         # print(args.graph)
@@ -319,6 +339,7 @@ def main():
             active_links=list(active_links),
             app_rx=list(apps_rx),
             app_tx=list(apps_tx),
+            human_readable=args.human_readable_timestamp,
         )
         if output_mp4:
             image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
