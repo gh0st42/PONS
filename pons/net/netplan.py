@@ -102,7 +102,7 @@ class NetworkPlan(CommonContactPlan):
                 if jitter > 0:
                     jitter = jitter * (random() - 0.5)
 
-                tx_time = link_props.get("delay", 0) + jitter
+                tx_time = link_props.get("delay", 0) / 1000 + jitter
                 bw = link_props.get("bw", 0)
                 if bw > 0:
                     tx_time += size / bw

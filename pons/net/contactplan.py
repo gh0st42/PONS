@@ -336,12 +336,12 @@ class CoreContactPlan(object):
                 jitter = 0
                 if c.jitter > 0:
                     jitter = (random() - 0.5) * c.jitter
-                return size / c.bw + c.delay + jitter
+                return size / c.bw + c.delay / 1000 + jitter
             if c.nodes[0] == node2 and c.nodes[1] == node1:
                 jitter = 0
                 if c.jitter > 0:
                     jitter = (random() - 0.5) * c.jitter
-                return size / c.bw + c.delay + jitter
+                return size / c.bw + c.delay / 1000 + jitter
         raise Exception("no contact found")
 
     def fixed_links(self) -> List[Tuple[int, int]]:
