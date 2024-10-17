@@ -37,6 +37,7 @@ class Router(object):
 
     def send(self, to_nid: int, msg: pons.Message):
         self.stats["tx"] += 1
+        self.remember(to_nid, msg.unique_id())
         self.netsim.nodes[self.my_id].send(self.netsim, to_nid, msg)
         event_log(
             self.env.now,
