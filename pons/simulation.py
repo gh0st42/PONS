@@ -6,6 +6,7 @@ import os
 from pons.event_log import event_log, open_log, close_log, is_logging
 import pons.event_log
 from simpy import Environment
+from simpy.rt import RealtimeEnvironment
 
 import pons
 from pons.node import Node
@@ -55,8 +56,15 @@ class NetSim(object):
         msggens: Optional[list] = None,
         config: Optional[dict] = None,
         name_to_id_map: Optional[Dict[str, int]] = None,
+        realtime: bool = False,
+        factory: float = 1,
+        strict: bool = True,
     ):
-        self.env = Environment()
+        if realtime:
+            self.env = RealtimeEnvironment(factor=factory, strict=strict)
+        else:
+            self.env = Environment()
+
         self.duration = duration
         if "SIM_DURATION" in os.environ:
             print("ENV SIM_DURATION found! Using duration: ", os.getenv("SIM_DURATION"))
