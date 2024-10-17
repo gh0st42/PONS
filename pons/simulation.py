@@ -60,11 +60,11 @@ class NetSim(object):
         config: Optional[dict] = None,
         name_to_id_map: Optional[Dict[str, int]] = None,
         realtime: bool = False,
-        factory: float = 1,
+        factor: float = 1,
         strict: bool = True,
     ):
         if realtime:
-            self.env = RealtimeEnvironment(factor=factory, strict=strict)
+            self.env = RealtimeEnvironment(factor=factor, strict=strict)
         else:
             self.env = Environment()
 
