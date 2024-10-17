@@ -58,6 +58,7 @@ class Rover:
         return str(self)
 
     def log(self, msg):
+        return
         print("[ %f ] [%s] ROVER: %s" % (self.netsim.env.now, self.name, msg))
 
     def start(self, netsim: pons.NetSim, my_id: int):

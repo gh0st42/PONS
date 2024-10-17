@@ -3,6 +3,7 @@ import json
 import sys
 
 from roverapp import RoverApp
+from mocapp import MocApp
 
 import pathlib
 
@@ -53,9 +54,9 @@ config = {"movement_logger": False, "peers_logger": False, "event_logging": True
 
 ping_sender = RoverApp(dst=plan.mapping["moc1"], interval=10, ttl=3600, size=PING_SIZE)
 # interval = -1 means receive only and never send a ping, only pong
-ping_receiver = pons.apps.PingApp(dst=0, interval=-1, ttl=3600, size=PING_SIZE)
+ping_receiver = MocApp(dst=plan.mapping["rover1"], ttl=3600)
 
-netsim = pons.NetSim(SIM_TIME, nodes, config=config, realtime=True)
+netsim = pons.NetSim(SIM_TIME, nodes, config=config, realtime=True, factor=0.1)
 
 netsim.install_app("rover1", ping_sender)
 netsim.install_app("moc1", ping_receiver)
