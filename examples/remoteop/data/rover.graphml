@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='utf-8'?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+  <key id="d7" for="edge" attr.name="loss" attr.type="double" />
+  <key id="d6" for="edge" attr.name="jitter" attr.type="double" />
+  <key id="d5" for="edge" attr.name="delay" attr.type="double" />
+  <key id="d4" for="edge" attr.name="bw" attr.type="long" />
+  <key id="d3" for="node" attr.name="name" attr.type="string" />
+  <key id="d2" for="node" attr.name="type" attr.type="string" />
+  <key id="d1" for="node" attr.name="y" attr.type="double" />
+  <key id="d0" for="node" attr.name="x" attr.type="double" />
+  <graph edgedefault="undirected">
+    <node id="200">
+      <data key="d0">535.0</data>
+      <data key="d1">193.0</data>
+      <data key="d2">Host</data>
+      <data key="d3">rover1</data>
+    </node>
+    <node id="100">
+      <data key="d0">399.0</data>
+      <data key="d1">126.0</data>
+      <data key="d2">Host</data>
+      <data key="d3">relay1</data>
+    </node>
+    <node id="50">
+      <data key="d0">250.0</data>
+      <data key="d1">135.0</data>
+      <data key="d2">Host</data>
+      <data key="d3">gs1</data>
+    </node>
+    <node id="10">
+      <data key="d0">114.0</data>
+      <data key="d1">108.0</data>
+      <data key="d2">Host</data>
+      <data key="d3">moc1</data>
+    </node>
+    <edge source="50" target="10">
+      <data key="d4">100000000</data>
+      <data key="d5">150.0</data>
+      <data key="d6">0.0</data>
+      <data key="d7">0.0</data>
+    </edge>
+  </graph>
+</graphml>
