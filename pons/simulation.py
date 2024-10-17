@@ -2,6 +2,7 @@ import time
 from typing import List, Dict, Optional, Tuple
 from copy import deepcopy
 import os
+import signal
 
 from pons.event_log import event_log, open_log, close_log, is_logging
 import pons.event_log
@@ -11,6 +12,8 @@ from simpy.rt import RealtimeEnvironment
 import pons
 from pons.node import Node
 from pons.event_log import event_log
+
+aborted = False
 
 
 def printProgressBar(
@@ -64,6 +67,8 @@ class NetSim(object):
             self.env = RealtimeEnvironment(factor=factory, strict=strict)
         else:
             self.env = Environment()
+
+        self.realtime = realtime
 
         self.duration = duration
         if "SIM_DURATION" in os.environ:
@@ -245,6 +250,14 @@ class NetSim(object):
     def run(self):
         print("== running simulation for %d seconds ==" % self.duration)
 
+        # install signal handler to stop simulation if ctrl-c is pressed
+        def signal_handler(sig, frame):
+            global aborted
+            print("Stopping simulation...")
+            aborted = True
+
+        signal.signal(signal.SIGINT, signal_handler)
+
         all_contactplans = set()
 
         for n in self.nodes.values():
@@ -312,10 +325,13 @@ class NetSim(object):
                 n.calc_neighbors(now_sim, self.nodes.values())
 
         print("")
-        while self.env.now < self.duration + 1.0:
+        while self.env.now < self.duration + 1.0 and not aborted:
             # self.env.run(until=self.duration)
             now_sim = self.env.now
-            next_stop = min(self.duration + 1.0, now_sim + 5.0)
+            step_size = 5.0
+            if self.realtime:
+                step_size = 1.0
+            next_stop = min(self.duration + 1.0, now_sim + step_size)
             self.env.run(until=next_stop)
             now_real = time.time()
             diff = now_real - last_real
@@ -350,7 +366,10 @@ class NetSim(object):
         else:
             rate = 0.0
 
-        print("\nsimulation finished")
+        if aborted:
+            print("\n\nsimulation aborted")
+        else:
+            print("\nsimulation finished")
         print(
             "simulated %d seconds in %.02f seconds (%.2f x real time)"
             % (now_sim, diff, rate)
@@ -382,7 +401,7 @@ class NetSim(object):
             now_sim,
             "STATS",
             {
-                "event": "END",
+                "event": "ABORT" if aborted else "END",
                 "duration": now_sim,
                 "real_duration": diff,
                 "rate": rate,
