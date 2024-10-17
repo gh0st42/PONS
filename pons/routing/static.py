@@ -8,7 +8,7 @@ import fnmatch
 import random
 
 
-@dataclass
+@dataclass(frozen=True)
 class RouteEntry:
     dst: str
     next_hop: int
@@ -43,32 +43,62 @@ class StaticRouter(Router):
         graph: nx.Graph = None,
         scan_interval=2.0,
         capacity=0,
+        shortest_paths_only=False,
+        pick_random_next_hop=True,
     ):
         super(StaticRouter, self).__init__(scan_interval, capacity)
         if routes is None:
             routes = []
         self.routes = routes
         self.graph = graph
+        self.shortest_paths_only = shortest_paths_only
+        self.pick_random_next_hop = pick_random_next_hop
 
     def start(self, netsim: NetSim, my_id: int):
         super().start(netsim, my_id)
         # get routes from graph to all other nodes
+        next_hop_map = {}
         if self.graph is not None:
             for node in self.graph.nodes:
                 if node != my_id:
                     try:
-                        paths = nx.all_shortest_paths(
-                            self.graph, source=my_id, target=node
-                        )
+                        if self.shortest_paths_only:
+                            paths = nx.all_shortest_paths(
+                                self.graph, source=my_id, target=node
+                            )
+                        else:
+                            paths = nx.all_simple_paths(
+                                self.graph, source=my_id, target=node
+                            )
+
+                        # sort by length
+                        paths = sorted(paths, key=lambda x: len(x))
+
                         for path in paths:
                             next_hop = path[1]
-                            self.routes.append(
-                                RouteEntry(
-                                    dst=node, next_hop=next_hop, hops=len(path) - 1
-                                )
-                            )
+                            if (node, next_hop) in next_hop_map.keys():
+                                if (len(path) - 1) < next_hop_map[(node, next_hop)]:
+                                    next_hop_map[(node, next_hop)] = len(path) - 1
+                            else:
+                                next_hop_map[(node, next_hop)] = len(path) - 1
+
+                            # self.routes.append(
+                            #     RouteEntry(
+                            #         dst=node, next_hop=next_hop, hops=len(path) - 1
+                            #     )
+                            # )
+                        # remove duplicates
+                        # self.routes = list(set(self.routes))
+
                     except nx.NetworkXNoPath:
                         pass
+        self.routes = [
+            RouteEntry(dst=node, next_hop=next_hop, hops=hops)
+            for (node, next_hop), hops in next_hop_map.items()
+        ]
+        self.routes = sorted(self.routes, key=lambda x: x.hops)
+
+        self.log("routes: %s" % self.routes)
 
     def __str__(self):
         return "StaticRouter"
@@ -90,7 +120,7 @@ class StaticRouter(Router):
             # self.store_del(msg)
             return
 
-        next_hops = []
+        next_hops = set()
         # check routing table
         for route in self.routes:
             # self.log("checking route %s" % route)
@@ -100,13 +130,21 @@ class StaticRouter(Router):
                 if next_hop in self.peers and not self.msg_already_spread(
                     msg, next_hop
                 ):
-                    next_hops.append(next_hop)
+                    # next_hops.add((next_hop, route.hops))
+                    next_hops.add(next_hop)
 
+        # sort by number of hops
+        # next_hops = sorted(next_hops, key=lambda x: x[1])
+        # next_hops = [next_hop for next_hop, _ in next_hops]
+        next_hops = list(set(next_hops))
         # self.log("num routes: %d %s" % (len(next_hops), next_hops))
 
         # if more than one next hop is available pick a random one
         if len(next_hops) > 0:
-            next_hop = random.choice(next_hops)
+            if self.pick_random_next_hop:
+                next_hop = random.choice(next_hops)
+            else:
+                next_hop = next_hops[0]
             # self.log("forwarding to next hop: %d" % next_hop)
             self.netsim.routing_stats["started"] += 1
             # self.netsim.env.process(
