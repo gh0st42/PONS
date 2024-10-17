@@ -85,8 +85,8 @@ class CoreContact(object):
             .replace("gbit", "000000000")
         )
         loss = float(fields[5])
-        delay = int(fields[6])
-        jitter = int(fields[7])
+        delay = float(fields[6])
+        jitter = float(fields[7])
         return cls(timespan, nodes, bw, loss, delay, jitter)
 
 
@@ -233,6 +233,8 @@ class CoreContactPlan(object):
         with open(filename, "r") as f:
             for line in f:
                 line = line.strip()
+                if line.startswith("#") or line.startswith("//") or len(line) < 6:
+                    continue
                 fields = line.split()
                 if len(fields) == 3 and fields[0] == "s":
                     if fields[1] == "loop":
@@ -267,29 +269,39 @@ class CoreContactPlan(object):
         # print("cache miss", time, self.last_at)
         self.last_at = time
 
+        if self.loop:
+            time = time % self.get_max_time()
+
         contacts = [
             c for c in self.contacts if time >= c.timespan[0] and time <= c.timespan[1]
         ]
         self.last_cache = contacts
 
-        # print("at: %d (%d) %s" % (time, orig, [str(c) for c in contacts]))
-        tenth_time = self.get_max_time() / 10
-        # check if time is a multiple of 10% of the max time
-        if time % tenth_time == 0:
-            self.clean(time)
+        if not self.loop:
+            # only clean old entries if not in loop mode
+
+            # print("at: %d (%d) %s" % (time, orig, [str(c) for c in contacts]))
+            tenth_time = self.get_max_time() / 10
+            # check if time is a multiple of 10% of the max time
+            if time % tenth_time == 0:
+                self.clean(time)
 
         return contacts
 
     def next_event(self, time: int) -> Optional[int]:
-        # orig = time
-        # if self.loop:
-        # time = time % self.get_max_time()
+        orig = time
+        if self.loop:
+            time = time % self.get_max_time()
+
         nexts_1 = [c.timespan[0] for c in self.contacts if c.timespan[0] > time]
         nexts_2 = [c.timespan[1] for c in self.contacts if c.timespan[1] > time]
         nexts = nexts_1 + nexts_2
         if len(nexts) == 0:
             return None
-        return min(nexts)
+        if not self.loop:
+            return min(nexts)
+        else:
+            return min(nexts) + (orig - time)
 
     # def next_deactivation(self, time : int) -> Optional[int]:
     #   """Returns the next deactivation time.
