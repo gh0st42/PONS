@@ -32,15 +32,19 @@ from urllib.parse import urlparse
 tmbuf = []
 tmhistory = []
 from copy import copy
+from urllib.parse import unquote
 
 
 class HttpHandler(BaseHTTPRequestHandler):
+    app = None
 
     def do_GET(self):
         # first we need to parse it
         parsed = urlparse(self.path)
         # get the query string
         query_string = parsed.query
+        # decode the query string
+        query_string = unquote(query_string)
         # get the request path, this new path does not have the query string
         path = parsed.path
         global tmbuf
@@ -61,6 +65,35 @@ class HttpHandler(BaseHTTPRequestHandler):
             self.end_headers()
             data = "\n".join(tmhistory)
             self.wfile.write(data.encode("utf-8"))
+            return
+        elif path.startswith("/send/"):
+            self.send_response(200)
+            self.send_header("Content-type", "text/plain")
+            self.end_headers()
+
+            data = path.split("/send/")[1]
+            data = data.split(".")
+            if len(data) < 2 or len(query_string) == 0:
+                self.wfile.write(b"Invalid request")
+                return
+            dst = int(data[0])
+            service = int(data[1])
+            content = query_string
+            content = content.encode("utf-8")
+            app = self.app
+            msg = pons.Message(
+                id="TC",
+                src=app.my_id,
+                src_service=app.service,
+                dst=dst,
+                dst_service=service,
+                size=len(content),
+                created=app.netsim.env.now,
+                content=content,
+                ttl=app.ttl,
+            )
+            app.send(msg)
+            self.wfile.write(b"Message sent.")
             return
         else:
             self.send_response(200)
@@ -104,6 +137,7 @@ class MocApp(App):
         self.handler = HttpHandler
         self.httpd = socketserver.TCPServer(("", self.http_port), self.handler)
         self.log(f"serving at port {self.http_port}")
+        self.httpd.RequestHandlerClass.app = self
         self.httpd.serve_forever()
 
     def start(self, netsim: pons.NetSim, my_id: int):
@@ -120,14 +154,14 @@ class MocApp(App):
 
     def on_msg_received(self, msg: pons.Message):
         global tmbuf
-        self.log("TM received: %s" % (msg.id))
+        # self.log("TM received: %s" % (msg.id))
         self.msgs_received += 1
         now = self.netsim.env.now
-        self.log(
-            "%s received from node %s with %d bytes in %fs"
-            % (msg.id, msg.src, msg.size, now - msg.created)
-        )
-        tmbuf.append(f"{now} {msg.src} {msg.unique_id()} {msg.size}")
+        # self.log(
+        #     "%s received from node %s with %d bytes in %fs"
+        #     % (msg.id, msg.src, msg.size, now - msg.created)
+        # )
+        tmbuf.append(f"{now} {msg.src} {msg.unique_id()} {msg.size} | {msg.content}")
         self.msgs_received += 1
 
     def run(self):

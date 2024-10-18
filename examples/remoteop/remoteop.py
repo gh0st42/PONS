@@ -35,7 +35,9 @@ plan = pons.net.NetworkPlan.from_graphml(SCRIPT_DIR + "/data/rover.graphml")
 print(plan.nodes())
 print(plan.connections())
 
-plan2 = pons.CoreContactPlan.from_file(SCRIPT_DIR + "/data/rover.ccp", plan.mapping)
+plan2 = pons.CoreContactPlan.from_file(
+    SCRIPT_DIR + "/data/rover_fixed.ccp", plan.mapping
+)
 plan.set_contacts(plan2)
 
 print(plan2.at(231.0))
@@ -52,14 +54,14 @@ nodes = pons.generate_nodes_from_graph(plan.G, router=router, contactplan=plan2)
 
 config = {"movement_logger": False, "peers_logger": False, "event_logging": True}
 
-ping_sender = RoverApp(dst=plan.mapping["moc1"], interval=10, ttl=3600, size=PING_SIZE)
+rover_app = RoverApp(dst=plan.mapping["moc1"], interval=10, ttl=3600)
 # interval = -1 means receive only and never send a ping, only pong
-ping_receiver = MocApp(dst=plan.mapping["rover1"], ttl=3600)
+moc_app = MocApp(dst=plan.mapping["rover1"], ttl=3600)
 
 netsim = pons.NetSim(SIM_TIME, nodes, config=config, realtime=True, factor=0.1)
 
-netsim.install_app("rover1", ping_sender)
-netsim.install_app("moc1", ping_receiver)
+netsim.install_app("rover1", rover_app)
+netsim.install_app("moc1", moc_app)
 
 netsim.setup()
 
