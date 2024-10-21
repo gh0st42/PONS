@@ -82,7 +82,7 @@ class HttpHandler(BaseHTTPRequestHandler):
             content = content.encode("utf-8")
             app = self.app
             msg = pons.Message(
-                id="TC",
+                id=f"TC-{app.msgs_sent}",
                 src=app.my_id,
                 src_service=app.service,
                 dst=dst,
@@ -92,6 +92,7 @@ class HttpHandler(BaseHTTPRequestHandler):
                 content=content,
                 ttl=app.ttl,
             )
+            app.msgs_sent += 1
             app.send(msg)
             self.wfile.write(b"Message sent.")
             return
