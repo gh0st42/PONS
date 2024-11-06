@@ -25,7 +25,7 @@ Features:
 - simulated user applications
 - tools
   - `netedit-tk` for generating graphml topologies
-  - `netreplay` for generating animated gifs from graphml topologies with a contact plan or event logs
+  - `ponsanim` for generating animated gifs and mp4 from graphml topologies with a contact plan or event logs
 
 ## Requirements
 
