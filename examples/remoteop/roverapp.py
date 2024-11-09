@@ -2,7 +2,8 @@ import random
 import sys
 import pathlib
 import math
-from enum import Enum
+from enum import Enum, IntEnum
+import json
 
 SCRIPT_DIR = pathlib.Path(__file__).parent.resolve()
 print(SCRIPT_DIR)
@@ -25,7 +26,7 @@ from pons.event_log import event_log
 # - sleep: sleep for a given time
 
 
-class RoverState(Enum):
+class RoverState(IntEnum):
     IDLE = 0
     MOVING = 1
     TURNING = 2
@@ -180,8 +181,8 @@ class Rover:
 
             yield self.netsim.env.timeout(STEP_TIME)
 
-    def get_status(self):
-        return {
+    def get_status(self) -> dict:
+        status = {
             "position": [self.x, self.y],
             "direction": self.direction,
             "battery": self.battery,
@@ -189,6 +190,8 @@ class Rover:
             "state": self.state,
             "cmdbuflen": len(self.cmds),
         }
+
+        return status
 
 
 class RoverApp(App):
@@ -244,7 +247,8 @@ class RoverApp(App):
                 delay = random.random() * self.interval
                 yield self.netsim.env.timeout(delay)
             while True:
-                content = self.rover.get_status()
+                rover_status = self.rover.get_status()
+                content = json.dumps(rover_status)
 
                 tm_hk_msg = pons.Message(
                     "TM-HK-%d" % self.msgs_sent,
