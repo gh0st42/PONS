@@ -1,0 +1,4 @@
+pillow==10.4.0
+networkx==3.2.1
+
+
