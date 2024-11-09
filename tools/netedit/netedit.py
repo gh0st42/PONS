@@ -94,14 +94,28 @@ def draw_links():
     global canvas
 
     nodes = graph.nodes
-    for src, dst in graph.edges:
-        canvas.create_line(
-            nodes[src]["x"],
-            nodes[src]["y"],
-            nodes[dst]["x"],
-            nodes[dst]["y"],
-            fill="black",
-        )
+    for src, dst, data in graph.edges(data=True):
+        dash = None
+        if "dynamic_link" in data:
+            if data["dynamic_link"]:
+                dash = (4, 4)
+        if not dash:
+            canvas.create_line(
+                nodes[src]["x"],
+                nodes[src]["y"],
+                nodes[dst]["x"],
+                nodes[dst]["y"],
+                fill="black",
+            )
+        else:
+            canvas.create_line(
+                nodes[src]["x"],
+                nodes[src]["y"],
+                nodes[dst]["x"],
+                nodes[dst]["y"],
+                fill="black",
+                dash=dash,
+            )
 
 
 def draw_nodes():
