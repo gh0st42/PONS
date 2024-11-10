@@ -7,7 +7,7 @@ packages = ["pons", "tools/netedit", "tools/ponsanim"]
 
 [project]
 name = "pons-dtn"
-version = "0.1.3"
+version = "0.1.4"
 authors = [
   { name = "Lars Baumgaertner", email = "1264131+gh0st42@users.noreply.github.com" },
 ]
