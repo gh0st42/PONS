@@ -561,6 +561,12 @@ def delete_link(dst):
     update_ui()
 
 
+def show_dialog_link_properties(n1, n2, graph):
+    win = dialog_link_properties(n1, n2, graph)
+    root.wait_window(win)
+    update_ui()
+
+
 def draw_prop_links(frame):
     global graph
     global selected_node
@@ -585,7 +591,9 @@ def draw_prop_links(frame):
         ttk.Button(
             frame,
             text="Properties",
-            command=lambda edge=edge: dialog_link_properties(edge[0], edge[1], graph),
+            command=lambda edge=edge: show_dialog_link_properties(
+                edge[0], edge[1], graph
+            ),
         ).grid(row=i, column=2, padx=10, pady=10)
         print(link)
 

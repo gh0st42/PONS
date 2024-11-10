@@ -69,6 +69,8 @@ def dialog_link_properties(n1, n2, graph):
         link_data["jitter"] = 0
     if not "loss" in link_data:
         link_data["loss"] = 0
+    if not "dynamic_link" in link_data:
+        link_data["dynamic_link"] = False
 
     print("link properties")
     dialog_link_prop = Toplevel()
@@ -89,7 +91,9 @@ def dialog_link_properties(n1, n2, graph):
     loss = add_label_entry(
         subframe, "Loss (in %)", 3, default_value=str(link_data["loss"])
     )
-    dynamic_link = add_label_checkbox(subframe, "Dynamic Link", 4, default_value=False)
+    dynamic_link = add_label_checkbox(
+        subframe, "Dynamic Link", 4, default_value=link_data["dynamic_link"]
+    )
     subframe.pack(padx=5, pady=5)
 
     # canvas_height = ttk.Entry(size_frame)
@@ -128,3 +132,4 @@ def dialog_link_properties(n1, n2, graph):
         side=RIGHT
     )
     bottom_row.pack(padx=5, pady=5)
+    return dialog_link_prop
