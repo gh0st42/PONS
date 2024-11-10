@@ -24,7 +24,7 @@ Features:
   - optionally: fluctuating from contact plan
 - simulated user applications
 - tools
-  - `netedit-tk` for generating graphml topologies
+  - `netedit` for generating graphml topologies
   - `ponsanim` for generating animated gifs and mp4 from graphml topologies with a contact plan or event logs
 
 ## Requirements
@@ -94,4 +94,7 @@ Some of the simulation core functions can be set during runtime without having t
 
 - `LOG_FILE` can be set to change the default event log file from `/tmp/events.log` to something else
 - `SIM_DURATION` can be used to override the calculated simulation duration
+
+For `netedit` there are also ways to influence its behavior:
+- `BG_IMG` can be set to any image and it while be rendered as a background behind the network topology
 
