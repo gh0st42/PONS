@@ -162,6 +162,13 @@ class NetworkPlan(CommonContactPlan):
             mapping = {n: i for i, n in enumerate(G.nodes())}
             print(mapping)
         G = nx.relabel_nodes(G, mapping)
+
+        # remove edges that have data of "dynamic_link" set to True
+        for e in deepcopy(G.edges()):
+            if G.get_edge_data(*e).get("dynamic_link", False):
+                print("Removing dynamic link edge %s" % str(e), file=sys.stderr)
+                G.remove_edge(*e)
+
         plan = cls(G)
         plan.mapping = mapping
         return plan
