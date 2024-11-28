@@ -16,7 +16,8 @@ class RouteEntry:
     src: Optional[str] = None
 
     def __str__(self):
-        return "RouteEntry(dst=%s, next_hop=%d, hops=%d, src=%s)" % (
+
+        return "RouteEntry(dst=%s, next_hop=%s, hops=%s, src=%s)" % (
             self.dst,
             self.next_hop,
             self.hops,
@@ -57,46 +58,47 @@ class StaticRouter(Router):
     def start(self, netsim: NetSim, my_id: int):
         super().start(netsim, my_id)
         # get routes from graph to all other nodes
-        next_hop_map = {}
-        if self.graph is not None:
-            for node in self.graph.nodes:
-                if node != my_id:
-                    try:
-                        if self.shortest_paths_only:
-                            paths = nx.all_shortest_paths(
-                                self.graph, source=my_id, target=node
-                            )
-                        else:
-                            paths = nx.all_simple_paths(
-                                self.graph, source=my_id, target=node
-                            )
-
-                        # sort by length
-                        paths = sorted(paths, key=lambda x: len(x))
-
-                        for path in paths:
-                            next_hop = path[1]
-                            if (node, next_hop) in next_hop_map.keys():
-                                if (len(path) - 1) < next_hop_map[(node, next_hop)]:
-                                    next_hop_map[(node, next_hop)] = len(path) - 1
+        if not self.routes or self.routes == []:
+            next_hop_map = {}
+            if self.graph is not None:
+                for node in self.graph.nodes:
+                    if node != my_id:
+                        try:
+                            if self.shortest_paths_only:
+                                paths = nx.all_shortest_paths(
+                                    self.graph, source=my_id, target=node
+                                )
                             else:
-                                next_hop_map[(node, next_hop)] = len(path) - 1
+                                paths = nx.all_simple_paths(
+                                    self.graph, source=my_id, target=node
+                                )
 
-                            # self.routes.append(
-                            #     RouteEntry(
-                            #         dst=node, next_hop=next_hop, hops=len(path) - 1
-                            #     )
-                            # )
-                        # remove duplicates
-                        # self.routes = list(set(self.routes))
+                            # sort by length
+                            paths = sorted(paths, key=lambda x: len(x))
 
-                    except nx.NetworkXNoPath:
-                        pass
-        self.routes = [
-            RouteEntry(dst=node, next_hop=next_hop, hops=hops)
-            for (node, next_hop), hops in next_hop_map.items()
-        ]
-        self.routes = sorted(self.routes, key=lambda x: x.hops)
+                            for path in paths:
+                                next_hop = path[1]
+                                if (node, next_hop) in next_hop_map.keys():
+                                    if (len(path) - 1) < next_hop_map[(node, next_hop)]:
+                                        next_hop_map[(node, next_hop)] = len(path) - 1
+                                else:
+                                    next_hop_map[(node, next_hop)] = len(path) - 1
+
+                                # self.routes.append(
+                                #     RouteEntry(
+                                #         dst=node, next_hop=next_hop, hops=len(path) - 1
+                                #     )
+                                # )
+                            # remove duplicates
+                            # self.routes = list(set(self.routes))
+
+                        except nx.NetworkXNoPath:
+                            pass
+            self.routes = [
+                RouteEntry(dst=node, next_hop=next_hop, hops=hops)
+                for (node, next_hop), hops in next_hop_map.items()
+            ]
+            self.routes = sorted(self.routes, key=lambda x: x.hops)
 
         self.log("routes: %s" % self.routes)
 

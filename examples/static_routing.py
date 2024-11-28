@@ -75,6 +75,9 @@ nodes[3].router.routes = [RouteEntry(dst=1, next_hop=2)]
 # node 3 can reach node 0 via node 2
 nodes[3].router.routes.append(RouteEntry(dst=0, next_hop=2))
 
+for n in nodes:
+    print(n.name, n.router.routes)
+
 config = {"movement_logger": False, "peers_logger": False}
 
 ping_sender = pons.apps.PingApp(dst=2, interval=10, ttl=3600, size=100)
@@ -87,6 +90,10 @@ nodes[3].router.apps = [ping_receiver]
 netsim = pons.NetSim(SIM_TIME, nodes, world_size=WORLD_SIZE, config=config)
 
 netsim.setup()
+
+for k, n in netsim.nodes.items():
+    print(n.name, n.router.routes)
+
 netsim.run()
 
 print(json.dumps(netsim.net_stats, indent=4))
