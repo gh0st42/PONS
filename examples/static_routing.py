@@ -78,7 +78,7 @@ nodes[3].router.routes.append(RouteEntry(dst=0, next_hop=2))
 for n in nodes:
     print(n.name, n.router.routes)
 
-config = {"movement_logger": False, "peers_logger": False}
+config = {"movement_logger": False, "peers_logger": False, "real_scan": False}
 
 ping_sender = pons.apps.PingApp(dst=2, interval=10, ttl=3600, size=100)
 # interval = -1 means receive only and never send a ping, only pong

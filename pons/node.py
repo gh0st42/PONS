@@ -189,10 +189,10 @@ class Node(object):
                     },
                 )
                 if self.router is not None:
-                    if msg.id == "HELLO":
-                        self.router.on_scan_received(deepcopy(msg), from_nid)
-                    else:
+                    if msg.is_dtn_bundle():
                         self.router._on_msg_received(deepcopy(msg), from_nid)
+                    else:
+                        self.router._on_pkt_received(deepcopy(msg), from_nid)
             else:
                 # print("Node %d received msg %s from %d (not neighbor)" %
                 #      (to_nid, msg, from_nid))

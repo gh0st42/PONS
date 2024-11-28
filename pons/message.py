@@ -16,7 +16,7 @@ class Message(object):
     src_service: int = 0
     dst_service: int = 0
     content: dict = None
-    metadata = None
+    metadata: dict = None
 
     def __str__(self):
         return "Message(%s, src=%d.%d, dst=%d.%d, size=%d)" % (
@@ -34,6 +34,11 @@ class Message(object):
     def is_expired(self, now):
         # print("is_expired: %d + %d > %d" % (self.created, self.ttl, now))
         return now - self.created > self.ttl
+
+    def is_dtn_bundle(self):
+        if not self.metadata:
+            return True
+        return self.metadata.get("is_bundle", True)
 
 
 def message_event_generator(netsim, msggenconfig):
