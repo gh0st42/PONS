@@ -4,11 +4,49 @@ from copy import deepcopy
 from typing import List
 import pons
 from pons.message import Message
+import json
 
 from pons.net.common import BROADCAST_ADDR, NetworkSettings
 from simpy.util import start_delayed
 import networkx as nx
 from dataclasses import dataclass
+
+
+class Mib(object):
+    """A hierarchical key value store of nested dictionaries"""
+
+    def __init__(self):
+        self.root = {}
+
+    def get(self, key: str):
+        keys = key.split(".")
+        node = self.root
+        for k in keys:
+            if k not in node:
+                return None
+            node = node[k]
+        return node
+
+    def set(self, key: str, value):
+        keys = key.split(".")
+        node = self.root
+        for k in keys[:-1]:
+            if k not in node:
+                node[k] = {}
+            node = node[k]
+        node[keys[-1]] = value
+
+    def __str__(self):
+        return json.dumps(self.root)
+
+    def __repr__(self):
+        return json.dumps(self.root)
+
+    def to_json(self):
+        return json.dumps(self.root)
+
+    def from_json(self, json_str: str):
+        self.root = json.loads(json_str)
 
 
 class Node(object):
@@ -23,6 +61,15 @@ class Node(object):
     ):
         self.id = node_id
         self.name = node_name
+        self.mib = Mib()
+        self.mib.set("node.endpoint_identifier", node_id)
+        self.mib.set("node.bundle-lifetime", 60 * 60 * 24 * 1000)
+        self.mib.set("node.maximum-bundle-size", -1)
+        self.mib.set("node.store.maximum-size", -1)
+        self.mib.set("node.store.current-size", 0)
+        self.mib.set("node.store.maximum-bundles", -1)
+        self.mib.set("node.store.bundles-number", 0)
+
         if self.name == "":
             self.name = "n%d" % self.id
         self.x = 0.0
