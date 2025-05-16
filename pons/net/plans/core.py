@@ -69,8 +69,10 @@ class CoreContactPlan(CommonContactPlan):
         filename: Optional[str] = None,
         contacts: Optional[List[CoreContact]] = None,
         mapping: Optional[Dict[str, int]] = None,
+        symmetric: bool = True,
     ) -> None:
         self.loop = False
+        self.symmetric = symmetric
         if contacts is None:
             contacts = []
         self.contacts = contacts
@@ -84,11 +86,11 @@ class CoreContactPlan(CommonContactPlan):
 
     @classmethod
     def from_file(
-        cls, filename, mapping: Optional[Dict[str, int]] = None
+        cls, filename, mapping: Optional[Dict[str, int]] = None, symmetric: bool = True
     ) -> CoreContactPlan:
         if mapping is None:
             mapping = {}
-        plan = cls(filename, mapping=mapping)
+        plan = cls(filename, mapping=mapping, symmetric=symmetric)
         return plan
 
     @classmethod
@@ -100,6 +102,7 @@ class CoreContactPlan(CommonContactPlan):
         delimiter: str = ",",
         node_rename_mapping: Optional[Dict[str, str]] = None,
         speedup=1,
+        symmetric: bool = True,
     ) -> CoreContactPlan:
         if mapping is None:
             mapping = {}
@@ -145,8 +148,6 @@ class CoreContactPlan(CommonContactPlan):
                 else:
                     node2 = int(node2)
 
-                nodes = (node1, node2)
-
                 contact = (start, end, node1, node2, int(fields[4]))
                 contacts.append(contact)
         contacts.sort(key=lambda x: x[0])
@@ -173,7 +174,7 @@ class CoreContactPlan(CommonContactPlan):
             CoreContact((start, end), (src, dst), 0, 0, 0, 0)
             for start, end, src, dst, duration in contacts
         ]
-        plan = cls(contacts=contacts, mapping=mapping)
+        plan = cls(contacts=contacts, mapping=mapping, symmetric=symmetric)
         return plan
 
     def __eq__(self, value: object) -> bool:
@@ -292,7 +293,9 @@ class CoreContactPlan(CommonContactPlan):
         for c in current_contacts:
             if c.nodes[0] == node1 and c.nodes[1] == node2:
                 return True
-            if c.nodes[0] == node2 and c.nodes[1] == node1:
+            if (
+                c.nodes[0] == node2 and c.nodes[1] == node1 and self.symmetric
+            ):  # for symmetric contact plans check the reverse as well
                 return True
         return False
 
@@ -302,7 +305,9 @@ class CoreContactPlan(CommonContactPlan):
         for c in current_contacts:
             if c.nodes[0] == node1 and c.nodes[1] == node2:
                 return c.loss
-            if c.nodes[0] == node2 and c.nodes[1] == node1:
+            if (
+                c.nodes[0] == node2 and c.nodes[1] == node1 and self.symmetric
+            ):  # for symmetric contact plans check the reverse as well
                 return c.loss
 
         return 0.0
@@ -320,7 +325,9 @@ class CoreContactPlan(CommonContactPlan):
                 if c.jitter > 0:
                     jitter = (random() - 0.5) * c.jitter
                 return size / c.bw + c.delay / 1000 + jitter
-            if c.nodes[0] == node2 and c.nodes[1] == node1:
+            if (
+                c.nodes[0] == node2 and c.nodes[1] == node1 and self.symmetric
+            ):  # for symmetric contact plans check the reverse as well
                 jitter = 0
                 if c.jitter > 0:
                     jitter = (random() - 0.5) * c.jitter
