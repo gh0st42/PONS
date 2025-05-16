@@ -7,7 +7,7 @@ from random import random
 
 from typing import TYPE_CHECKING, List, Tuple, Optional
 
-from .contactplan import CommonContactPlan
+from .plans import CommonContactPlan
 
 
 class NetworkPlan(CommonContactPlan):

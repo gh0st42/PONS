@@ -25,7 +25,7 @@ CAPACITY = 10000
 
 print("Python Opportunistic Network Simulator")
 
-plan = pons.ContactPlan.from_file(SCRIPT_DIR + "/data/contactPlan_simple.txt")
+plan = pons.IonContactPlan.from_file(SCRIPT_DIR + "/data/contactPlan_simple.txt")
 print(plan)
 print("snapshot at time 0")
 print(plan.get_contacts(0))
