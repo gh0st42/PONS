@@ -45,7 +45,9 @@ ping_receiver = pons.apps.PingApp(dst=0, interval=-1, ttl=3600, size=PING_SIZE)
 nodes[0].router.apps = [ping_sender]
 nodes[1].router.apps = [ping_receiver]
 
-netsim = pons.NetSim(SIM_TIME, nodes, world_size=WORLD_SIZE, config=config)
+netsim = pons.NetSim(
+    SIM_TIME, nodes, world_size=WORLD_SIZE, config=config, realtime=False
+)
 
 netsim.setup()
 

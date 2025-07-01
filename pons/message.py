@@ -46,12 +46,30 @@ class Message(object):
         return self.metadata.get("is_bundle", True)
 
 
-def message_event_generator(netsim, msggenconfig):
+def message_event_generator(netsim, msggenconfig: dict):
     """A message generator."""
     env = netsim.env
     counter = 0
     logger.debug("start message generator")
+    if "start_time" in msggenconfig:
+        start_time = msggenconfig["start_time"]
+        if isinstance(start_time, tuple):
+            start_time = random.randint(start_time[0], start_time[1])
+        logger.debug("start_time: %d" % start_time)
+        yield env.timeout(start_time)
+    end_time = netsim.duration
+    if "end_time" in msggenconfig:
+        end_time = msggenconfig["end_time"]
+        if isinstance(end_time, tuple):
+            end_time = random.randint(end_time[0], end_time[1])
+        elif end_time < 0:
+            end_time = netsim.duration
+
+    logger.debug("Running message generator from %d to %d" % (env.now, end_time))
     while True:
+        if env.now >= end_time:
+            logger.debug("message generator finished at %d" % env.now)
+            break
         # check if interval is a tuple
         if isinstance(msggenconfig["interval"], tuple):
             yield env.timeout(
@@ -100,7 +118,24 @@ def message_burst_generator(netsim, msggenconfig):
     env = netsim.env
     counter = 0
     logger.debug("start message burst generator")
+    end_time = netsim.duration
+    if "start_time" in msggenconfig:
+        start_time = msggenconfig["start_time"]
+        if isinstance(start_time, tuple):
+            start_time = random.randint(start_time[0], start_time[1])
+
+        yield env.timeout(start_time)
+    if "end_time" in msggenconfig:
+        end_time = msggenconfig["end_time"]
+        if isinstance(end_time, tuple):
+            end_time = random.randint(end_time[0], end_time[1])
+        elif end_time < 0:
+            end_time = netsim.duration
+
     while True:
+        if env.now >= end_time:
+            logger.debug("message burst generator finished at %d" % env.now)
+            return
         # check if interval is a tuple
         if isinstance(msggenconfig["interval"], tuple):
             yield env.timeout(

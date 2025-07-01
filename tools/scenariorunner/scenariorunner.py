@@ -109,11 +109,9 @@ def run_scenario(
     max_runtime = args.sim_time if args.sim_time else contacts[-1].timespan[1]
     logger.info(f"Max runtime set to {max_runtime} seconds.")
 
-    use_app = False
-
     msg_gens = []
 
-    if not use_app:
+    if not args.use_app:
         for f in flows:
             if f["src_scheme"] != "ipn" or f["dst_scheme"] != "ipn":
                 logger.error(
@@ -132,6 +130,8 @@ def run_scenario(
                 "size": f["size"],
                 "id": f["type"] + "-",
                 "ttl": max_runtime,  # use max_runtime as ttl
+                "start_time": f.get("start_time", 0),  # default to 0 if not specified
+                "end_time": f.get("end_time", -1),  # default to -1 if not specified
             }
             msg_gens.append(msg_gen)
 
@@ -139,19 +139,28 @@ def run_scenario(
     # pp(msg_gens)
     netsim = pons.NetSim(max_runtime, nodes, config=config, msggens=msg_gens)
 
-    if use_app:
+    if args.use_app:
         for f in flows:
-            ping_traffic_app = pons.apps.PingApp(
+            sender_app = pons.apps.SenderApp(
                 service=f["src_service"],
                 dst=f["dst_id"],
                 dst_service=f["dst_service"],
-                interval=f["rate"],
+                interval=1.0 / f["rate"],
                 ttl=max_runtime,  # use max_runtime as ttl
                 size=f["size"],
+                msg_prefix=f["type"],
+                active_time=(f.get("start_time", 0), f.get("end_time", -1)),
             )
             netsim.install_app(
                 f["src_id"],
-                ping_traffic_app,
+                sender_app,
+            )
+            sink_app = pons.apps.SinkApp(
+                service=f["dst_service"],
+            )
+            netsim.install_app(
+                f["dst_id"],
+                sink_app,
             )
 
     logger.info("Setting up the simulation...")
@@ -239,6 +248,12 @@ def main():
         type=int,
         default=100,
         help="Step size for the visualization (default: 100)",
+    )
+    parser.add_argument(
+        "--use-app",
+        "-A",
+        action="store_true",
+        help="Use application layer traffic, otherwise just bundle flow on router layer (default: False)",
     )
     args = parser.parse_args()
 

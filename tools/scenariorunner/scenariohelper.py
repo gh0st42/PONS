@@ -242,8 +242,8 @@ def load_application_traffic(filename: str, json_mapping: Dict) -> List[Dict[str
             logger.error(
                 f"flow type {flow['type']} not in traffic_types",
             )
-            # sys.exit(1)
-            continue
+            sys.exit(1)
+            # continue
         traffic_type = json_app_data["traffic_type"][flow["type"]]
         restrictions = traffic_type.get("link_type_restrictions", [])
         traffic.append(
@@ -260,6 +260,8 @@ def load_application_traffic(filename: str, json_mapping: Dict) -> List[Dict[str
                 "rate": traffic_type["generation_rate_per_second"],
                 "restrictions": restrictions,
                 "info": flow["info"],
+                "start_time": flow.get("start_time", 0),
+                "end_time": flow.get("end_time", -1),
             }
         )
     return traffic
