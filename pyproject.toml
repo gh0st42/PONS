@@ -31,10 +31,18 @@ keywords = [
   "delay-tolerant networks",
   "disruption-tolerant networks",
 ]
-dependencies = ["networkx~=3.3", "simpy~=4.1.1", "pillow~=10.4.0"]
+dependencies = [
+  "networkx~=3.3",
+  "simpy~=4.1.1",
+  "pillow~=10.4.0",
+  "python-dateutil~=2.9.0.post0",
+]
 
 [project.optional-dependencies]
 mp4 = ["opencv-python"]
+
+[project.scripts]
+scenariorunner = "scenariorunner.scenariorunner:main"
 
 [project.scripts]
 ponsanim = "ponsanim.ponsanim:main"

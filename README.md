@@ -26,6 +26,7 @@ Features:
 - tools
   - `netedit` for generating graphml topologies
   - `ponsanim` for generating animated gifs and mp4 from graphml topologies with a contact plan or event logs
+  - `scenariorunner` to simulate scenarios described in a mix of csv and json files without writing any code 
 
 ## Requirements
 
