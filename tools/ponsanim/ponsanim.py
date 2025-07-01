@@ -8,9 +8,13 @@ import argparse
 try:
     import pons
 except ImportError:
-    sys.path.append("../../")
+    import pathlib
 
-from pons.net.contactplan import CoreContactPlan, CoreContact
+    base_dir = pathlib.Path(__file__).parent.parent.parent.resolve()
+    sys.path.append(str(base_dir))
+
+
+from pons.net.plans.core import CoreContactPlan, CoreContact
 from pons.net.netplan import NetworkPlan
 from pons.event_log import get_events_in_range, load_event_log
 
@@ -289,7 +293,7 @@ def main():
         max_time = args.time_limit
     extra_x = max(extra_x, min_x)
     extra_y = max(extra_y, min_y)
-    img_size = (max_x + extra_x, max_y + extra_y)
+    img_size = (max_x + extra_x * 2, max_y + extra_y * 2)
     print(img_size)
     print(max_time)
     plan = NetworkPlan(g, cplan)

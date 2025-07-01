@@ -1,5 +1,8 @@
 from dataclasses import dataclass
 import random
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -32,8 +35,10 @@ class Message(object):
         return "%s-%d-%d" % (self.id, self.src, self.created)
 
     def is_expired(self, now):
-        # print("is_expired: %d + %d > %d" % (self.created, self.ttl, now))
-        return now - self.created > self.ttl
+        is_expired = self.created + self.ttl < now
+        if is_expired:
+            logger.debug("is_expired: %d + %d < %d" % (self.created, self.ttl, now))
+        return is_expired
 
     def is_dtn_bundle(self):
         if not self.metadata:
@@ -41,12 +46,30 @@ class Message(object):
         return self.metadata.get("is_bundle", True)
 
 
-def message_event_generator(netsim, msggenconfig):
+def message_event_generator(netsim, msggenconfig: dict):
     """A message generator."""
     env = netsim.env
     counter = 0
-    print("start message generator")
+    logger.debug("start message generator")
+    if "start_time" in msggenconfig:
+        start_time = msggenconfig["start_time"]
+        if isinstance(start_time, tuple):
+            start_time = random.randint(start_time[0], start_time[1])
+        logger.debug("start_time: %d" % start_time)
+        yield env.timeout(start_time)
+    end_time = netsim.duration
+    if "end_time" in msggenconfig:
+        end_time = msggenconfig["end_time"]
+        if isinstance(end_time, tuple):
+            end_time = random.randint(end_time[0], end_time[1])
+        elif end_time < 0:
+            end_time = netsim.duration
+
+    logger.debug("Running message generator from %d to %d" % (env.now, end_time))
     while True:
+        if env.now >= end_time:
+            logger.debug("message generator finished at %d" % env.now)
+            break
         # check if interval is a tuple
         if isinstance(msggenconfig["interval"], tuple):
             yield env.timeout(
@@ -60,10 +83,12 @@ def message_event_generator(netsim, msggenconfig):
             src = random.randint(msggenconfig["src"][0], msggenconfig["src"][1] - 1)
         else:
             src = msggenconfig["src"]
+        src_service = msggenconfig.get("src_service", 0)
         if isinstance(msggenconfig["dst"], tuple):
             dst = random.randint(msggenconfig["dst"][0], msggenconfig["dst"][1] - 1)
         else:
             dst = msggenconfig["dst"]
+        dst_service = msggenconfig.get("dst_service", 0)
         if isinstance(msggenconfig["size"], tuple):
             size = random.randint(msggenconfig["size"][0], msggenconfig["size"][1])
         else:
@@ -75,7 +100,16 @@ def message_event_generator(netsim, msggenconfig):
         else:
             ttl = msggenconfig["ttl"]
         msgid = "%s%d" % (msggenconfig["id"], counter)
-        msg = Message(msgid, src, dst, size, env.now, ttl=ttl)
+        msg = Message(
+            msgid,
+            src,
+            dst,
+            size,
+            env.now,
+            ttl=ttl,
+            src_service=src_service,
+            dst_service=dst_service,
+        )
         netsim.nodes[src].router.add(msg)
 
 
@@ -83,8 +117,25 @@ def message_burst_generator(netsim, msggenconfig):
     """A message generator."""
     env = netsim.env
     counter = 0
-    print("start message burst generator")
+    logger.debug("start message burst generator")
+    end_time = netsim.duration
+    if "start_time" in msggenconfig:
+        start_time = msggenconfig["start_time"]
+        if isinstance(start_time, tuple):
+            start_time = random.randint(start_time[0], start_time[1])
+
+        yield env.timeout(start_time)
+    if "end_time" in msggenconfig:
+        end_time = msggenconfig["end_time"]
+        if isinstance(end_time, tuple):
+            end_time = random.randint(end_time[0], end_time[1])
+        elif end_time < 0:
+            end_time = netsim.duration
+
     while True:
+        if env.now >= end_time:
+            logger.debug("message burst generator finished at %d" % env.now)
+            return
         # check if interval is a tuple
         if isinstance(msggenconfig["interval"], tuple):
             yield env.timeout(
@@ -112,5 +163,5 @@ def message_burst_generator(netsim, msggenconfig):
                 ttl = msggenconfig["ttl"]
             msgid = "%s%d" % (msggenconfig["id"], counter)
             msg = Message(msgid, src, dst, size, env.now, ttl=ttl)
-            # print("create message %s (%d->%d)" % (msgid, src, dst))
+            # logger.debug("create message %s (%d->%d)" % (msgid, src, dst))
             netsim.nodes[src].router.add(msg)

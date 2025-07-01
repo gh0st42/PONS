@@ -8,6 +8,7 @@ from random import random
 from typing import TYPE_CHECKING, List, Tuple, Optional
 
 from .plans import CommonContactPlan
+import pons
 
 
 class NetworkPlan(CommonContactPlan):
@@ -128,6 +129,19 @@ class NetworkPlan(CommonContactPlan):
             # convert to list of tuples with node ids
             dyn_links = [l.nodes for l in dyn_links]
             return static_links + dyn_links
+
+    def generate_nodes(self, router=None) -> None:
+        nodes = []
+        net = pons.NetworkSettings("contactplan", range=0, contactplan=self)
+        for node_id, data in list(self.G.nodes(data=True)):
+            router2 = deepcopy(router)
+            router2.my_id = node_id
+            node = pons.Node(node_id, data["name"], net=[deepcopy(net)], router=router2)
+            node.x = data.get("x", 0)
+            node.y = data.get("y", 0)
+            node.z = data.get("z", 0)
+            nodes.append(node)
+        return nodes
 
     @classmethod
     def from_graphml(cls, filename: str) -> NetworkPlan:
