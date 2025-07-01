@@ -111,8 +111,6 @@ class SenderApp(App):
         self.netsim.env.process(self.run())
 
     def run(self):
-        print("Active time:", self.active_time)
-
         if self.active_time is not None and self.active_time[0] > 0:
             yield self.netsim.env.timeout(self.active_time[0])
 
