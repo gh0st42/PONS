@@ -332,13 +332,13 @@ class NetSim(object):
 
         print("")
         while self.env.now < self.duration + 1.0 and not aborted:
-            # self.env.run(until=self.duration)
             now_sim = self.env.now
             step_size = 5.0
             if self.realtime:
-                step_size = 1.0
+                step_size = 0.01
             next_stop = min(self.duration + 1.0, now_sim + step_size)
             self.env.run(until=next_stop)
+
             now_real = time.time()
             diff = now_real - last_real
             if diff > 60:
