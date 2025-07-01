@@ -50,11 +50,13 @@ def printProgressBar(
 class NetSim(object):
     """A network simulator."""
 
+    env: Environment | RealtimeEnvironment
+
     def __init__(
         self,
         duration: int,
         nodes: List[Node],
-        world_size: Tuple[int, int] = (0, 0),
+        world_size: Tuple[float, float] = (0, 0),
         movements: Optional[list] = None,
         msggens: Optional[list] = None,
         config: Optional[dict] = None,
