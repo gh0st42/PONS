@@ -17,12 +17,14 @@ logger = logging.getLogger(__name__)
 class Node(object):
     """A The ONE movement scenario."""
 
+    netsim: None | pons.NetSim
+
     def __init__(
         self,
         node_id: int,
         node_name: str = "",
-        net: List[NetworkSettings] = None,
-        router: pons.routing.Router = None,
+        net: list[NetworkSettings] | None = None,
+        router: pons.routing.Router | None = None,
     ):
         self.node_id = node_id
         self.name = node_name
@@ -38,8 +40,8 @@ class Node(object):
         self.router = router
         self.neighbors = {}
         self.netsim = None
-        for net in self.net.values():
-            self.neighbors[net.name] = []
+        for n in self.net.values():
+            self.neighbors[n.name] = []
 
     def __str__(self):
         return "Node(%d (%s), %.02f, %.02f, %.02f)" % (
@@ -228,8 +230,8 @@ class Node(object):
 def generate_nodes(
     num_nodes: int,
     offset: int = 0,
-    net: List[NetworkSettings] = None,
-    router: pons.routing.Router = None,
+    net: List[NetworkSettings] | None = None,
+    router: pons.routing.Router | None = None,
 ):
     nodes = []
     if net == None:
@@ -241,9 +243,9 @@ def generate_nodes(
 
 def generate_nodes_from_graph(
     graph: nx.Graph,
-    net: List[NetworkSettings] = None,
-    router: Router = None,
-    contactplan: pons.net.ContactPlan = None,
+    net: List[NetworkSettings] | None = None,
+    router: pons.Router | None = None,
+    contactplan: pons.net.plans.CommonContactPlan | None = None,
 ):
     nodes = []
     if net == None:
