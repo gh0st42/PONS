@@ -13,7 +13,7 @@ import shutil
 
 import scenariohelper
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("__name__")
 
 
 SCRIPT_DIR = pathlib.Path(__file__).parent.parent.resolve()
@@ -184,10 +184,7 @@ def run_scenario(
 
 
 def main():
-    FORMAT = "%(asctime)s %(levelname)s %(module)s %(message)s"
-    logging.basicConfig(format=FORMAT, level=os.getenv("LOGLEVEL", "INFO").upper())
-    # logging.basicConfig(level=logging.INFO)
-
+    
     valid_routers = []
     # get a list of all subclasses of pons.routing.Router
     for name, obj in pons.routing.__dict__.items():
