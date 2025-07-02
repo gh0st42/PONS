@@ -25,6 +25,7 @@ def event_log(ts: float, category: str, msg: dict):
 
     if event_log_fh is not None:
         event_log_fh.write("%f %s %s\n" % (ts, category, dumps(msg)))
+        event_log_fh.flush()
 
 
 def close_log():
