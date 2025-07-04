@@ -1,0 +1,1 @@
+PONS is a Python-based simulator for opportunistic networks, designed to facilitate the study and development of delay-tolerant networking protocols and applications. It provides a flexible environment for simulating various network topologies, mobility patterns, and routing algorithms.

@@ -1,0 +1,15 @@
+
+[plantuml, png]
+----
+include::../diagrams/net.puml[]
+----
+
+PONS supports various different types of contact plans.
+All have in common that they allow one to get a list of active contacts at a given time and return the potential transmission time needed for a transfer.
+There are three main types of contact plans:
+
+* **Netplan**: A contact plan derived from a networkx graph, describing the topology. This is useful for scenarios where large parts of the network topology is known in advance and does not change during the simulation. It can be merged with another more dynamic contact plan to add additional contacts or modify existing ones.
+* **Core Contact Plan**: Based on the format of the https://github.com/gh0st42/ccm/[_Core Contact Plan Manager_]. It defines a set of contacts between nodes based on a fixed schedule, but with additional features like bandwidth limitations or delays and jitter.
+  It defines a set of contacts between nodes that are based on a fixed schedule. 
+* **Ion Contact Plan**: Similar to the **Core Contact Plan**, but based on the format of the https://ion-dtn.readthedocs.io/[_ION DTN_] for its contact plans.
+  

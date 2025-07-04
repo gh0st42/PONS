@@ -1,0 +1,59 @@
+= Python Opportunistic Network Simulator (PONS) Manual
+:reproducible:
+:toc:
+:toclevels: 3
+:toc-title: Table of Contents
+:sectnums:
+:sectnumlevels: 3
+:title-page:
+:icons: font
+:source-highlighter: highlightjs
+:highlightjs-theme: github
+:highlightjs-languages: javascript, python, bash, json, xml, yaml
+:pdf-page-size: A4
+:doctype: book
+:xrefstyle: short
+:listing-caption: Listing
+:allow-uri-read: true
+Lars Baumgaertner
+:revdate: 2025-07-02
+
+== Introduction
+
+include::chapters/intro.adoc[]
+
+== PONS in 10 Minutes
+
+include::chapters/10min.adoc[]
+
+== Architecture
+
+include::chapters/architecture.adoc[]
+
+== Network
+
+include::chapters/network.adoc[]
+
+== Mobility
+
+include::chapters/mobility.adoc[]
+
+== Routing
+
+include::chapters/routing.adoc[]
+
+== Applications
+
+include::chapters/applications.adoc[]
+
+== Logging
+
+== Analyzing Results
+
+== Tools
+
+=== netedit
+
+=== ponsanim
+
+=== scenariorunner

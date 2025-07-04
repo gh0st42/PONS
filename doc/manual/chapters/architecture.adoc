@@ -1,0 +1,65 @@
+
+PONS consists of several components that work together to simulate opportunistic networks. The architecture is modular, allowing for easy extension and customization. An overview of architecture can be found in <<full_uml>>.
+
+.Full Architecture Diagram of PONS
+[plantuml, png, id=full_uml]
+----
+include::../diagrams/everything.puml[]
+----
+
+The main components of a PONS simulation include:
+
+* **Networks**: Represents the simulated network environment, including links, and their properties. Links can be static, range-based, requiring a mobility model, or contact-plan-based, allowing for different types of connectivity between nodes. More details can be found in the <<_network>>.
+* **Mobility**: Manages the (optional) movement of nodes within the network, simulating realistic mobility patterns. More details can be found in the <<_mobility>>.
+* **Routing**: Implements various routing protocols to facilitate message delivery across the network. More details can be found in the <<_routing>>.
+* **Applications**: Simulates applications running on nodes, generating and processing messages. More details can be found in the <<_applications>>.
+
+Each node is designed with three layers:
+
+* **Network Layer**: Handles the network interface and connectivity, including the transmission of messages over the network. This layer is fixed for each node and can be configured with different network settings, such as range, bandwidth, delay, and loss or contact plans. 
+* **Routing Layer**: Implements the routing protocol, managing message storage, forwarding, and delivery. Each node can have exactly one routing algorithm instance, which is responsible for the routing logic. 
+  PONS provides several built-in routing algorithms, such as Epidemic, Spray and Wait, and others. The routing layer interacts with the network layer to send and receive messages.
+  
+* **Application Layer**: Represents the application logic, generating messages and processing incoming messages. Each node can have multiple applications, which can be used to simulate different behaviors and interactions. 
+  Applications can be used to send messages, receive messages, and perform other tasks related to the simulation. 
+
+[mermaid,png]
+----
+block-beta
+columns 1
+    block
+     App1
+     App2
+     ...
+    end
+    Routing
+    Network
+----
+
+.Three layer architecture of a PONS node
+[plantuml,png]
+----
+@startuml
+package "Application Layer" {
+    [App1] as app1
+    [App2] as app2
+    [App3] as app3
+}
+package "Routing Layer" {
+    [Router] as router
+}
+package "Network Layer" {
+    [Network Interface] as netif
+}
+----
+
+The default mode of operation for PONS is non-interactive, meaning that the simulation runs without user intervention. Therefore, it should be much faster than realtime. However, PONS also supports an interactive mode, where everything is running in realtime and external applications can interact with the simulation. This mode is useful for live demonstrators and testing client applications in various scenarios, but it is not recommended for large-scale simulations due to performance limitations.
+
+PONS provides built-in logging capabilities to record simulation events, messages, and routing decisions. This data can be analyzed to evaluate the performance of routing protocols, application behavior, and network dynamics. The logs can be processed using various tools and scripts to extract meaningful insights and statistics from the simulation results. To activate it set `LOG_FILE` environment variable to a file path. Furthermore, by setting `LOG_LEVEL` environment variable to `DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL`, you can control the verbosity of the internal logging output. The default is `INFO`.
+
+In addition to the core components, PONS provides several tools and utilities to facilitate the simulation process, including:
+
+* **netedit**: A graphical editor for creating and modifying network topologies, mobility patterns, and routing configurations. It allows users to visualize and edit the simulation environment interactively.
+* **ponsanim**: A tool for visualizing the simulation results, including node movements, message exchanges, and routing behavior. It provides a graphical representation of the simulation, making it easier to
+analyze and understand the results.
+* **scenariorunner**: A command-line tool for running PONS simulations with predefined scenarios. It allows users to quickly set up and execute simulations with specific parameters, making it easier to test different configurations and compare results.

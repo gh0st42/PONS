@@ -1,0 +1,6 @@
+
+
+[plantuml,png]
+----
+include::../diagrams/routing.puml[]
+----

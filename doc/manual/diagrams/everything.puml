@@ -1,0 +1,256 @@
+@startuml pons
+!pragma useIntermediatePackages false
+
+class pons.apps.app.App {
+  service: int
+}
+class pons.net.plans.CommonContactPlan {
+}
+class pons.net.plans.Contact {
+  timespan: Tuple[int, int] {static}
+  nodes: Tuple[int, int] {static}
+  bw: int {static}
+  loss: float {static}
+  delay: float {static}
+  jitter: float {static}
+}
+class pons.net.plans.core.CoreContactPlan {
+  loop: None
+  symmetric: bool
+  contacts: None
+  max_time: None
+  last_at: None
+  last_cache: None
+}
+class pons.routing.epidemic.EpidemicRouter {
+}
+class pons.net.plans.ion.IonContactPlan {
+  name: str
+  contacts: None
+  contacts: None
+}
+class pons.message.Message {
+  id: str
+  src: int
+  dst: int
+  size: int
+  created: float
+  hops: int
+  ttl: int
+  src_service: int
+  dst_service: int
+  content: dict
+  metadata: dict
+}
+class pons.simulation.NetSim {
+  env: Environment | RealtimeEnvironment {static}
+  env: None
+  env: None
+  realtime: bool
+  duration: int
+  duration: None
+  nodes: None
+  world: Tuple[float, float]
+  movements: None
+  msggens: None
+  config: None
+  do_actual_scan: None
+  net_stats: None
+  routing_stats: None
+  router_stats: None
+  name_to_id_map: None
+  world: None
+  mover: None
+}
+class pons.net.common.NetworkSettings {
+  name: None
+  bandwidth: int
+  loss: float
+  delay: float
+  range: None
+  range_sq: None
+  contactplan: CommonContactPlan
+  env: None
+}
+class pons.node.Node {
+  netsim: None | NetSim {static}
+  node_id: int
+  name: str
+  name: None
+  x: None
+  y: None
+  z: None
+  net: None
+  router: Router | None
+  neighbors: None
+  netsim: None
+}
+class pons.mobility.ns2_parser.Ns2Movement {
+  num_nodes: None
+  moves: None
+  start: None
+  end: None
+}
+class pons.mobility.movement.OneMovement {
+}
+class pons.mobility.movement.OneMovementManager {
+  env: None
+  nodes: Dict[int, Node]
+  moves: None
+  move_idx: None
+}
+class pons.apps.ping.PingApp {
+  msgs_sent: None
+  msgs_received: None
+  msgs_failed: None
+  msgs: None
+  interval: float
+  ttl: int
+  size: int
+  dst: int
+  dst_service: int
+  rnd_start: bool
+}
+class pons.routing.router.Router {
+  scan_interval: None
+  peers: None
+  history: None
+  store: None
+  capacity: None
+  used: None
+  apps: None
+  stats: None
+}
+class pons.apps.app.SenderApp {
+  msgs_sent: None
+  msgs_received: None
+  msgs_failed: None
+  msgs: None
+  dst: int
+  dst_service: int
+  payload: str | None
+  ttl: int
+  size: int | None
+  active_time: tuple[float, float] | None
+  msg_prefix: str
+  interval: float
+  size: None
+}
+class pons.apps.app.SinkApp {
+  msgs_received: None
+  msgs_failed: None
+  msgs: None
+}
+class pons.apps.udpgw.UdpGatewayApp {
+  msgs_sent: None
+  msgs_received: None
+  msgs_failed: None
+  msgs: None
+  udp_out: tuple[str, int] | None
+  udp_in: int | None
+}
+class pons.mobility.ns2_parser.Ns2Entry {
+  node: int
+  time: float
+  x: float
+  y: float
+  speed: float
+  is_init: bool
+}
+class pons.mobility.ns2_parser.Ns2Parser {
+  _tokens: None
+  _current_index: None
+  _current_token: None
+  _next_token: None
+}
+enum pons.mobility.ns2_parser.Token {
+  NODE: $node {static}
+  PARAN_LEFT: ( {static}
+  PARAN_RIGHT: ) {static}
+  SET: set {static}
+  X: X {static}
+  Y: Y {static}
+  Z: Z {static}
+  UNDERLINE: _ {static}
+  NS: $ns {static}
+  AT: at {static}
+  QUOTE: " {static}
+  SET_DEST: setdest {static}
+  BACKSLASH: \ {static}
+  NEWLINE: 
+ {static}
+  HASH: # {static}
+}
+class pons.utils.vector.Vector {
+  x: float
+  y: float
+}
+class pons.net.netplan.NetworkPlan {
+  G: Graph
+  full_graph: None
+  mapping: None
+}
+class pons.net.plans.core.CoreContact {
+  timespan: Tuple[int, int]
+  nodes: Tuple[int, int]
+  bw: int
+  loss: float
+  delay: float
+  jitter: float
+}
+class pons.routing.directdelivery.DirectDeliveryRouter {
+}
+class pons.routing.firstcontact.FirstContactRouter {
+  store: None
+}
+class pons.routing.prophet.PRoPHETConfig {
+  p_encounter_first: float
+  p_first_threshold: float
+  p_encounter: float
+  beta: float
+  delta: float
+  gamma: float
+}
+class pons.routing.prophet.PRoPHETRouter {
+  store: None
+  predictabilities: None
+  config: None
+}
+class pons.routing.sprayandwait.SprayAndWaitRouter {
+  store: None
+  copies: None
+  binary: None
+}
+class pons.routing.static.RouteEntry {
+  dst: str
+  next_hop: int
+  hops: Optional[int]
+  src: Optional[str]
+}
+class pons.routing.static.StaticRouter {
+  routes: None
+  graph: Graph
+  shortest_paths_only: None
+  pick_random_next_hop: None
+}
+pons.net.plans.CommonContactPlan <|-- pons.net.plans.core.CoreContactPlan
+pons.routing.router.Router <|-- pons.routing.epidemic.EpidemicRouter
+pons.net.plans.CommonContactPlan <|-- pons.net.plans.ion.IonContactPlan
+pons.net.common.NetworkSettings *-- pons.net.plans.CommonContactPlan
+pons.node.Node *-- pons.simulation.NetSim
+pons.node.Node *-- pons.routing.router.Router
+pons.mobility.movement.OneMovementManager *-- pons.node.Node
+pons.apps.app.App <|-- pons.apps.ping.PingApp
+pons.apps.app.App <|-- pons.apps.app.SenderApp
+pons.apps.app.App <|-- pons.apps.app.SinkApp
+pons.apps.app.App <|-- pons.apps.udpgw.UdpGatewayApp
+pons.net.plans.CommonContactPlan <|-- pons.net.netplan.NetworkPlan
+pons.net.plans.Contact <|-- pons.net.plans.core.CoreContact
+pons.routing.router.Router <|-- pons.routing.directdelivery.DirectDeliveryRouter
+pons.routing.router.Router <|-- pons.routing.firstcontact.FirstContactRouter
+pons.routing.router.Router <|-- pons.routing.prophet.PRoPHETRouter
+pons.routing.router.Router <|-- pons.routing.sprayandwait.SprayAndWaitRouter
+pons.routing.router.Router <|-- pons.routing.static.StaticRouter
+footer Generated by //py2puml//
+@enduml
+
