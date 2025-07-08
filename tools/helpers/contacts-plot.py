@@ -40,6 +40,7 @@ def plot_contacts(
     sep: str = ",",
     names: list[str] | None = None,
     is_core_contact_plan: bool = False,
+    output: str | None = None,
 ):
 
     logger.info(f"Loading contact data from {filename}")
@@ -158,7 +159,12 @@ def plot_contacts(
     plt.title("Contact Plan")
 
     plt.tight_layout()
-    plt.show()
+    if output:
+        plt.savefig(output)
+        logger.info(f"Plot saved to {output}")
+    else:
+        logger.info("Displaying plot on screen.")
+        plt.show()
 
 
 if __name__ == "__main__":
@@ -179,6 +185,9 @@ if __name__ == "__main__":
         action="store_true",
         help="Parse a core contact plan file.",
     )
+    parser.add_argument(
+        "-o", "--output", type=str, help="Output file name for the plot (optional)."
+    )
     parser.add_argument("filename", type=str, help="Path to the contacts CSV file.")
     args = parser.parse_args()
 
@@ -197,6 +206,12 @@ if __name__ == "__main__":
             "jitter",
         ]
         sep = " "
-        plot_contacts(args.filename, sep=sep, names=names, is_core_contact_plan=True)
+        plot_contacts(
+            args.filename,
+            sep=sep,
+            names=names,
+            is_core_contact_plan=True,
+            output=args.output,
+        )
     else:
-        plot_contacts(args.filename)
+        plot_contacts(args.filename, output=args.output)
