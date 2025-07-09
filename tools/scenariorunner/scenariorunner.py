@@ -207,7 +207,7 @@ def main():
         help="CSV file with contacts",
     )
     parser.add_argument(
-        "--mapping", "-m", type=str, help="Node mapping JSON file", required=True
+        "--nodes", "-n", type=str, help="Node mapping JSON file", required=True
     )
     parser.add_argument(
         "--flows",
@@ -257,7 +257,7 @@ def main():
     )
     args = parser.parse_args()
 
-    node_mapping = scenariohelper.load_mapping_json(args.mapping)
+    node_mapping = scenariohelper.load_mapping_json(args.nodes)
     g = scenariohelper.get_graph_from_csv(args.contacts, node_mapping)
     # rename nodes to integers from their node_id
     mapping = {}
