@@ -2,8 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import pandas as pd
-import numpy as np
-import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from datetime import datetime
@@ -45,6 +43,7 @@ def plot_contacts(
     is_core_contact_plan: bool = False,
     output: str | None = None,
     plot_fixed_links: bool = False,
+    human_readable_timestamp: bool = False,
 ):
     """
     Plots contact periods from a CSV file.
@@ -272,7 +271,17 @@ def plot_contacts(
         plt.gca().xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d %H:%M:%S"))
     else:
         # format numbers as plain integers
-        plt.gca().xaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: int(x)))
+        if human_readable_timestamp:
+            # format numbers as days, hours, minutes, seconds
+            plt.gca().xaxis.set_major_locator(plt.MaxNLocator(integer=True))
+            plt.gca().xaxis.set_major_formatter(
+                plt.FuncFormatter(
+                    lambda x, _: f"{int(x // 86400)}d {int((x % 86400) // 3600)}h {int((x % 3600) // 60)}m {int(x % 60)}s"
+                )
+            )
+        else:
+            plt.gca().xaxis.set_major_locator(plt.MaxNLocator(integer=True))
+            plt.gca().xaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: int(x)))
     # plt.gca().xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d %H:%M"))
     plt.gcf().autofmt_xdate()
 
@@ -315,6 +324,12 @@ if __name__ == "__main__":
         help="Also plot fixed links that span the whole duration.",
     )
     parser.add_argument(
+        "-H",
+        "--human-readable-timestamp",
+        action="store_true",
+        help="Use human-readable timestamps instead of integers.",
+    )
+    parser.add_argument(
         "-o", "--output", type=str, help="Output file name for the plot (optional)."
     )
     parser.add_argument("filename", type=str, help="Path to the contacts CSV file.")
@@ -342,8 +357,9 @@ if __name__ == "__main__":
             is_core_contact_plan=True,
             output=args.output,
             plot_fixed_links=args.fixed_links,
+            human_readable_timestamp=args.human_readable_timestamp,
         )
     else:
         plot_contacts(
-            args.filename, output=args.output, plot_fixed_links=args.fixed_links
+            args.filename, output=args.output, plot_fixed_links=args.fixed_links, human_readable_timestamp=args.human_readable_timestamp
         )
