@@ -11,7 +11,10 @@ import logging
 import os
 import shutil
 
-import scenariohelper
+try:
+    from . import scenariohelper
+except ImportError:
+    import scenariohelper
 
 logger = logging.getLogger("__name__")
 
@@ -122,7 +125,7 @@ def run_scenario(
 
             msg_gen = {
                 "type": "single",
-                "interval": 1.0 / f["rate"],
+                "interval": f["rate"],
                 "src": f["src_id"],
                 "src_service": f["src_service"],
                 "dst": f["dst_id"],
@@ -145,7 +148,7 @@ def run_scenario(
                 service=f["src_service"],
                 dst=f["dst_id"],
                 dst_service=f["dst_service"],
-                interval=1.0 / f["rate"],
+                interval=f["rate"],
                 ttl=max_runtime,  # use max_runtime as ttl
                 size=f["size"],
                 msg_prefix=f["type"],
@@ -184,7 +187,7 @@ def run_scenario(
 
 
 def main():
-    
+
     valid_routers = []
     # get a list of all subclasses of pons.routing.Router
     for name, obj in pons.routing.__dict__.items():
@@ -258,7 +261,7 @@ def main():
     g = scenariohelper.get_graph_from_csv(args.contacts, node_mapping)
     # rename nodes to integers from their node_id
     mapping = {}
-    for k, v in node_mapping["nodes"].items():
+    for k, v in node_mapping.items():
         mapping[k] = v["node_number"]
     g = nx.relabel_nodes(g, mapping)
 

@@ -24,9 +24,9 @@ def load_mapping_json(filename: str) -> Dict[str, Any]:
     logger.info(f"Loading node mapping from {filename}")
     with open(filename, "r") as f:
         data = json.load(f)
-    mapping = {"nodes": {}}
+    mapping = {}
     used_ids = set()
-    for node in data["nodes"]:
+    for node in data:
         node_number = 1
         if node["node_id"].startswith("ipn:"):
             node_number = int(node["node_id"].split(":")[1].split(".")[0])
@@ -42,7 +42,7 @@ def load_mapping_json(filename: str) -> Dict[str, Any]:
                 node_number += 1
             used_ids.add(node_number)
 
-        mapping["nodes"][node["id"]] = {
+        mapping[node["id"]] = {
             "name": node["name"],
             "node_id": node["node_id"],
             "node_number": node_number,
@@ -76,28 +76,28 @@ def get_graph_from_csv(csvfile: str, mapping: dict) -> nx.MultiDiGraph:
                 delay = float(row[5])
                 label = row[6] if len(row) == 7 else ""
 
-                if node1 not in mapping["nodes"]:
+                if node1 not in mapping:
                     logger.warning(
                         f"Node {node1} not found in mapping {mapping['nodes'].keys()}. Adding it with a new node number."
                     )
-                    mapping["nodes"][node1] = len(mapping["nodes"]) + 1
-                if node2 not in mapping["nodes"]:
+                    mapping[node1] = len(mapping) + 1
+                if node2 not in mapping:
                     logger.warning(
-                        f"Node {node2} not found in mapping {mapping['nodes'].keys()}. Adding it with a new node number."
+                        f"Node {node2} not found in mapping {mapping.keys()}. Adding it with a new node number."
                     )
-                    mapping["nodes"][node2] = len(mapping["nodes"]) + 1
+                    mapping[node2] = len(mapping) + 1
 
                 G.add_node(
                     node1,
                     name=node1,
                     type="Host",
-                    node_id=mapping["nodes"][node1]["node_number"],
+                    node_id=mapping[node1]["node_number"],
                 )
                 G.add_node(
                     node2,
                     name=node2,
                     type="Host",
-                    node_id=mapping["nodes"][node2]["node_number"],
+                    node_id=mapping[node2]["node_number"],
                 )
 
                 dynamic_link = True
@@ -158,11 +158,11 @@ def get_contacts_from_csv(
                 if row[0].startswith("#"):
                     continue
                 node1 = row[0]
-                if json_mapping is not None and node1 in json_mapping["nodes"]:
-                    node1 = json_mapping["nodes"][node1]["node_number"]
+                if json_mapping is not None and node1 in json_mapping:
+                    node1 = json_mapping[node1]["node_number"]
                 node2 = row[1]
-                if json_mapping is not None and node2 in json_mapping["nodes"]:
-                    node2 = json_mapping["nodes"][node2]["node_number"]
+                if json_mapping is not None and node2 in json_mapping:
+                    node2 = json_mapping[node2]["node_number"]
                 ts_start = float(row[2])
                 ts_end = float(row[3])
                 if ts_end == -1:
@@ -204,12 +204,12 @@ def load_application_traffic(filename: str, json_mapping: Dict) -> List[Dict[str
     logger.info(f"Loading application traffic flows from {filename}")
     traffic = []
     valid_node_ids = []
-    for node in json_mapping["nodes"]:
-        node_id = json_mapping["nodes"][node]["node_number"]
+    for node in json_mapping:
+        node_id = json_mapping[node]["node_number"]
         valid_node_ids.append(node_id)
 
     json_app_data = json.load(open(filename, "r"))
-    for flow in json_app_data["traffic_generation"]:
+    for flow in json_app_data:
         src = flow["src"]
         if not src.startswith("ipn:"):
             logger.error(f"src {src} does not start with ipn:")
@@ -223,29 +223,43 @@ def load_application_traffic(filename: str, json_mapping: Dict) -> List[Dict[str
 
         dst = flow["dst"]
         if not dst.startswith("ipn:"):
-            logger.error(f"dst {dst} does not start with ipn:", file=sys.stderr)
+            logger.error(f"dst {dst} does not start with ipn:")
             continue
         dst_id, dst_service = extract_from_ipn(flow["dst"])
         if not dst_id in valid_node_ids:
             logger.error(
-                f"dst {dst} not found in scenario nodes while loading application traffic flows",
-                file=sys.stderr,
+                f"dst {dst} not found in scenario nodes while loading application traffic flows"
             )
             sys.exit(1)
 
         interval = (flow["start_time"], flow["end_time"])
-        # if json_mapping is not None and src in json_mapping["nodes"]:
-        #     src = json_mapping["nodes"][src]["node_number"]
-        # if json_mapping is not None and dst in json_mapping["nodes"]:
-        #     dst = json_mapping["nodes"][dst]["node_number"]
-        if not flow["type"] in json_app_data["traffic_type"]:
-            logger.error(
-                f"flow type {flow['type']} not in traffic_types",
+
+        flow_type = flow.get("type", "MSG")
+        if not "type" in flow.keys():
+            logger.warning(
+                f"Flow {flow} does not have a 'type'. Defaulting to 'MSG'.",
             )
-            sys.exit(1)
-            # continue
-        traffic_type = json_app_data["traffic_type"][flow["type"]]
-        restrictions = traffic_type.get("link_type_restrictions", [])
+            # try to get a type from the info field
+            if "info" in flow and ":" in flow["info"]:
+                logger.debug(
+                    f"Flow {flow} does not have a type. Trying to extract from info field: {flow['info']}",
+                )
+                flow_type_extracted = flow["info"].split(":")[0]
+                # extract any all uppercase words from the flow_type_extracted string
+                flow_type_extracted = "_".join(
+                    [word for word in flow_type_extracted.split() if word.isupper()]
+                )
+                if len(flow_type_extracted) > 0:
+                    flow_type = flow_type_extracted
+                    logger.info(
+                        f"Extracted flow type {flow_type} from info field: {flow['info']}"
+                    )
+                else:
+                    logger.warning(
+                        f"Could not extract flow type from info field: {flow['info']}. Defaulting to 'MSG'."
+                    )
+                    flow_type = "MSG"
+
         traffic.append(
             {
                 "src_scheme": "ipn",
@@ -255,10 +269,9 @@ def load_application_traffic(filename: str, json_mapping: Dict) -> List[Dict[str
                 "dst_id": dst_id,
                 "dst_service": dst_service,
                 "interval": interval,
-                "type": flow["type"],
-                "size": traffic_type["bundle_size"],
-                "rate": traffic_type["generation_rate_per_second"],
-                "restrictions": restrictions,
+                "type": flow_type,
+                "size": flow["bundle_size"],
+                "rate": flow["generation_rate_in_s"],
                 "info": flow["info"],
                 "start_time": flow.get("start_time", 0),
                 "end_time": flow.get("end_time", -1),
