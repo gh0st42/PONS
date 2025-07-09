@@ -299,7 +299,7 @@ def plot_contacts(
         plt.show()
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description="Plot contact plan from CSV file.")
     parser.add_argument(
         "-s", "--sep", type=str, default=",", help="Separator used in the CSV file."
@@ -361,5 +361,14 @@ if __name__ == "__main__":
         )
     else:
         plot_contacts(
-            args.filename, output=args.output, plot_fixed_links=args.fixed_links, human_readable_timestamp=args.human_readable_timestamp
+            args.filename,
+            output=args.output,
+            plot_fixed_links=args.fixed_links,
+            human_readable_timestamp=args.human_readable_timestamp,
         )
+
+    logger.info("Contact plotting completed.")
+
+
+if __name__ == "__main__":
+    main()
