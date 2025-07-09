@@ -9,6 +9,7 @@ import matplotlib.dates as mdates
 from datetime import datetime
 import logging
 import os
+import re
 import argparse
 
 logging.basicConfig(
@@ -69,33 +70,67 @@ def plot_contacts(
     # drop lines which contain NaN values in the start_time or end_time columns
     if is_core_contact_plan:
         df.dropna(subset=["start_time", "end_time"], inplace=True)
+        # also drop if column 2 is does not contain either fixed or contact
+        df = df[df.iloc[:, 1].str.contains("fixed|contact", case=False, na=False)]
+        # remove + from start_time and end_time if they are strings in the format of "+NUMBER" and convert to integers
+        if df["start_time"].dtype == "object" and re.match(
+            r"^\+\d+$", df["start_time"].iloc[0]
+        ):
+            df["start_time"] = (
+                df["start_time"].str.replace("+", "", regex=False).astype(int)
+            )
+        if df["end_time"].dtype == "object" and re.match(
+            r"^\+\d+$", df["end_time"].iloc[0]
+        ):
+            df["end_time"] = (
+                df["end_time"].str.replace("+", "", regex=False).astype(int)
+            )
+
         max_time = df["end_time"].max()
 
     print(df)
     logger.info(f"Data loaded with {len(df)} records")
     logger.info("Preprocessing data...")
 
-    POSSIBLE_START_COLUMN_NAMES = ["start_time", "start", "contact_start", "start_ts", "contact_start(s)"]
+    POSSIBLE_START_COLUMN_NAMES = [
+        "start_time",
+        "start",
+        "contact_start",
+        "start_ts",
+        "contact_start(s)",
+    ]
     START_COLUMN_NAME = detect_column_name(
         df, POSSIBLE_START_COLUMN_NAMES, rename_to="start_time"
     )
     if START_COLUMN_NAME is None:
         logger.error("No valid start time column found in the data.")
-        logger.error(f"Searched for columns: %s in %s" % (POSSIBLE_START_COLUMN_NAMES, df.columns))
+        logger.error(
+            f"Searched for columns: %s in %s"
+            % (POSSIBLE_START_COLUMN_NAMES, df.columns)
+        )
         return
 
     # Define the end time column
-    POSSIBLE_END_COLUMN_NAMES = ["end_time", "end", "contact_end", "end_ts", "contact_end(s)"]
+    POSSIBLE_END_COLUMN_NAMES = [
+        "end_time",
+        "end",
+        "contact_end",
+        "end_ts",
+        "contact_end(s)",
+    ]
     END_COLUMN_NAME = detect_column_name(
         df, POSSIBLE_END_COLUMN_NAMES, rename_to="end_time"
     )
     if END_COLUMN_NAME is None:
         logger.error("No valid end time column found in the data.")
-        logger.error(f"Searched for columns: %s in %s" % (POSSIBLE_END_COLUMN_NAMES, df.columns))
+        logger.error(
+            f"Searched for columns: %s in %s" % (POSSIBLE_END_COLUMN_NAMES, df.columns)
+        )
         return
 
     # check if start_time and end_time are integers in seconds or strings indicating a datetime
     using_datetime = False
+    print(df["start_time"].dtype, df["end_time"].dtype)
     if df["start_time"].dtype == "int64" and df["end_time"].dtype == "int64":
         pass
     elif df["start_time"].dtype == "object" and df["end_time"].dtype == "object":
@@ -119,7 +154,7 @@ def plot_contacts(
     if DESTINATION_COLUMN_NAME is None:
         logger.error("No valid destination column found in the data.")
         return
-    
+
     total_time = df["end_time"].max() - df["start_time"].min()
     logger.info(f"Total time span of contacts: {total_time}")
 
@@ -133,21 +168,21 @@ def plot_contacts(
     # --- New sorting logic to group src-dst and dst-src pairs ---
     # Create a canonical key for each pair to group reciprocal links
     # This ensures (A, B) and (B, A) map to the same key, e.g., ('A', 'B')
-    df['canonical_pair_key'] = df.apply(
-        lambda row: tuple(sorted((row['src'], row['dst']))), axis=1
+    df["canonical_pair_key"] = df.apply(
+        lambda row: tuple(sorted((row["src"], row["dst"]))), axis=1
     )
 
     # Create a DataFrame of unique combinations with their canonical keys
-    unique_combinations = df[['src', 'dst', 'canonical_pair_key']].drop_duplicates()
+    unique_combinations = df[["src", "dst", "canonical_pair_key"]].drop_duplicates()
 
     # add column symmetric to indicate if the pair is symmetric, by default set to '-' indicating asymmetric contact
-    unique_combinations['symmetric'] = '-'
+    unique_combinations["symmetric"] = "-"
 
     # Sort these unique combinations:
     # 1. By the canonical pair key (to group A-B and B-A together)
     # 2. Then by src (to ensure a consistent order within the canonical group, e.g., A-B before B-A)
     unique_combinations_sorted = unique_combinations.sort_values(
-        by=['canonical_pair_key', 'src']
+        by=["canonical_pair_key", "src"]
     ).reset_index(drop=True)
     combinations = unique_combinations_sorted
 
@@ -155,37 +190,44 @@ def plot_contacts(
 
     # for all canonical pairs, check if start_time and end_time in df are the same, if so set symmetric to '='
     for idx, row in combinations.iterrows():
-        src = row['src']
-        dst = row['dst']
-        pair = row['canonical_pair_key']
+        src = row["src"]
+        dst = row["dst"]
+        pair = row["canonical_pair_key"]
         pairs.add(pair)
 
         logger.debug(f"Checking pair: {pair} (src: {src}, dst: {dst})")
         # find the rows in df that matches this src and dst
-        rows1 = df[(df['src'] == src) & (df['dst'] == dst)]
-        rows2 = df[(df['src'] == dst) & (df['dst'] == src)]
+        rows1 = df[(df["src"] == src) & (df["dst"] == dst)]
+        rows2 = df[(df["src"] == dst) & (df["dst"] == src)]
         if rows1.empty or rows2.empty:
             logger.debug(f"No bidirectional link found for pair: {pair}")
             continue
 
         # compare shapes of rows1 and rows2
         if rows1.shape[0] != rows2.shape[0]:
-            logger.debug(f"Different number of contacts for pair: {pair} (src: {src}, dst: {dst})")
+            logger.debug(
+                f"Different number of contacts for pair: {pair} (src: {src}, dst: {dst})"
+            )
             continue
 
         # compare start_time and end_time of both rows to see if they are the same
         # if they are the same, set symmetric to '='
-        if rows1['start_time'].all() == rows2['start_time'].all() and \
-           rows1['end_time'].all() == rows2['end_time'].all():
+        if (
+            rows1["start_time"].all() == rows2["start_time"].all()
+            and rows1["end_time"].all() == rows2["end_time"].all()
+        ):
             logger.debug(f"Found symmetric pair: {pair} (src: {src}, dst: {dst})")
-            combinations.at[idx, 'symmetric'] = '='
-    
+            combinations.at[idx, "symmetric"] = "="
+
     pairs = list(pairs)
 
     # from symmetric links with "=", remove one of the links and only keep the one with the smaller src
-    combinations = combinations[~((combinations['symmetric'] == '=') & (combinations['src'] > combinations['dst']))]
-    
-
+    combinations = combinations[
+        ~(
+            (combinations["symmetric"] == "=")
+            & (combinations["src"] > combinations["dst"])
+        )
+    ]
 
     combinations["y_pos"] = range(len(combinations))
     df = df.merge(combinations, on=["src", "dst"])
@@ -204,11 +246,11 @@ def plot_contacts(
     plt.figure(figsize=(12, 6))
 
     colors = plt.colormaps.get_cmap("tab20")
-    
+
     for idx, row in df.iterrows():
         pair_idx = pairs.index(row["canonical_pair_key"])
         row_color = colors(pair_idx % colors.N)  # Use modulo to cycle through colors
-        # Plot the contact period as a horizontal bar        
+        # Plot the contact period as a horizontal bar
         plt.barh(
             y=row["y_pos"],
             width=row["end_time"] - row["start_time"],
@@ -266,7 +308,12 @@ if __name__ == "__main__":
         action="store_true",
         help="Parse a core contact plan file.",
     )
-    parser.add_argument("-F", "--fixed-links", action="store_true", help="Also plot fixed links that span the whole duration.")
+    parser.add_argument(
+        "-F",
+        "--fixed-links",
+        action="store_true",
+        help="Also plot fixed links that span the whole duration.",
+    )
     parser.add_argument(
         "-o", "--output", type=str, help="Output file name for the plot (optional)."
     )
@@ -297,4 +344,6 @@ if __name__ == "__main__":
             plot_fixed_links=args.fixed_links,
         )
     else:
-        plot_contacts(args.filename, output=args.output, plot_fixed_links=args.fixed_links)
+        plot_contacts(
+            args.filename, output=args.output, plot_fixed_links=args.fixed_links
+        )
