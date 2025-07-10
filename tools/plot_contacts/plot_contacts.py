@@ -44,6 +44,7 @@ def plot_contacts(
     output: str | None = None,
     plot_fixed_links: bool = False,
     human_readable_timestamp: bool = False,
+    title: str | None = None,
 ):
     """
     Plots contact periods from a CSV file.
@@ -288,7 +289,8 @@ def plot_contacts(
     # Add labels and title
     plt.xlabel("Time")
     plt.ylabel("Contact (Node 1 - Node 2)")
-    plt.title("Contact Plan: " + os.path.basename(filename))
+    if title:
+        plt.title(title)
 
     plt.tight_layout()
     if output:
@@ -330,10 +332,16 @@ def main():
         help="Use human-readable timestamps instead of integers.",
     )
     parser.add_argument(
+        "-t", "--title", type=str, help="Title for the plot (optional)."
+    )
+    parser.add_argument(
         "-o", "--output", type=str, help="Output file name for the plot (optional)."
     )
     parser.add_argument("filename", type=str, help="Path to the contacts CSV file.")
     args = parser.parse_args()
+
+    sep = args.sep
+    names = args.names
 
     if args.core_contact_plan:
         # If it's a core contact plan, we expect specific column names
@@ -350,22 +358,17 @@ def main():
             "jitter",
         ]
         sep = " "
-        plot_contacts(
-            args.filename,
-            sep=sep,
-            names=names,
-            is_core_contact_plan=True,
-            output=args.output,
-            plot_fixed_links=args.fixed_links,
-            human_readable_timestamp=args.human_readable_timestamp,
-        )
-    else:
-        plot_contacts(
-            args.filename,
-            output=args.output,
-            plot_fixed_links=args.fixed_links,
-            human_readable_timestamp=args.human_readable_timestamp,
-        )
+
+    plot_contacts(
+        args.filename,
+        sep=sep,
+        names=names,
+        is_core_contact_plan=args.core_contact_plan,
+        output=args.output,
+        plot_fixed_links=args.fixed_links,
+        human_readable_timestamp=args.human_readable_timestamp,
+        title=args.title,
+    )
 
     logger.info("Contact plotting completed.")
 
