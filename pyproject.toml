@@ -13,7 +13,7 @@ packages = [
 
 [project]
 name = "pons-dtn"
-version = "0.2.0"
+version = "0.2.1"
 authors = [
   { name = "Lars Baumgaertner", email = "1264131+gh0st42@users.noreply.github.com" },
 ]
