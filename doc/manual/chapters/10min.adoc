@@ -104,7 +104,7 @@ More parameters can be configured as described in the mobility section of this u
 ==== Sending Messages
 
 Messages or bundles should be sent either through an event generator or simulated apps running on top of the node routers.
-In this example, we will be using a *single* node message event generator.
+In this example, we will be using a *single* message event generator.
 
 [source,python]
 ----
