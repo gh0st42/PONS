@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Dict, List, Tuple, Optional
 import logging
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -69,7 +70,7 @@ class CommonContactPlan(object):
         return []
 
 
-def ContactPlan(CommonContactPlan):
+class ContactPlan(CommonContactPlan):
     """
     A ContactPlan is a CommonContactPlan that can be used to create contacts.
     It is a factory for Contact objects.
@@ -77,7 +78,7 @@ def ContactPlan(CommonContactPlan):
 
     def __init__(
         self, contacts: List[Contact], loop: bool = False, symmetric: bool = False
-    ):
+    ) -> None:
         self.contacts = contacts
         self.loop = loop
         self.symmetric = symmetric
@@ -89,6 +90,18 @@ def ContactPlan(CommonContactPlan):
     def get_max_time(self) -> int:
         """Returns the maximum time in the contact plan."""
         return self.max_time
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, ContactPlan):
+            return False
+        return (
+            self.contacts == other.contacts
+            and self.loop == other.loop
+            and self.symmetric == other.symmetric
+        )
+
+    def __hash__(self) -> int:
+        return hash((tuple(self.contacts), self.loop, self.symmetric))
 
     def all_contacts(self) -> List[Tuple[int, int]]:
         return list(set([(c.nodes[0], c.nodes[1]) for c in self.contacts]))
@@ -162,3 +175,25 @@ def ContactPlan(CommonContactPlan):
     def fixed_links(self) -> List[Tuple[int, int]]:
         """Returns a list of fixed links in the contact plan."""
         return [(c.nodes[0], c.nodes[1]) for c in self.contacts if c.fixed]
+
+    def get_max_time(self) -> int:
+        """Returns the maximum time in the contact plan."""
+        return self.max_time
+
+
+def bandwidth_parser(bw: str) -> int:
+    """
+    Parses a bandwidth string and returns the bandwidth in bits per second.
+    Supports 'mbit', 'kbit', and 'gbit' suffixes.
+    """
+    if isinstance(bw, str):
+        bw = bw.lower()
+        if bw.endswith("mbit"):
+            return int(bw[:-4]) * 1_000_000
+        elif bw.endswith("kbit"):
+            return int(bw[:-4]) * 1_000
+        elif bw.endswith("gbit"):
+            return int(bw[:-4]) * 1_000_000_000
+        else:
+            return int(bw)
+    return bw

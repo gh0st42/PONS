@@ -6,7 +6,7 @@ from .net import (
     IonContactPlan,
     BROADCAST_ADDR,
     Contact,
-    CoreContactPlan,
+    ContactPlan,
     CommonContactPlan,
 )
 from .routing import Router, EpidemicRouter

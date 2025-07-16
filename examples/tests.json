@@ -53,7 +53,7 @@
     ]
   },
   {
-    "file": "netedit_and_ccm.py",
+    "file": "netedit_and_ccp.py",
     "results": [
       {
         "created": "3",
@@ -118,6 +118,16 @@
         "created": "120",
         "delivered": "96"
       }
+    ]
+  },
+  {
+    "file": "plan_reader.py",
+    "results": [
+      "CSV: 10",
+      "JSON: 10",
+      "CCP: 10",
+      "CSV == JSON True",
+      "CSV == CCP True"
     ]
   }
 ]

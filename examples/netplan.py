@@ -15,7 +15,8 @@ except ImportError:
 SCRIPT_DIR = str(SCRIPT_DIR)
 
 import pons.routing
-
+from pons.net.plans import ContactPlan
+from pons.net.plans.parser import read_ccp
 
 RANDOM_SEED = 42
 # SIM_TIME = 3600*24*7
@@ -70,9 +71,11 @@ plan = pons.net.NetworkPlan.from_graphml(SCRIPT_DIR + "/data/3n-exported.graphml
 print(plan.nodes())
 print(plan.connections())
 
-plan2 = pons.CoreContactPlan.from_file(
-    SCRIPT_DIR + "/data/3n-exported.ccm", plan.mapping
+contacts = read_ccp(
+    SCRIPT_DIR + "/data/3n-exported.ccm", symmetric=True, mapping=plan.mapping
 )
+plan2 = pons.net.plans.ContactPlan(contacts, symmetric=True, loop=True)
+
 plan.set_contacts(plan2)
 
 net2 = pons.NetworkSettings("networkplan2", range=0, contactplan=plan)

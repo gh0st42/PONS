@@ -13,7 +13,7 @@ except ImportError:
 SCRIPT_DIR = str(SCRIPT_DIR)
 
 import pons.routing
-
+from pons.net.plans.parser import read_ccp
 
 RANDOM_SEED = 42
 # SIM_TIME = 3600*24*7
@@ -24,7 +24,8 @@ CAPACITY = 10000
 SIM_TIME = 120
 NUM_NODES = 3
 
-plan = pons.CoreContactPlan.from_file(SCRIPT_DIR + "/data/3n-asym.ccm", symmetric=False)
+contacts = read_ccp(SCRIPT_DIR + "/data/3n-asym.ccm", symmetric=False)
+plan = pons.net.plans.ContactPlan(contacts, symmetric=False, loop=True)
 
 print(plan)
 

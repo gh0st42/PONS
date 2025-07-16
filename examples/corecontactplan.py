@@ -13,7 +13,8 @@ except ImportError:
 SCRIPT_DIR = str(SCRIPT_DIR)
 
 import pons.routing
-
+from pons.net.plans import Contact, ContactPlan
+from pons.net.plans.parser import read_ccp
 
 RANDOM_SEED = 42
 # SIM_TIME = 3600*24*7
@@ -25,9 +26,8 @@ CAPACITY = 10000
 
 print("Python Opportunistic Network Simulator")
 
-# plan = pons.ContactPlan.from_file("data/contactPlan_simple.txt")
-plan = pons.CoreContactPlan.from_file(SCRIPT_DIR + "/data/simple.ccm")
-
+contacts = read_ccp(SCRIPT_DIR + "/data/simple.ccm", symmetric=True)
+plan = ContactPlan(contacts, symmetric=True, loop=True)
 print(plan.get_max_time())
 
 random.seed(RANDOM_SEED)
@@ -62,7 +62,8 @@ print(json.dumps(netsim.routing_stats, indent=4))
 SIM_TIME = 120
 NUM_NODES = 3
 
-plan = pons.CoreContactPlan.from_file(SCRIPT_DIR + "/data/3n.ccm")
+contacts = read_ccp(SCRIPT_DIR + "/data/3n.ccm", symmetric=True)
+plan = ContactPlan(contacts, symmetric=True, loop=True)
 
 random.seed(RANDOM_SEED)
 
