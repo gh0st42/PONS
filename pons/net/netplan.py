@@ -22,8 +22,8 @@ class NetworkPlan(CommonContactPlan):
 
     def active_links_at(self, time: int) -> List[Tuple[int, int]]:
         contacts = []
-        if self.contacts is not None:
-            for c in self.contacts.at(time):
+        if self.contactplan is not None:
+            for c in self.contactplan.at(time):
                 contacts.append(c.nodes)
         for e in self.G.edges():
             contacts.append(e)
@@ -33,28 +33,28 @@ class NetworkPlan(CommonContactPlan):
         return self.G.edges()
 
     def next_event(self, time: int) -> int | None:
-        if self.contacts is not None:
-            return self.contacts.next_event(time)
+        if self.contactplan is not None:
+            return self.contactplan.next_event(time)
         return None
 
     def __eq__(self, value: object) -> bool:
         if self.G != value.G:
             return False
-        if self.contacts != value.contacts:
+        if self.contactplan != value.contacts:
             return False
         return True
 
     def __hash__(self) -> int:
         contacts_hash = 0
-        if self.contacts is not None:
-            contacts_hash = hash(tuple(self.contacts.all_contacts()))
+        if self.contactplan is not None:
+            contacts_hash = hash(tuple(self.contactplan.all_contacts()))
         return contacts_hash
 
     # set the contact plan and remove all edges that are in the contact plan from the static graph
     def set_contacts(self, contacts: CommonContactPlan) -> None:
-        self.contacts = contacts
+        self.contactplan = contacts
         if contacts is not None:
-            for c in self.contacts.all_contacts():
+            for c in self.contactplan.all_contacts():
                 self.full_graph.add_edge(c[0], c[1])
                 try:
                     self.G.remove_edge(c[0], c[1])
@@ -64,6 +64,25 @@ class NetworkPlan(CommonContactPlan):
     def __str__(self) -> str:
         return "NetworkPlan(%s)" % (self.G)
 
+    def at(self, time: int) -> List[pons.Contact]:
+        contacts = []
+        if self.contactplan is not None:
+            contacts = self.contactplan.at(time)
+        for e in self.G.edges():
+            link_props = self.G.get_edge_data(*e, default={})
+            # if no contact plan is set, we do not have a max duration, so we set it to sys.maxsize * 2 + 1
+            contact = pons.Contact(
+                timespan=(0, sys.maxsize * 2 + 1),
+                nodes=e,
+                bw=link_props.get("bw", 0),
+                loss=link_props.get("loss", 0.0),
+                delay=link_props.get("delay", 0.0),
+                jitter=link_props.get("jitter", 0.0),
+                fixed=True,
+            )
+            contacts.append(contact)
+        return contacts
+
     # return the loss for a contact between two nodes
     def loss_for_contact(self, simtime: float, node1: int, node2: int) -> float:
         if self.G.has_edge(node1, node2):
@@ -72,25 +91,25 @@ class NetworkPlan(CommonContactPlan):
                 return link_props["loss"]
             else:
                 return 0.0
-        if self.contacts is not None:
-            return self.contacts.loss_for_contact(simtime, node1, node2)
+        if self.contactplan is not None:
+            return self.contactplan.loss_for_contact(simtime, node1, node2)
         else:
             return 100.0
 
     # return whether there is a contact between two nodes
     def has_contact(self, simtime: float, node1: int, node2: int) -> bool:
-        if self.contacts is None:
+        if self.contactplan is None:
             return self.G.has_edge(node1, node2)
         else:
-            return self.contacts.has_contact(simtime, node1, node2) or self.G.has_edge(
-                node1, node2
-            )
+            return self.contactplan.has_contact(
+                simtime, node1, node2
+            ) or self.G.has_edge(node1, node2)
 
     # return the transmission time for a contact between two nodes for a given size
     def tx_time_for_contact(
         self, simtime: float, node1: int, node2: int, size: int
     ) -> float:
-        if self.contacts is None:
+        if self.contactplan is None:
             return 0.000005 * size
         else:
             if self.G.has_edge(node1, node2):
@@ -112,7 +131,7 @@ class NetworkPlan(CommonContactPlan):
                     tx_time = 0.000005 * size
                 return tx_time
             else:
-                return self.contacts.tx_time_for_contact(simtime, node1, node2, size)
+                return self.contactplan.tx_time_for_contact(simtime, node1, node2, size)
 
     def nodes(self) -> List[int]:
         return list(self.G.nodes())
@@ -122,10 +141,10 @@ class NetworkPlan(CommonContactPlan):
 
     def connections_at_time(self, time: float) -> List[Tuple[int, int]]:
         static_links = list(self.G.edges())
-        if self.contacts is None:
+        if self.contactplan is None:
             return static_links
         else:
-            dyn_links = self.contacts.at(time)
+            dyn_links = self.contactplan.at(time)
             # convert to list of tuples with node ids
             dyn_links = [l.nodes for l in dyn_links]
             return static_links + dyn_links
