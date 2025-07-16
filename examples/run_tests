@@ -3,6 +3,7 @@
 import logging
 import json
 import os
+import sys
 import subprocess
 import argparse
 
@@ -110,7 +111,7 @@ def run_tests(test_file):
             logger.error(
                 f"Test #{idx} '{test['file']} failed with {failed} conditions not met."
             )
-            total_failed_tests += failed
+            total_failed_tests += 1
             if args.halt_on_error:
                 break
         else:
@@ -118,6 +119,8 @@ def run_tests(test_file):
         logger.debug(f"Test output: {result}")
     logger.info(f"Tests successful: {tests_run_so_far-total_failed_tests}")
     logger.info(f"Total failed tests: {total_failed_tests} / {tests_run_so_far}")
+    if total_failed_tests > 0:
+        sys.exit(1)
 
 
 def main():
