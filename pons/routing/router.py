@@ -1,6 +1,9 @@
 from copy import copy
 import pons
+import logging
 from pons.event_log import event_log
+
+logger = logging.getLogger(__name__)
 
 HELLO_MSG_SIZE = 42
 
@@ -295,7 +298,13 @@ class Router(object):
             msg_id = msg_id.unique_id()
 
         if msg_id in self.history:
-            self.history[msg_id].remove(peer_id)
+            if peer_id not in self.history[msg_id]:
+                logger.warning(
+                    "trying to forget transmission with peer %d for msg %s on node %d, but not known"
+                    % (peer_id, msg_id, self.my_id)
+                )
+            else:
+                self.history[msg_id].remove(peer_id)
 
     def is_msg_known(self, msg: pons.Message):
         return msg.unique_id() in self.history
