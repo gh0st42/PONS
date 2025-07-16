@@ -1,12 +1,10 @@
-from __future__ import annotations
-from dataclasses import dataclass
 from dateutil.parser import parse
 
 
 from random import random
 from typing import TYPE_CHECKING, Dict, List, Tuple, Optional
 
-from pons.net.plans import CommonContactPlan
+from pons.net.plans import CommonContactPlan, Contact
 
 
 class IonContactPlan(CommonContactPlan):
@@ -15,11 +13,29 @@ class IonContactPlan(CommonContactPlan):
     def __init__(self, name: str, contacts=None):
         self.name = name
         if contacts is None:
-            self.contacts = []
-        self.contacts = contacts
+            self.ion_contacts = []
+        self.ion_contacts = contacts
+        self.contacts = []
+        self.update_contacts_from_ion()
+
+    def update_contacts_from_ion(self):
+        """Update the contacts list from the ion_contacts."""
+        self.contacts = []
+        for c in self.ion_contacts:
+            if c[0] == "contact":
+                self.contacts.append(
+                    Contact(
+                        timespan=c[1],
+                        nodes=(c[2], c[3]),
+                        bw=c[4],
+                        loss=0.0,
+                        delay=0.0,
+                        jitter=0.0,
+                    )
+                )
 
     def __str__(self):
-        return "IonContactPlan(%s, %d)" % (self.name, len(self.contacts))
+        return "IonContactPlan(%s, %d)" % (self.name, len(self.ion_contacts))
 
     def fixed_links(self) -> List[Tuple[int, int]]:
         return []
@@ -60,42 +76,42 @@ class IonContactPlan(CommonContactPlan):
             return False
         if self.name != value.name:
             return False
-        if len(self.contacts) != len(value.contacts):
+        if len(self.ion_contacts) != len(value.ion_contacts):
             return False
-        for i in range(len(self.contacts)):
-            if self.contacts[i] != value.contacts[i]:
+        for i in range(len(self.ion_contacts)):
+            if self.ion_contacts[i] != value.ion_contacts[i]:
                 return False
         return True
 
     def __hash__(self) -> int:
-        return hash((self.name, tuple(self.contacts)))
+        return hash((self.name, tuple(self.ion_contacts)))
 
     def all_contacts(self) -> List[Tuple[int, int]]:
-        all = [(c[2], c[3]) for c in self.contacts]
+        all = [(c[2], c[3]) for c in self.ion_contacts]
         # remove duplicates
         return list(set(all))
 
     def get_entries(self, t):
-        return [c for c in self.contacts if c[1][0] <= t and c[1][1] >= t]
+        return [c for c in self.ion_contacts if c[1][0] <= t and c[1][1] >= t]
 
     def get_contacts(self, t):
         return [
             c
-            for c in self.contacts
+            for c in self.ion_contacts
             if c[1][0] <= t and c[1][1] >= t and c[0] == "contact"
         ]
 
     def get_ranges(self, t):
         return [
             c
-            for c in self.contacts
+            for c in self.ion_contacts
             if c[1][0] <= t and c[1][1] >= t and c[0] == "range"
         ]
 
     def get_contacts_for_node(self, t, node_id: int):
         return [
             c
-            for c in self.contacts
+            for c in self.ion_contacts
             if c[1][0] <= t
             and c[1][1] >= t
             and (c[2] == node_id or c[3] == node_id)
@@ -105,7 +121,7 @@ class IonContactPlan(CommonContactPlan):
     def get_ranges_for_node(self, t, node_id: int):
         return [
             c
-            for c in self.contacts
+            for c in self.ion_contacts
             if c[1][0] <= t
             and c[1][1] >= t
             and (c[2] == node_id or c[3] == node_id)
@@ -113,7 +129,7 @@ class IonContactPlan(CommonContactPlan):
         ]
 
     def remove_past_entries(self, t):
-        self.contacts = [c for c in self.contacts if c[1][1] >= t]
+        self.ion_contacts = [c for c in self.ion_contacts if c[1][1] >= t]
 
     def has_contact(self, simtime: float, node1: int, node2: int) -> bool:
         contacts_of_src = self.get_contacts_for_node(simtime, node1)
