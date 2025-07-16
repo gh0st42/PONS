@@ -209,8 +209,10 @@ class Node(object):
                     else:
                         self.router._on_pkt_received(deepcopy(msg), from_nid)
             else:
-                # print("Node %d received msg %s from %d (not neighbor)" %
-                #      (to_nid, msg, from_nid))
+                logger.debug(
+                    "Node %d received msg %s from %d (not neighbor)"
+                    % (self.node_id, msg, from_nid)
+                )
                 netsim.net_stats["drop"] += 1
                 netsim.nodes[from_nid].router._on_tx_failed(
                     msg.unique_id(), self.node_id

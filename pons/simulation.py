@@ -15,7 +15,10 @@ from pons.node import Node
 from pons.event_log import event_log
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO").upper(), format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO").upper(),
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
 
 aborted = False
 
@@ -223,11 +226,12 @@ class NetSim(object):
         """Start a contact logger."""
         if not is_logging():
             return
-        
+
         logger.debug("start contact logger: %s", type(contactplan))
         if contactplan is None:
             logger.warning("No contact plan")
             return
+
         initial_events = contactplan.at(0)
         if len(initial_events) != 0:
             for e in initial_events:
@@ -287,10 +291,9 @@ class NetSim(object):
                 if net.contactplan is not None:
                     all_contactplans.add(net.contactplan)
 
-
         for cp in all_contactplans:
             self.env.process(self.contact_logger(cp))
-        
+
         logger.debug("Global number of unique contact plans: %d", len(all_contactplans))
 
         start_real = time.time()
