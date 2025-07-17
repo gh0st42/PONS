@@ -384,15 +384,14 @@ def read_json(filename: str, mapping: dict[str, int] | None = None) -> list[Cont
 
 def read_ccp(
     filename: str,
-    sep: str = ",",
     mapping: dict[str, int] | None = None,
     symmetric: bool = False,
 ) -> list[Contact]:
     """
     Reads a core contact plan and returns a list of contacts.
     :param filename: The path to the CSV file.
-    :param sep: The separator used in the CSV file (default is comma).
     :param mapping: An optional mapping from string node identifiers to integer node IDs.
+    :param symmetric: Whether to create symmetric contacts.
     :return: A list of Contact objects.
     :raises ValueError: If the file cannot be read or if required columns are missing.
     """

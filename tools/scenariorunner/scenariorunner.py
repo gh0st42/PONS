@@ -27,6 +27,8 @@ except ImportError:
     import pons
 SCRIPT_DIR = str(SCRIPT_DIR)
 
+from pons.net.plans.parser import read_csv, read_json, read_ccp
+
 
 def visualize_events(event_log: str, args: argparse.Namespace = None):
     """
@@ -91,8 +93,11 @@ def run_scenario(
     logger.info(
         f"Running scenario with {len(g.nodes)} nodes, {len(g.edges)} links and {len(contacts)} contacts..."
     )
-    core_contacts = pons.net.CoreContactPlan(contacts=contacts, symmetric=False)
-    plan = pons.net.NetworkPlan(g, contacts=core_contacts)
+    parsed_contacts = pons.net.ContactPlan(contacts=contacts, symmetric=False)
+
+    # pons.net.CoreContactPlan(contacts=contacts, symmetric=False)
+    plan = pons.net.NetworkPlan(g, contacts=parsed_contacts)
+
     router_class = getattr(pons.routing, args.router, None)
     # check if router_class constructor accepts a graph parameter
     if "graph" in router_class.__init__.__code__.co_varnames:
@@ -204,7 +209,7 @@ def main():
         "-c",
         type=str,
         required=True,
-        help="CSV file with contacts",
+        help="CSV/JSON/CCP file with contacts. Type is determined by the file extension (.csv, .json, .ccp).",
     )
     parser.add_argument(
         "--nodes", "-n", type=str, help="Node mapping JSON file", required=True
@@ -258,14 +263,26 @@ def main():
     args = parser.parse_args()
 
     node_mapping = scenariohelper.load_mapping_json(args.nodes)
-    g = scenariohelper.get_graph_from_csv(args.contacts, node_mapping)
     # rename nodes to integers from their node_id
     mapping = {}
     for k, v in node_mapping.items():
         mapping[k] = v["node_number"]
+
+    if args.contacts.endswith(".json"):
+        contacts = read_json(args.contacts, mapping=mapping)
+    elif args.contacts.endswith(".csv"):
+        contacts = read_csv(args.contacts, mapping=mapping)
+    elif args.contacts.endswith(".ccp"):
+        contacts = read_ccp(args.contacts, mapping=mapping, symmetric=False)
+    else:
+        logger.error(
+            f"Unsupported contacts file format: {args.contacts}. Please use .csv or .json or .ccp."
+        )
+        sys.exit(1)
+
+    g = scenariohelper.get_graph_from_contacts(contacts, node_mapping)
     g = nx.relabel_nodes(g, mapping)
 
-    contacts = scenariohelper.get_contacts_from_csv(args.contacts, node_mapping)
     flows = scenariohelper.load_application_traffic(args.flows, node_mapping)
     run_scenario(g, contacts, flows, args)
 

@@ -53,11 +53,13 @@ class NetworkPlan(CommonContactPlan):
     # set the contact plan and remove all edges that are in the contact plan from the static graph
     def set_contacts(self, contacts: CommonContactPlan) -> None:
         self.contactplan = contacts
+        fixed = self.contactplan.fixed_links() if contacts else []
         if contacts is not None:
             for c in self.contactplan.all_contacts():
                 self.full_graph.add_edge(c[0], c[1])
                 try:
-                    self.G.remove_edge(c[0], c[1])
+                    if c not in fixed:
+                        self.G.remove_edge(c[0], c[1])
                 except nx.NetworkXError:
                     print("WARNING: Edge %s not in graph" % str(c), file=sys.stderr)
 

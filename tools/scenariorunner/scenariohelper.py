@@ -19,6 +19,8 @@ except ImportError:
     import pons
 SCRIPT_DIR = str(SCRIPT_DIR)
 
+from pons.net.plans import bandwidth_parser, Contact
+
 
 def load_mapping_json(filename: str) -> Dict[str, Any]:
     logger.info(f"Loading node mapping from {filename}")
@@ -50,72 +52,70 @@ def load_mapping_json(filename: str) -> Dict[str, Any]:
     return mapping
 
 
-def get_graph_from_csv(csvfile: str, mapping: dict) -> nx.MultiDiGraph:
-    logger.info(f"Loading network graph from {csvfile}")
+def get_node_details_from_mapping(
+    mapping: dict, node_id: str | int
+) -> tuple[int, str, str]:
+    if isinstance(node_id, str):
+        if node_id in mapping:
+            return mapping[node_id]["node_number"], node_id, mapping[node_id]["name"]
+        else:
+            raise ValueError(f"Node {node_id} not found in mapping {mapping.keys()}")
+    else:
+        for c in mapping:
+            if mapping[c]["node_number"] == node_id:
+                return mapping[c]["node_number"], c, mapping[c]["name"]
+        # create new node entry if not found
+        new_node_id = f"n{node_id}"
+        mapping[new_node_id] = {
+            "node_number": node_id,
+            "name": new_node_id,
+            "node_id": f"ipn:{node_id}.0",
+        }
+        return node_id, new_node_id, new_node_id
+
+
+def get_graph_from_contacts(contacts: list[Contact], mapping: dict) -> nx.MultiDiGraph:
+    logger.info(f"Loading network graph from contacts")
     G = nx.MultiDiGraph()
-    with open(csvfile, "r") as f:
-        f.readline()  # skip header
-        reader = csv.reader(f)
-        for row in reader:
-            if len(row) == 6 or len(row) == 7:
-                if row[0].startswith("#"):
-                    continue
-                node1 = row[0]
-                node2 = row[1]
-                # node1, node2 = sorted([node1, node2])
+    for c in contacts:
+        n1_id, n1_short, n1_name = get_node_details_from_mapping(mapping, c.nodes[0])
+        n2_id, n2_short, n2_name = get_node_details_from_mapping(mapping, c.nodes[1])
+        ts_start = c.timespan[0]
+        ts_end = c.timespan[1]
+        bw = c.bw
+        delay = c.delay
+        label = c.label if hasattr(c, "label") else ""
 
-                ts_start = float(row[2])
-                ts_end = float(row[3])
-                bw = int(
-                    row[4]
-                    .replace("gbit", "000000000")
-                    .replace("mbit", "000000")
-                    .replace("kbit", "000")
-                    .replace("bit", "")
-                )
-                delay = float(row[5])
-                label = row[6] if len(row) == 7 else ""
+        G.add_node(
+            n1_short,
+            name=n1_name,
+            type="Host",
+            node_id=n1_id,
+        )
+        G.add_node(
+            n2_short,
+            name=n2_name,
+            type="Host",
+            node_id=n2_id,
+        )
 
-                if node1 not in mapping:
-                    logger.warning(
-                        f"Node {node1} not found in mapping {mapping['nodes'].keys()}. Adding it with a new node number."
-                    )
-                    mapping[node1] = len(mapping) + 1
-                if node2 not in mapping:
-                    logger.warning(
-                        f"Node {node2} not found in mapping {mapping.keys()}. Adding it with a new node number."
-                    )
-                    mapping[node2] = len(mapping) + 1
+        dynamic_link = True
+        if ts_start == 0 and ts_end == -1:
+            dynamic_link = False
 
-                G.add_node(
-                    node1,
-                    name=node1,
-                    type="Host",
-                    node_id=mapping[node1]["node_number"],
-                )
-                G.add_node(
-                    node2,
-                    name=node2,
-                    type="Host",
-                    node_id=mapping[node2]["node_number"],
-                )
-
-                dynamic_link = True
-                if ts_start == 0 and ts_end == -1:
-                    dynamic_link = False
-                if not G.has_edge(node1, node2, key=label):
-                    logger.debug("Adding edge: %s %s %s" % (node1, node2, label))
-                    G.add_edge(
-                        node1,
-                        node2,
-                        key=label,
-                        dynamic_link=dynamic_link,
-                        bw=bw,
-                        delay=delay,
-                        loss=0,
-                        jitter=0,
-                        label=label,
-                    )
+        if not G.has_edge(n1_id, n2_id, key=label):
+            logger.debug("Adding edge: %s %s %s" % (n1_id, n2_id, label))
+            G.add_edge(
+                n1_short,
+                n2_short,
+                key=label,
+                dynamic_link=dynamic_link,
+                bw=bw,
+                delay=delay,
+                loss=0,
+                jitter=0,
+                label=label,
+            )
     MARGIN = 50
     SCALE = 1000
     # if sys.implementation.name == "pypy":
@@ -168,23 +168,20 @@ def get_contacts_from_csv(
                 if ts_end == -1:
                     # skipping fixed links
                     continue
-                bw = int(
-                    row[4]
-                    .replace("gbit", "000000000")
-                    .replace("mbit", "000000")
-                    .replace("kbit", "000")
-                    .replace("bit", "")
-                )
+                bw = bandwidth_parser(row[4])
+
                 delay = float(row[5])
                 label = row[6] if len(row) == 7 else ""
 
-                contact = pons.net.Contact()
-                contact.timespan = (ts_start, ts_end)
-                contact.nodes = (node1, node2)
-                contact.bw = bw
-                contact.delay = delay
-                contact.jitter = 0
-                contact.loss = 0
+                contact = pons.net.Contact(
+                    timespan=(ts_start, ts_end),
+                    nodes=(node1, node2),
+                    bw=bw,
+                    delay=delay,
+                    jitter=0,
+                    loss=0,
+                )
+
                 contacts.append(contact)
     return contacts
 
