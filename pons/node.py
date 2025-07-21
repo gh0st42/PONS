@@ -4,6 +4,7 @@ from copy import deepcopy
 from typing import List
 import pons
 from pons.message import Message
+from pons.event_log import event_log
 
 from pons.net.common import BROADCAST_ADDR, NetworkSettings
 from simpy.util import start_delayed
@@ -65,6 +66,9 @@ class Node(object):
             self.router.start(netsim, self.node_id)
 
     def calc_neighbors(self, simtime, nodes: List[Node]):
+        old_neigbhbor_ids = set(
+            [nid for nids in self.neighbors.values() for nid in nids]
+        )
         for net in self.net.values():
             self.neighbors[net.name] = []
             for node in nodes:
@@ -72,6 +76,33 @@ class Node(object):
                     # print("node %d: %s %s %s" % (node.id, node.net, net.name,  net.has_contact(simtime, self, node)))
                     if net.name in node.net and net.has_contact(simtime, self, node):
                         self.neighbors[net.name].append(node.node_id)
+                        if (
+                            net.contactplan == None
+                            and node.node_id not in old_neigbhbor_ids
+                        ):
+                            event_log(
+                                simtime,
+                                "LINK",
+                                {
+                                    "event": "UP",
+                                    "nodes": [self.node_id, node.node_id],
+                                    "net": net.name,
+                                },
+                            )
+                    else:
+                        if (
+                            net.contactplan == None
+                            and node.node_id in old_neigbhbor_ids
+                        ):
+                            event_log(
+                                simtime,
+                                "LINK",
+                                {
+                                    "event": "DOWN",
+                                    "nodes": [self.node_id, node.node_id],
+                                    "net": net.name,
+                                },
+                            )
         # self.log("neighbors: %s @ %f" % (self.neighbors, simtime))
 
     def add_all_neighbors(self, simtime, nodes: List[Node]):
