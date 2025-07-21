@@ -47,7 +47,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-mp4 = ["opencv-python"]
+mp4 = ["imageio[ffmpeg]"]
 
 [project.scripts]
 ponsanim = "ponsanim.ponsanim:main"

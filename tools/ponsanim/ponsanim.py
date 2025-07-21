@@ -3,8 +3,17 @@
 import sys
 import networkx as nx
 from PIL import Image, ImageDraw
+import imageio.v2 as iio
+import numpy as np
 import argparse
+import logging
+import os
 
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO"),
+    format="%(asctime)s - %(levelname)s - %(message)s",
+)
 try:
     import pons
 except ImportError:
@@ -14,7 +23,8 @@ except ImportError:
     sys.path.append(str(base_dir))
 
 
-from pons.net.plans.core import CoreContactPlan, CoreContact
+from pons.net.plans import ContactPlan, Contact
+from pons.net.plans.parser import read_ccp
 from pons.net.netplan import NetworkPlan
 from pons.event_log import get_events_in_range, load_event_log
 
@@ -169,7 +179,11 @@ def main():
     global max_x, max_y, max_time, img_size, min_x, min_y, extra_x, extra_y
     parser = argparse.ArgumentParser(description="Animate a network replay / event log")
     parser.add_argument(
-        "-o", "--output", type=str, help="The output image file", required=True
+        "-o",
+        "--output",
+        type=str,
+        help="The output image file. File suffix determines type, either .mp4 or .gif. GIF uses a lot of RAM, MP4 should be preferred is most cases.",
+        required=True,
     )
     parser.add_argument(
         "-s", "--step-size", type=int, help="Step size in seconds", default=100
@@ -183,7 +197,7 @@ def main():
         help="Convert timestamp from seconds to days, hours, minutes and seconds",
         action="store_true",
     )
-    parser.add_argument("-g", "--graph", type=str, help="Input graphml file")
+    parser.add_argument("-g", "--graph", type=str, help="Input GraphML file")
     parser.add_argument("-c", "--contacts", type=str, help="The network contacts file")
     parser.add_argument(
         "-t",
@@ -208,29 +222,30 @@ def main():
         modeContactGraph = True
 
     if not modeContactGraph and args.event_log is None:
-        print(
+        logger.error(
             "You need to specify either a graph and contacts file or an event log file"
         )
         sys.exit(1)
-
-    frames = []
 
     node_map = {}
     output_mp4 = False
     if args.output.endswith(".mp4"):
         output_mp4 = True
-        try:
-            import cv2
-            import numpy as np
-        except ImportError:
-            print("You need to have OpenCV (opencv-python) installed to save to MP4")
+        logger.info("Output format set to MP4...")
+    else:
+        if not args.output.endswith(".gif"):
+            logger.error("Output file must end with .mp4 or .gif")
+            sys.exit(1)
+        else:
+            logger.info("Output format set to GIF...")
 
     if modeContactGraph:
+        logger.info("Using contact graph mode with graph and contacts file")
         # print(args.graph)
         g = nx.read_graphml(args.graph, node_type=int)
 
         for node in g.nodes.data():
-            print(node)
+            logger.info("Node data: %s", node)
             x = int(node[1]["x"])
             y = int(node[1]["y"])
             min_x = min(min_x, x)
@@ -238,10 +253,12 @@ def main():
             max_x = max(max_x, x)
             max_y = max(max_y, y)
             node_map[node[1]["name"]] = node[0]
-        cplan = CoreContactPlan.from_file(args.contacts, node_map)
+        core_contacts = read_ccp(args.contacts, node_map)
+        cplan = ContactPlan(contacts=core_contacts)
         max_time = cplan.get_max_time()
 
     else:
+        logger.info("Parsing event log...")
         filter_in = ["CONFIG", "LINK", "MOVE"]
         if args.extra_information is None:
             args.extra_information = []
@@ -268,14 +285,14 @@ def main():
                     g.add_node(event["id"], x=x, y=y, name=event["name"])
                 elif cat == "LINK":
                     if event["event"] == "UP":
-                        contact = CoreContact((ts, -1), event["nodes"], 0, 0, 0, 0)
+                        contact = Contact((ts, -1), event["nodes"], 0, 0, 0, 0)
                         contacts.append(contact)
                     if event["event"] == "DOWN":
                         for c in contacts:
                             if c.nodes == event["nodes"] and c.timespan[1] == -1:
                                 timespan = (c.timespan[0], ts)
                                 contacts.remove(c)
-                                c = CoreContact(timespan, event["nodes"], 0, 0, 0, 0)
+                                c = Contact(timespan, event["nodes"], 0, 0, 0, 0)
                                 contacts.append(c)
                     if event["event"] == "SET":
                         g.add_edge(event["node1"], event["node2"])
@@ -285,7 +302,7 @@ def main():
                 g.nodes[n]["store"] = 0
 
         if len(contacts) > 0:
-            cplan = CoreContactPlan(contacts=contacts)
+            cplan = ContactPlan(contacts=contacts)
         else:
             cplan = None
 
@@ -294,12 +311,26 @@ def main():
     extra_x = max(extra_x, min_x)
     extra_y = max(extra_y, min_y)
     img_size = (max_x + extra_x * 2, max_y + extra_y * 2)
-    print(img_size)
-    print(max_time)
+    logger.debug("Image size: %s", img_size)
+    logger.info("Max time: %s", max_time)
+
     plan = NetworkPlan(g, cplan)
 
     max_steps = max_time
 
+    if output_mp4:
+        logger.info("Saving frames to MP4...")
+        out = iio.get_writer(
+            args.output,
+            format="mp4",
+            mode="I",
+            fps=fps,
+            codec="libx264",
+            pixelformat="yuv420p",
+        )
+    else:
+        logger.info("Saving frames to GIF...")
+        out = iio.get_writer(args.output, format="GIF", mode="I", duration=args.delay)
     for i in progressBar(
         range(0, max_steps + 1, args.step_size),
         prefix="Progress:",
@@ -319,9 +350,8 @@ def main():
                     if event["capacity"] > 0:
                         usage = int(event["used"] / event["capacity"] * 100)
                         g.nodes[event["id"]]["store"] = usage
-                        # print("Store usage: %d%% on node %d" % (usage, event["id"]))
                     else:
-                        print(
+                        logger.debug(
                             "Capacity is 0 - deactivating store visualization for node %d"
                             % event["id"]
                         )
@@ -345,22 +375,13 @@ def main():
             app_tx=list(apps_tx),
             human_readable=args.human_readable_timestamp,
         )
-        if output_mp4:
-            image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
 
-        frames.append(image)
+        out.append_data(np.array(image))
+        image = None  # Free memory
 
+    out.close()
+    logger.info("Animation saved to %s", args.output)
     if output_mp4:
-        print("Saving MP4...")
-        out = cv2.VideoWriter(
-            args.output,
-            cv2.VideoWriter_fourcc(*"mp4v"),
-            fps,
-            img_size,
-        )
-        for frame in frames:
-            out.write(frame)
-        out.release()
         print()
         print(
             f"{args.output} is an uncompressed MP4. You might want to use ffmpeg to compress it."
@@ -372,22 +393,10 @@ def main():
             f"ffmpeg -i {args.output} -c:v libx264 -pix_fmt yuv420p {args.output}.compressed.mp4"
         )
     else:
-        print("Saving GIF...")
-        frame_one = frames[0]
-        frame_one.save(
-            args.output,
-            format="GIF",
-            append_images=frames,
-            save_all=True,
-            duration=args.delay,
-            loop=0,
-            optimize=False,
-        )
         print()
         print(f"Saved unoptimized GIF to {args.output}. You might want to optimize it.")
         print("You can use the following command to optimize the GIF using gifsicle:")
         print(f"gifsicle -O3 --colors 16 {args.output} -o {args.output}.optimized.gif")
-    print("Done.")
 
 
 if __name__ == "__main__":
