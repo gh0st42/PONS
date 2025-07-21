@@ -48,7 +48,7 @@ random.seed(RANDOM_SEED)
 A world size is only needed, if a movement model is used, for fixed topologies with contact windows the world size can be set to `NONE`.
 If the capacity is set to 0, the storage capacity of each node is unlimited.
 
-=== Creating The Nodes
+==== Creating The Nodes
 
 Nodes in PONS have a few core components:
 
@@ -87,7 +87,7 @@ In PONS, we have a helper function to generate a large number of nodes from a fe
 nodes = pons.generate_nodes(NUM_NODES, net=[net], router=epidemic)
 ----
 
-=== Mobility
+==== Mobility
 
 Mobility in PONS is optional, but for this example we want to generate movements to randomly chosen waypoints using the internal movement generator.
 
@@ -233,39 +233,49 @@ In the end, we get some statistics about simulation.
 [source]
 ----
 $ python3 pons-tutorial.py 
-initialize simulation:  {'movement_logger': False, 'peers_logger': False, 'event_logging': False}
--> start movement manager
-{0: <pons.node.Node object at 0x102df0150>, 1: <pons.node.Node object at 0x10568fb90>, 2: <pons.node.Node object at 0x1056c1090>, 3: <pons.node.Node object at 0x1056c1410>, 4: <pons.node.Node object at 0x1056c1790>, 5: <pons.node.Node object at 0x1056c1b50>, 6: <pons.node.Node object at 0x1056c1ed0>, 7: <pons.node.Node object at 0x1056c2250>, 8: <pons.node.Node object at 0x1056c25d0>, 9: <pons.node.Node object at 0x1056c2910>}
-== running simulation for 86400 seconds ==
-global number of unique contact plans:  0
+2025-07-20 13:44:01,177 - pons.simulation - INFO - Initializing simulation: {'movement_logger': False, 'peers_logger': False, 'event_logging': False}
+2025-07-20 13:44:01,177 - pons.simulation - INFO - ENV LOG_FILE found! Activating event logging using log file: tutorial.log
+2025-07-20 13:44:01,177 - pons.simulation - INFO - == running simulation for 86400 seconds ==
 
-start message generator
 Progress: |██████████████████████████████████████████████████| 100.0% Complete
 
-simulation finished
-simulated 86401 seconds in 6.51 seconds (13275.43 x real time)
-real: 6.508340, sim: 86401 rate: 13275.43 steps/s
+
+
+2025-07-20 13:44:19,077 - pons.simulation - INFO - simulation finished
+2025-07-20 13:44:19,079 - pons.simulation - INFO - simulated 86401 seconds in 17.90 seconds (4827.05 x real time)
+2025-07-20 13:44:19,079 - pons.simulation - INFO - real: 17.899320, sim: 86401 rate: 4827.05 steps/s
 {
-    "tx": 126232,
-    "rx": 124604,
-    "drop": 1628,
+    "tx": 81628,
+    "rx": 81264,
+    "drop": 364,
     "loss": 0
 }
 {
     "created": 2880,
-    "delivered": 2595,
+    "delivered": 2561,
     "dropped": 0,
-    "started": 88668,
-    "relayed": 88648,
-    "removed": 0,
-    "aborted": 0,
-    "dups": 66044,
-    "latency_avg": 777.5032203836079,
-    "delivery_prob": 0.9010416666666666,
-    "hops_avg": 2.154527938342967,
-    "overhead_ratio": 33.161078998073215
+    "started": 81718,
+    "relayed": 81264,
+    "removed": 22055,
+    "aborted": 364,
+    "dups": 58933,
+    "latency_avg": 873.8002361692731,
+    "delivery_prob": 0.8892361111111111,
+    "hops_avg": 2.1144084342053886,
+    "overhead_ratio": 30.731354939476766
 }
 ----
 
 The statistics are useful when evaluating, e.g., different routing algorithms or buffer priorities.
 Note, the network rx/tx stats are much higher than the routing ones. This is due to the fact, that each node does a peer discovery scan (default: every 2s) using the nodes network simulation, thus, generating some extra non-dtn network traffic.
+
+=== Running the Example
+
+To run the example, save the code above in a file called `pons-tutorial.py` and execute it in your terminal:
+[source,bash]
+----
+$ LOG_LEVEL=info LOG_FILE=/tmp/tutorial.log python3 pons-tutorial.py
+----
+
+You can also use the `ponsanim` tool to visualize the simulation results, which will create an mp4 video of the simulation.
+Make sure you have `imageio[ffmpeg]` installed for video encoding.
