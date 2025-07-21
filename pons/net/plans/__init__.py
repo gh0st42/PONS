@@ -69,6 +69,13 @@ class CommonContactPlan(object):
     def fixed_links(self) -> List[Tuple[int, int]]:
         return []
 
+    def raw_contacts(self) -> List[Contact]:
+        """
+        Returns a list of all contacts in the contact plan.
+
+        """
+        raise NotImplementedError()
+
 
 class ContactPlan(CommonContactPlan):
     """
@@ -99,6 +106,12 @@ class ContactPlan(CommonContactPlan):
             and self.loop == other.loop
             and self.symmetric == other.symmetric
         )
+
+    def raw_contacts(self) -> List[Contact]:
+        """
+        Returns a list of all contacts in the contact plan.
+        """
+        return self.contacts
 
     def __hash__(self) -> int:
         return hash((tuple(self.contacts), self.loop, self.symmetric))
@@ -166,10 +179,15 @@ class ContactPlan(CommonContactPlan):
         return current_contacts
 
     def next_event(self, time: int) -> Optional[int]:
-        next_time = float("inf")
+        start_event = float("inf")
         for contact in self.contacts:
-            if contact.timespan[0] > time and contact.timespan[0] < next_time:
-                next_time = contact.timespan[0]
+            if contact.timespan[0] > time and contact.timespan[0] < start_event:
+                start_event = contact.timespan[0]
+        end_event = float("inf")
+        for contact in self.contacts:
+            if contact.timespan[1] > time and contact.timespan[1] < end_event:
+                end_event = contact.timespan[1]
+        next_time = min(start_event, end_event)
         return int(next_time) if next_time != float("inf") else None
 
     def fixed_links(self) -> List[Tuple[int, int]]:

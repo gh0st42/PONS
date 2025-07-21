@@ -77,7 +77,7 @@ class Node(object):
                     if net.name in node.net and net.has_contact(simtime, self, node):
                         self.neighbors[net.name].append(node.node_id)
                         if (
-                            net.contactplan == None
+                            net.contactplan is None
                             and node.node_id not in old_neigbhbor_ids
                         ):
                             event_log(
@@ -91,7 +91,7 @@ class Node(object):
                             )
                     else:
                         if (
-                            net.contactplan == None
+                            net.contactplan is None
                             and node.node_id in old_neigbhbor_ids
                         ):
                             event_log(

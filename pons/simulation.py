@@ -248,7 +248,6 @@ class NetSim(object):
             yield self.env.timeout(next_event)
             total += next_event
             events = contactplan.at(total)
-            # print(len(events), "events at", total, ":", events)
             for e in events:
                 if e.timespan[0] == total:
                     event_log(total, "LINK", {"event": "UP", "nodes": e.nodes})
@@ -317,7 +316,9 @@ class NetSim(object):
                 #     )
                 # )
             logger.debug(
-                "global number of unique contacts: %d %s", len(contacts), contacts
+                "global number of unique contacts at start: %d %s",
+                len(contacts),
+                contacts,
             )
             for c in contacts:
                 event_log(

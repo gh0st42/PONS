@@ -41,10 +41,16 @@ class NetworkPlan(CommonContactPlan):
         return None
 
     def __eq__(self, value: object) -> bool:
-        if self.G != value.G:
+        if not isinstance(value, NetworkPlan):
             return False
-        if self.contactplan != value.contacts:
+
+        if self.fixed_links() != value.fixed_links():
             return False
+        if self.all_contacts() != value.all_contacts():
+            return False
+        if self.raw_contacts() != value.raw_contacts():
+            return False
+
         return True
 
     def __hash__(self) -> int:
@@ -52,6 +58,21 @@ class NetworkPlan(CommonContactPlan):
         if self.contactplan is not None:
             contacts_hash = hash(tuple(self.contactplan.all_contacts()))
         return contacts_hash
+
+    def raw_contacts(self) -> List[pons.Contact]:
+        if self.contactplan is not None:
+            return self.contactplan.raw_contacts()
+        else:
+            return []
+
+    def all_contacts(self) -> List[Tuple[int, int]]:
+        if self.contactplan is not None:
+            from_cp = self.contactplan.all_contacts()
+            fixed = self.contactplan.fixed_links()
+            merged_unique = set(from_cp + fixed)
+            return list(merged_unique)
+        else:
+            return list(self.G.edges())
 
     # set the contact plan and remove all edges that are in the contact plan from the static graph
     def set_contacts(self, contacts: CommonContactPlan) -> None:
