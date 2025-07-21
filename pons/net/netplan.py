@@ -4,6 +4,9 @@ from copy import deepcopy
 import networkx as nx
 import sys
 from random import random
+import logging
+
+logger = logging.getLogger(__name__)
 
 from typing import TYPE_CHECKING, List, Tuple, Optional
 
@@ -61,7 +64,7 @@ class NetworkPlan(CommonContactPlan):
                     if c not in fixed:
                         self.G.remove_edge(c[0], c[1])
                 except nx.NetworkXError:
-                    print("WARNING: Edge %s not in graph" % str(c), file=sys.stderr)
+                    logger.debug("Edge %s was not in graph" % str(c))
 
     def __str__(self) -> str:
         return "NetworkPlan(%s)" % (self.G)
@@ -184,24 +187,24 @@ class NetworkPlan(CommonContactPlan):
 
         # check if all node names are integers
         if all([isinstance(n, int) or n.isnumeric() for n in G.nodes()]):
-            print("Nodes are already integers")
+            logger.debug("Nodes are already integers")
             mapping = {n: int(n) for n in G.nodes()}
             for n in G.nodes:
                 name = G.nodes[n].get("name", None)
                 if name is not None:
-                    print("Mapping node %s to %d" % (name, int(n)))
+                    logger.debug("Mapping node %s to %d" % (name, int(n)))
                     mapping[name] = int(n)
         else:
-            print("Renaming nodes")
+            logger.debug("Renaming nodes")
             # rename all node names to integers corresponding to their index
             mapping = {n: i for i, n in enumerate(G.nodes())}
-            print(mapping)
+            logger.debug("Node mapping: %s", mapping)
         G = nx.relabel_nodes(G, mapping)
 
         # remove edges that have data of "dynamic_link" set to True
         for e in deepcopy(G.edges()):
             if G.get_edge_data(*e).get("dynamic_link", False):
-                print("Removing dynamic link edge %s" % str(e), file=sys.stderr)
+                logger.debug("Removing dynamic link edge %s" % str(e))
                 G.remove_edge(*e)
 
         plan = cls(G)
