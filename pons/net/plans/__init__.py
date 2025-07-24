@@ -180,14 +180,15 @@ class ContactPlan(CommonContactPlan):
 
     def next_event(self, time: int) -> Optional[int]:
         start_event = float("inf")
+        end_event = float("inf")
         for contact in self.contacts:
             if contact.timespan[0] > time and contact.timespan[0] < start_event:
                 start_event = contact.timespan[0]
-        end_event = float("inf")
-        for contact in self.contacts:
             if contact.timespan[1] > time and contact.timespan[1] < end_event:
                 end_event = contact.timespan[1]
+
         next_time = min(start_event, end_event)
+
         return int(next_time) if next_time != float("inf") else None
 
     def fixed_links(self) -> List[Tuple[int, int]]:
