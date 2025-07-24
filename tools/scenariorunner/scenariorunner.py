@@ -103,7 +103,7 @@ def run_scenario(
     if "graph" in router_class.__init__.__code__.co_varnames:
         # if the router class has a graph parameter, pass the graph to the constructor
         logger.info(f"Using {args.router} with graph parameter.")
-        router = router_class(graph=g)
+        router = router_class(graph=plan.full_graph)
     else:
         router = router_class()
     # router = pons.routing.EpidemicRouter()
