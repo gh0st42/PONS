@@ -30,6 +30,10 @@ include::chapters/10min.adoc[]
 
 include::chapters/architecture.adoc[]
 
+== Topology
+
+include::chapters/topology.adoc[]
+
 == Network
 
 include::chapters/network.adoc[]
@@ -48,6 +52,8 @@ include::chapters/applications.adoc[]
 
 == Logging
 
+include::chapters/logging.adoc[]
+
 == Analyzing Results
 
 == Tools
@@ -57,3 +63,5 @@ include::chapters/applications.adoc[]
 === ponsanim
 
 === scenariorunner
+
+=== plot-contacts
