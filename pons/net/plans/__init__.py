@@ -91,6 +91,7 @@ class ContactPlan(CommonContactPlan):
         self.symmetric = symmetric
         self.last_at = -1
         self.last_cache = []
+        self.last_next = (-1, 0)
         self.contacts = sorted(self.contacts, key=lambda c: c.timespan[0])
         self.max_time = max((c.timespan[1] for c in self.contacts), default=0.0)
 
@@ -178,18 +179,28 @@ class ContactPlan(CommonContactPlan):
         self.last_cache = current_contacts
         return current_contacts
 
-    def next_event(self, time: int) -> Optional[int]:
+    def next_event(self, time: float) -> Optional[float]:
+
+        min_idx = 0
+        if time >= self.last_next[0]:
+            min_idx = self.last_next[1]
+
         start_event = float("inf")
         end_event = float("inf")
-        for contact in self.contacts:
+        for i in range(min_idx, len(self.contacts)):
+            contact = self.contacts[i]
             if contact.timespan[0] > time and contact.timespan[0] < start_event:
                 start_event = contact.timespan[0]
+                min_idx = min(min_idx, i)
             if contact.timespan[1] > time and contact.timespan[1] < end_event:
                 end_event = contact.timespan[1]
+                min_idx = min(min_idx, i)
 
         next_time = min(start_event, end_event)
 
-        return int(next_time) if next_time != float("inf") else None
+        self.last_next = (next_time, min_idx)
+
+        return next_time if next_time != float("inf") else None
 
     def fixed_links(self) -> List[Tuple[int, int]]:
         """Returns a list of fixed links in the contact plan."""

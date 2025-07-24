@@ -42,13 +42,17 @@ class NetworkPlan(CommonContactPlan):
 
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, NetworkPlan):
+            logger.debug("Comparing NetworkPlan with non-NetworkPlan object")
             return False
 
-        if self.fixed_links() != value.fixed_links():
+        if set(self.fixed_links()) != set(value.fixed_links()):
+            logger.debug("Fixed links are not equal")
             return False
         if self.all_contacts() != value.all_contacts():
+            logger.debug("All contacts are not equal")
             return False
         if self.raw_contacts() != value.raw_contacts():
+            logger.debug("Raw contacts are not equal")
             return False
 
         return True
