@@ -67,10 +67,8 @@ END_TIMESPAN_IDENTIFIERS = [
     "contact_end",
     "contact_end(s)",
 ]
-BANDWIDTH_IDENTIFIERS = [
-    "bandwidth",
-    "bw",
-]
+BANDWIDTH_IDENTIFIERS = ["bandwidth", "bw", "data_rate(bps)"]
+DELAY_IDENTIFIERS = ["delay", "latency", "delay(s)", "latency(s)"]
 
 
 def read_csv(
@@ -121,6 +119,13 @@ def read_csv(
             "No valid bandwidth column found in the data. Defaulting to None for all contacts."
         )
         contains_column_or_insert_with_default_value(df, "bandwidth", None)
+
+    DELAY_COLUMN_NAME = detect_column_name(df, DELAY_IDENTIFIERS, rename_to="delay")
+    if DELAY_COLUMN_NAME is None:
+        logger.warning(
+            "No valid delay column found in the data. Defaulting to None for all contacts."
+        )
+        contains_column_or_insert_with_default_value(df, "delay", 0.0)
 
     contains_column_or_insert_with_default_value(
         df, "loss", 0.0
