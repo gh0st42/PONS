@@ -18,7 +18,7 @@ class NetworkPlan(CommonContactPlan):
     def __init__(
         self, G: nx.Graph, contacts: Optional[CommonContactPlan] = None
     ) -> None:
-        self.G = G
+        self.G = deepcopy(G)
         self.full_graph = deepcopy(G)
         self.set_contacts(contacts)
         self.mapping = {}
@@ -72,7 +72,7 @@ class NetworkPlan(CommonContactPlan):
     def all_contacts(self) -> List[Tuple[int, int]]:
         if self.contactplan is not None:
             from_cp = self.contactplan.all_contacts()
-            fixed = self.contactplan.fixed_links()
+            fixed = list(self.fixed_links())
             merged_unique = set(from_cp + fixed)
             return list(merged_unique)
         else:
@@ -81,13 +81,33 @@ class NetworkPlan(CommonContactPlan):
     # set the contact plan and remove all edges that are in the contact plan from the static graph
     def set_contacts(self, contacts: CommonContactPlan) -> None:
         self.contactplan = contacts
-        fixed = self.contactplan.fixed_links() if contacts else []
         if contacts is not None:
-            for c in self.contactplan.all_contacts():
+            # merge fixed links with contacts
+            for fixed in contacts.fixed_links():
+                if not fixed in self.G.edges():
+                    self.G.add_edge(*fixed)
+                    self.full_graph.add_edge(*fixed)
+            # fixed = self.fixed_links()
+
+            # remove edges that are in the contact plan from the static graph
+            for c in self.contactplan.raw_contacts():
+                if c.fixed:
+                    print("Skipping fixed contact %s" % str(c))
+                    continue
+                c = c.nodes
+                # print("Removing contact %s from static graph" % str(c))
+                # print(
+                #     self.G.edges(data=True),
+                #     c in self.G.edges(),
+                #     tuple(c) in self.G.edges(),
+                # )
+
                 self.full_graph.add_edge(c[0], c[1])
                 try:
-                    if c not in fixed:
-                        self.G.remove_edge(c[0], c[1])
+                    # if c not in fixed:
+                    self.G.remove_edge(c[0], c[1])
+                    # print("Removed: ", self.G.edges)
+
                 except nx.NetworkXError:
                     logger.debug("Edge %s was not in graph" % str(c))
 
@@ -170,7 +190,7 @@ class NetworkPlan(CommonContactPlan):
         return list(self.G.edges())
 
     def connections_at_time(self, time: float) -> List[Tuple[int, int]]:
-        static_links = list(self.G.edges())
+        static_links = list(self.fixed_links())
         if self.contactplan is None:
             return static_links
         else:

@@ -111,6 +111,23 @@ def draw_network(
     image = Image.new("RGB", img_size, "white")
     draw = ImageDraw.Draw(image)
 
+    # drawing the edges from the graph not needed, as fixed links should also be in the list of connections
+    # for edge in g.edges():
+    #     if edge in connections or tuple(reversed(edge)) in connections:
+    #         continue
+    #     # draw the edges that are static fixed links
+    #     color = "black"
+    #     w = 1
+    #     link = tuple(sorted([edge[0], edge[1]]))
+    #     if link in active_links:
+    #         color = "green"
+    #         w = 4
+    #     x1 = int(g.nodes[edge[0]]["x"])
+    #     y1 = int(g.nodes[edge[0]]["y"])
+    #     x2 = int(g.nodes[edge[1]]["x"])
+    #     y2 = int(g.nodes[edge[1]]["y"])
+    #     draw.line((x1, y1, x2, y2), fill=color, width=w)
+
     # draw the links
     for edge in connections:
         color = "black"
@@ -238,7 +255,7 @@ def main():
             sys.exit(1)
         else:
             logger.info("Output format set to GIF...")
-
+    g = None
     if modeContactGraph:
         logger.info("Using contact graph mode with graph and contacts file")
         # print(args.graph)
@@ -269,7 +286,12 @@ def main():
         if "app_rxtx" in args.extra_information:
             filter_in.append("APP")
 
-        events, max_time = load_event_log(args.event_log, filter_in=filter_in)
+        max_ts = float("inf")
+        if args.time_limit is not None:
+            max_ts = args.time_limit
+        events, max_time = load_event_log(
+            args.event_log, filter_in=filter_in, max_ts=max_ts
+        )
         g = nx.Graph()
         contacts = []
         for ts, e_list in events.items():
@@ -285,16 +307,31 @@ def main():
                     g.add_node(event["id"], x=x, y=y, name=event["name"])
                 elif cat == "LINK":
                     if event["event"] == "UP":
-                        contact = Contact((ts, -1), event["nodes"], 0, 0, 0, 0)
+                        if ts == 0:
+                            # if the link is set at time 0, we create a contact with -1 as end time
+                            contact = Contact(
+                                (ts, -1), event["nodes"], 0, 0, 0, 0, fixed=True
+                            )
+                        else:
+                            # otherwise we create a contact with the start time and end time of the end of the simulation but assume its not fixed
+                            contact = Contact(
+                                (ts, -1), event["nodes"], 0, 0, 0, 0, fixed=False
+                            )
                         contacts.append(contact)
                     if event["event"] == "DOWN":
                         for c in contacts:
                             if c.nodes == event["nodes"] and c.timespan[1] == -1:
                                 timespan = (c.timespan[0], ts)
                                 contacts.remove(c)
-                                c = Contact(timespan, event["nodes"], 0, 0, 0, 0)
+                                c = Contact(
+                                    timespan, event["nodes"], 0, 0, 0, 0, fixed=False
+                                )
                                 contacts.append(c)
                     if event["event"] == "SET":
+                        print(
+                            "Setting link between %s and %s"
+                            % (event["node1"], event["node2"])
+                        )
                         g.add_edge(event["node1"], event["node2"])
 
         for n in g.nodes.keys():
@@ -331,6 +368,7 @@ def main():
     else:
         logger.info("Saving frames to GIF...")
         out = iio.get_writer(args.output, format="GIF", mode="I", duration=args.delay)
+
     for i in progressBar(
         range(0, max_steps + 1, args.step_size),
         prefix="Progress:",
@@ -366,6 +404,7 @@ def main():
                         apps_tx.add(int(event["src"]))
                     if event["event"] == "RX":
                         apps_rx.add(int(event["id"]))
+
         image = draw_network(
             g,
             plan.connections_at_time(i),
