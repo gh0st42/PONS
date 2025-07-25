@@ -236,9 +236,9 @@ class Node(object):
                 )
                 if self.router is not None:
                     if msg.is_dtn_bundle():
-                        self.router._on_msg_received(deepcopy(msg), from_nid)
+                        self.router._on_msg_received(msg, from_nid)
                     else:
-                        self.router._on_pkt_received(deepcopy(msg), from_nid)
+                        self.router._on_pkt_received(msg, from_nid)
             else:
                 logger.debug(
                     "Node %d received msg %s from %d (not neighbor)"
