@@ -6,6 +6,9 @@ from .router import Router
 import networkx as nx
 import fnmatch
 import random
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -44,7 +47,7 @@ class StaticRouter(Router):
         graph: nx.Graph = None,
         scan_interval=2.0,
         capacity=0,
-        shortest_paths_only=False,
+        shortest_paths_only=True,
         pick_random_next_hop=True,
     ):
         super(StaticRouter, self).__init__(scan_interval, capacity)
@@ -59,16 +62,25 @@ class StaticRouter(Router):
         super().start(netsim, my_id)
         # get routes from graph to all other nodes
         if not self.routes or self.routes == []:
+            logger.debug(
+                f"No routes provided, calculating routes from graph on node {my_id}."
+            )
             next_hop_map = {}
             if self.graph is not None:
                 for node in self.graph.nodes:
                     if node != my_id:
                         try:
                             if self.shortest_paths_only:
+                                logger.debug(
+                                    f"Calculating shortest routes to node {node} from {my_id}."
+                                )
                                 paths = nx.all_shortest_paths(
                                     self.graph, source=my_id, target=node
                                 )
                             else:
+                                logger.debug(
+                                    f"Calculating all simple routes to node {node} from {my_id}."
+                                )
                                 paths = nx.all_simple_paths(
                                     self.graph, source=my_id, target=node
                                 )
