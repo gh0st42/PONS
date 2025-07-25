@@ -45,6 +45,7 @@ def plot_contacts(
     plot_fixed_links: bool = False,
     human_readable_timestamp: bool = False,
     title: str | None = None,
+    max_start_time: float | None = None,
 ):
     """
     Plots contact periods from a CSV file.
@@ -164,6 +165,11 @@ def plot_contacts(
     # If fixed links are not to be plotted, remove the ones where start_time equals 0 and end_time equals the maximum end_time
     if not plot_fixed_links:
         df = df[~((df["start_time"] == 0) & (df["end_time"] == df["end_time"].max()))]
+
+    if max_start_time is not None:
+        # filter out contacts that start after max_start_time
+        df = df[df["start_time"] <= max_start_time]
+        logger.info(f"Filtered contacts to those starting before {max_start_time}")
 
     # --- New sorting logic to group src-dst and dst-src pairs ---
     # Create a canonical key for each pair to group reciprocal links
@@ -337,6 +343,12 @@ def main():
     parser.add_argument(
         "-o", "--output", type=str, help="Output file name for the plot (optional)."
     )
+    parser.add_argument(
+        "-m",
+        "--max-start-time",
+        type=float,
+        help="Maximum start time for contacts (optional).",
+    )
     parser.add_argument("filename", type=str, help="Path to the contacts CSV file.")
     args = parser.parse_args()
 
@@ -359,6 +371,7 @@ def main():
         ]
         sep = " "
 
+    max_start_time = args.max_start_time if args.max_start_time is not None else None
     plot_contacts(
         args.filename,
         sep=sep,
@@ -368,6 +381,7 @@ def main():
         plot_fixed_links=args.fixed_links,
         human_readable_timestamp=args.human_readable_timestamp,
         title=args.title,
+        max_start_time=max_start_time,
     )
 
     logger.info("Contact plotting completed.")
