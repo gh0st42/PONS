@@ -109,10 +109,7 @@ def run_scenario(
     # router = pons.routing.EpidemicRouter()
     logger.info(f"Generating {len(g.nodes)} {args.router} nodes...")
     nodes = plan.generate_nodes(router=router)
-    config = {
-        "movement_logger": False,
-        "peers_logger": False,
-    }
+    config = {"movement_logger": False, "peers_logger": False, "event_filter": ["NET"]}
 
     max_runtime = args.sim_time if args.sim_time else contacts[-1].timespan[1]
     logger.info(f"Max runtime set to {max_runtime} seconds.")
