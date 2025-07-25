@@ -92,7 +92,14 @@ class ContactPlan(CommonContactPlan):
         self.last_at = -1
         self.last_cache = []
         self.last_next = (-1, 0)
-        self.contacts = sorted(self.contacts, key=lambda c: c.timespan[0])
+        self.last_idx = 0
+        self.sort_contacts()
+
+    def sort_contacts(self) -> None:
+        """
+        Sorts the contacts by their start time.
+        """
+        self.contacts.sort(key=lambda c: c.timespan[0])
         self.max_time = max((c.timespan[1] for c in self.contacts), default=0.0)
 
     def get_max_time(self) -> int:
@@ -137,9 +144,9 @@ class ContactPlan(CommonContactPlan):
         for contact in current_contacts:
             if contact.nodes[0] == node1 and contact.nodes[1] == node2:
                 return True
-            if (
+            if self.symmetric and (
                 contact.nodes[0] == node2 and contact.nodes[1] == node1
-            ) and self.symmetric:  # Assuming symmetric means the contact is bidirectional
+            ):  # Assuming symmetric means the contact is bidirectional
 
                 return True
         return False
@@ -173,9 +180,27 @@ class ContactPlan(CommonContactPlan):
         self.last_at = time
         if self.loop and time > self.max_time:
             time = time % self.get_max_time()
-        current_contacts = [
-            c for c in self.contacts if c.timespan[0] <= time <= c.timespan[1]
-        ]
+        start_idx = 0
+        if self.last_at < time:
+            start_idx = self.last_idx
+
+        first_found = 0
+        current_contacts = []
+        for c in range(start_idx, len(self.contacts)):
+            if self.contacts[c].timespan[0] <= time <= self.contacts[c].timespan[1]:
+                if first_found == 0:
+                    first_found = c
+                current_contacts.append(self.contacts[c])
+            if (
+                self.contacts[c].timespan[0] > time
+            ):  # since contacts are sorted, we can break early
+                break
+
+        self.last_idx = first_found
+
+        # current_contacts = [
+        #     c for c in self.contacts if c.timespan[0] <= time <= c.timespan[1]
+        # ]
         self.last_cache = current_contacts
         return current_contacts
 
