@@ -1,5 +1,6 @@
 from __future__ import annotations
 from pons.event_log import event_log
+from pons.net.plans import CommonContactPlan
 
 import random
 
@@ -72,4 +73,4 @@ class NetworkSettings(object):
             dist = dx * dx + dy * dy + dz * dz
             return dist <= self.range_sq
         else:
-            return self.contactplan.has_contact(t, src.id, dst.id)
+            return self.contactplan.has_contact(t, src.node_id, dst.node_id)

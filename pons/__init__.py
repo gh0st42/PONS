@@ -3,10 +3,11 @@ from .node import generate_nodes, Node, Message, generate_nodes_from_graph
 from .routing import Router, EpidemicRouter
 from .net import (
     NetworkSettings,
-    ContactPlan,
+    IonContactPlan,
     BROADCAST_ADDR,
-    CoreContact,
-    CoreContactPlan,
+    Contact,
+    ContactPlan,
+    CommonContactPlan,
 )
 from .routing import Router, EpidemicRouter
 from .mobility import (

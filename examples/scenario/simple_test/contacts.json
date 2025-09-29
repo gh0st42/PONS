@@ -1,0 +1,84 @@
+[
+  {
+    "src": "n1",
+    "dst": "n2",
+    "start": 0,
+    "end": -1,
+    "bw": "100mbit",
+    "delay": 0.1,
+    "label": "eth",
+    "fixed": true
+  },
+  {
+    "src": "n2",
+    "dst": "n1",
+    "bw": "100mbit",
+    "delay": 0.1,
+    "label": "eth",
+    "fixed": true
+  },
+  {
+    "src": "n2",
+    "dst": "n3",
+    "start": 0,
+    "end": 30,
+    "bw": "2mbit",
+    "delay": 0.01,
+    "label": "rf",
+    "symmetric": true
+  },
+  {
+    "src": "n2",
+    "dst": "n3",
+    "start": 60,
+    "end": 90,
+    "bw": "2mbit",
+    "delay": 0.01,
+    "label": "rf"
+  },
+  {
+    "src": "n3",
+    "dst": "n2",
+    "start": 60,
+    "end": 90,
+    "bw": "2mbit",
+    "delay": 0.01,
+    "label": "rf"
+  },
+  {
+    "src": "n2",
+    "dst": "n3",
+    "start": 120,
+    "end": 150,
+    "bw": "2mbit",
+    "delay": 0.01,
+    "label": "rf"
+  },
+  {
+    "src": "n3",
+    "dst": "n2",
+    "start": 120,
+    "end": 150,
+    "bw": "2mbit",
+    "delay": 0.01,
+    "label": "rf"
+  },
+  {
+    "src": "n2",
+    "dst": "n3",
+    "start": 180,
+    "end": 210,
+    "bw": "2mbit",
+    "delay": 0.01,
+    "label": "rf"
+  },
+  {
+    "src": "n3",
+    "dst": "n2",
+    "start": 180,
+    "end": 210,
+    "bw": "2mbit",
+    "delay": 0.01,
+    "label": "rf"
+  }
+]

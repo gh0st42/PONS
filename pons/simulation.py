@@ -2,14 +2,25 @@ import time
 from typing import List, Dict, Optional, Tuple
 from copy import deepcopy
 import os
+import signal
+import logging
 
 from pons.event_log import event_log, open_log, close_log, is_logging
 import pons.event_log
 from simpy import Environment
+from simpy.rt import RealtimeEnvironment
 
 import pons
 from pons.node import Node
 from pons.event_log import event_log
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO").upper(),
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+
+aborted = False
 
 
 def printProgressBar(
@@ -46,24 +57,37 @@ def printProgressBar(
 class NetSim(object):
     """A network simulator."""
 
+    env: Environment | RealtimeEnvironment
+
     def __init__(
         self,
         duration: int,
         nodes: List[Node],
-        world_size: Tuple[int, int] = (0, 0),
+        world_size: Tuple[float, float] = (0, 0),
         movements: Optional[list] = None,
         msggens: Optional[list] = None,
         config: Optional[dict] = None,
         name_to_id_map: Optional[Dict[str, int]] = None,
+        realtime: bool = False,
+        factor: float = 1,
+        strict: bool = True,
     ):
-        self.env = Environment()
+        if realtime:
+            self.env = RealtimeEnvironment(factor=factor, strict=strict)
+        else:
+            self.env = Environment()
+
+        self.realtime = realtime
+
         self.duration = duration
         if "SIM_DURATION" in os.environ:
-            print("ENV SIM_DURATION found! Using duration: ", os.getenv("SIM_DURATION"))
+            logger.info(
+                "ENV SIM_DURATION found! Using duration: %s" % os.getenv("SIM_DURATION")
+            )
             self.duration = int(os.getenv("SIM_DURATION"))
 
         # convert list from Node to dict with id as key
-        self.nodes = {n.id: n for n in nodes}
+        self.nodes = {n.node_id: n for n in nodes}
         # self.nodes = nodes
         self.world = world_size
         if movements is None:
@@ -102,7 +126,7 @@ class NetSim(object):
         self.name_to_id_map = name_to_id_map
         if len(self.name_to_id_map) == 0:
             for n in self.nodes.values():
-                self.name_to_id_map[n.name] = n.id
+                self.name_to_id_map[n.name] = n.node_id
 
         if self.world == (0, 0):
             self.world = (
@@ -117,27 +141,27 @@ class NetSim(object):
 
     def start_movement_logger(self, interval=1.0):
         """Start a movement logger."""
-        print("start movement logger1")
+        logger.debug("Starting movement logger...")
         while True:
             yield self.env.timeout(interval)
-            print("time: %d" % self.env.now)
+            logger.debug("Time: %d", self.env.now)
             for node in self.nodes:
-                print(node)
+                logger.debug("Node: %s", node)
 
     def start_peers_logger(self, interval=1.0):
         """Start a peers logger."""
-        print("start peers logger1")
+        logger.debug("Starting peers logger...")
         while True:
             yield self.env.timeout(interval)
-            print("time: %d" % self.env.now)
+            logger.debug("Time: %d", self.env.now)
             for node in self.nodes.values():
-                print(node.neighbors)
+                logger.debug("Node: %s", node.neighbors)
 
     def setup(self):
-        print("initialize simulation: ", self.config)
+        logger.info("Initializing simulation: %s", self.config)
 
         if self.movements is not None and len(self.movements) > 0:
-            print("-> start movement manager")
+            logger.debug("Starting movement manager...")
             self.mover.start()
 
         if self.config is not None:
@@ -148,9 +172,9 @@ class NetSim(object):
                 self.env.process(self.start_peers_logger())
 
             if "LOG_FILE" in os.environ:
-                print(
-                    "ENV LOG_FILE found! Activating event logging using log file: ",
-                    os.getenv("LOG_FILE"),
+                logger.info(
+                    "ENV LOG_FILE found! Activating event logging using log file: %s"
+                    % os.getenv("LOG_FILE"),
                 )
                 self.config["event_logging"] = True
 
@@ -181,7 +205,7 @@ class NetSim(object):
                 else:
                     raise Exception("unknown message generator type")
 
-        print(self.nodes)
+        logger.debug("Nodes: %s", self.nodes)
         for n in self.nodes.values():
             n.calc_neighbors(0, self.nodes.values())
 
@@ -202,10 +226,12 @@ class NetSim(object):
         """Start a contact logger."""
         if not is_logging():
             return
-        print("start contact logger: ", type(contactplan))
+
+        logger.debug("start contact logger: %s", type(contactplan))
         if contactplan is None:
-            print("No contact plan")
+            logger.warning("No contact plan")
             return
+
         initial_events = contactplan.at(0)
         if len(initial_events) != 0:
             for e in initial_events:
@@ -214,7 +240,7 @@ class NetSim(object):
 
         next_event = contactplan.next_event(0)
         if next_event is None:
-            print("No events in contact plan")
+            logger.warning("No events in contact plan")
             return
 
         total = 0
@@ -222,7 +248,6 @@ class NetSim(object):
             yield self.env.timeout(next_event)
             total += next_event
             events = contactplan.at(total)
-            # print(len(events), "events at", total, ":", events)
             for e in events:
                 if e.timespan[0] == total:
                     event_log(total, "LINK", {"event": "UP", "nodes": e.nodes})
@@ -235,17 +260,24 @@ class NetSim(object):
             next_event -= total
 
     def run(self):
-        print("== running simulation for %d seconds ==" % self.duration)
+        logger.info("== running simulation for %d seconds ==" % self.duration)
+
+        # install signal handler to stop simulation if ctrl-c is pressed
+        def signal_handler(sig, frame):
+            global aborted
+            logger.info("Stopping simulation...")
+            aborted = True
+
+        signal.signal(signal.SIGINT, signal_handler)
 
         all_contactplans = set()
-
         for n in self.nodes.values():
             event_log(
                 0,
                 "CONFIG",
                 {
                     "event": "START",
-                    "id": n.id,
+                    "id": n.node_id,
                     "name": n.name,
                     "x": n.x,
                     "y": n.y,
@@ -255,16 +287,13 @@ class NetSim(object):
             )
             for net in n.net.values():
                 net.start(self)
-                if net.contactplan is not None and net.contactplan.contacts is not None:
-                    if isinstance(net.contactplan.contacts, list):
-                        all_contactplans.add(tuple(net.contactplan.contacts))
-                    else:
-                        all_contactplans.add(net.contactplan.contacts)
+                if net.contactplan is not None:
+                    all_contactplans.add(net.contactplan)
 
         for cp in all_contactplans:
-            print(cp)
             self.env.process(self.contact_logger(cp))
-        print("global number of unique contact plans: ", len(all_contactplans))
+
+        logger.debug("Global number of unique contact plans: %d", len(all_contactplans))
 
         start_real = time.time()
         last_real = start_real
@@ -286,7 +315,11 @@ class NetSim(object):
                 #         len(n.neighbors[list(n.neighbors.keys())[0]]),
                 #     )
                 # )
-            print("global number of unique contacts: ", len(contacts), contacts)
+            logger.debug(
+                "global number of unique contacts at start: %d %s",
+                len(contacts),
+                contacts,
+            )
             for c in contacts:
                 event_log(
                     0,
@@ -304,11 +337,14 @@ class NetSim(object):
                 n.calc_neighbors(now_sim, self.nodes.values())
 
         print("")
-        while self.env.now < self.duration + 1.0:
-            # self.env.run(until=self.duration)
+        while self.env.now < self.duration + 1.0 and not aborted:
             now_sim = self.env.now
-            next_stop = min(self.duration + 1.0, now_sim + 5.0)
+            step_size = 5.0
+            if self.realtime:
+                step_size = 0.01
+            next_stop = min(self.duration + 1.0, now_sim + step_size)
             self.env.run(until=next_stop)
+
             now_real = time.time()
             diff = now_real - last_real
             if diff > 60:
@@ -342,12 +378,16 @@ class NetSim(object):
         else:
             rate = 0.0
 
-        print("\nsimulation finished")
-        print(
+        print("\n\n")
+        if aborted:
+            logger.warning("simulation aborted")
+        else:
+            logger.info("simulation finished")
+        logger.info(
             "simulated %d seconds in %.02f seconds (%.2f x real time)"
             % (now_sim, diff, rate)
         )
-        print("real: %f, sim: %d rate: %.02f steps/s" % (diff, now_sim, rate))
+        logger.info("real: %f, sim: %d rate: %.02f steps/s" % (diff, now_sim, rate))
 
         if self.routing_stats["delivered"] > 0:
             self.routing_stats["latency_avg"] = (
@@ -374,7 +414,7 @@ class NetSim(object):
             now_sim,
             "STATS",
             {
-                "event": "END",
+                "event": "ABORT" if aborted else "END",
                 "duration": now_sim,
                 "real_duration": diff,
                 "rate": rate,

@@ -1,6 +1,9 @@
 from copy import copy
 import pons
+import logging
 from pons.event_log import event_log
+
+logger = logging.getLogger(__name__)
 
 HELLO_MSG_SIZE = 42
 
@@ -37,6 +40,7 @@ class Router(object):
 
     def send(self, to_nid: int, msg: pons.Message):
         self.stats["tx"] += 1
+        self.remember(to_nid, msg.unique_id())
         self.netsim.nodes[self.my_id].send(self.netsim, to_nid, msg)
         event_log(
             self.env.now,
@@ -144,6 +148,7 @@ class Router(object):
                         pons.BROADCAST_ADDR,
                         HELLO_MSG_SIZE,
                         self.netsim.env.now,
+                        metadata={"is_bundle": False},
                     ),
                 )
             else:
@@ -198,8 +203,7 @@ class Router(object):
         pass
 
     def on_scan_received(self, msg: pons.Message, remote_id: int):
-        # self.log("[%s] scan received: %s from %d" %
-        #         (self.my_id, msg, remote_id))
+        # self.log("[%s] scan received: %s from %d" % (self.my_id, msg, remote_id))
         if msg.id == "HELLO" and remote_id not in self.peers:
             self.peers.append(remote_id)
             # self.log("NEW PEER: %d (%s)" % (remote_id, self.peers))
@@ -209,6 +213,15 @@ class Router(object):
 
     def on_peer_discovered(self, peer_id):
         self.log("peer discovered: %d" % peer_id)
+
+    def _on_pkt_received(self, pkt: pons.Message, remote_id: int):
+        if pkt.id == "HELLO":
+            self.on_scan_received(pkt, remote_id)
+        else:
+            self.on_pkt_received(pkt, remote_id)
+
+    def on_pkt_received(self, pkt: pons.Message, remote_id: int):
+        pass
 
     def _on_msg_received(self, msg: pons.Message, remote_id: int):
         event_log(
@@ -285,7 +298,13 @@ class Router(object):
             msg_id = msg_id.unique_id()
 
         if msg_id in self.history:
-            self.history[msg_id].remove(peer_id)
+            if peer_id not in self.history[msg_id]:
+                logger.warning(
+                    "trying to forget transmission with peer %d for msg %s on node %d, but not known"
+                    % (peer_id, msg_id, self.my_id)
+                )
+            else:
+                self.history[msg_id].remove(peer_id)
 
     def is_msg_known(self, msg: pons.Message):
         return msg.unique_id() in self.history

@@ -1,0 +1,17 @@
+[
+  {
+    "id": "n1",
+    "name": "node1",
+    "node_id": "ipn:1.0"
+  },
+  {
+    "id": "n2",
+    "name": "node2",
+    "node_id": "ipn:2.0"
+  },
+  {
+    "id": "n3",
+    "name": "node3",
+    "node_id": "ipn:3.0"
+  }
+]

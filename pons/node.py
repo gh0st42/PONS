@@ -4,27 +4,33 @@ from copy import deepcopy
 from typing import List
 import pons
 from pons.message import Message
+from pons.event_log import event_log
 
 from pons.net.common import BROADCAST_ADDR, NetworkSettings
 from simpy.util import start_delayed
 import networkx as nx
 from dataclasses import dataclass
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Node(object):
     """A The ONE movement scenario."""
 
+    netsim: None | pons.NetSim
+
     def __init__(
         self,
         node_id: int,
         node_name: str = "",
-        net: List[NetworkSettings] = None,
-        router: pons.routing.Router = None,
+        net: list[NetworkSettings] | None = None,
+        router: pons.routing.Router | None = None,
     ):
-        self.id = node_id
+        self.node_id = node_id
         self.name = node_name
         if self.name == "":
-            self.name = "n%d" % self.id
+            self.name = "n%d" % self.node_id
         self.x = 0.0
         self.y = 0.0
         self.z = 0.0
@@ -35,12 +41,12 @@ class Node(object):
         self.router = router
         self.neighbors = {}
         self.netsim = None
-        for net in self.net.values():
-            self.neighbors[net.name] = []
+        for n in self.net.values():
+            self.neighbors[n.name] = []
 
     def __str__(self):
         return "Node(%d (%s), %.02f, %.02f, %.02f)" % (
-            self.id,
+            self.node_id,
             self.name,
             self.x,
             self.y,
@@ -52,57 +58,91 @@ class Node(object):
             now = self.netsim.env.now
         else:
             now = 0
-        print("[ %f ] [ %d | %s ] NET: %s" % (now, self.id, self.name, msg))
+        logger.info("[ %f ] [ %d | %s ] NET: %s" % (now, self.node_id, self.name, msg))
 
     def start(self, netsim: pons.NetSim):
         self.netsim = netsim
         if self.router is not None:
-            self.router.start(netsim, self.id)
+            self.router.start(netsim, self.node_id)
 
     def calc_neighbors(self, simtime, nodes: List[Node]):
+        old_neigbhbor_ids = set(
+            [nid for nids in self.neighbors.values() for nid in nids]
+        )
         for net in self.net.values():
             self.neighbors[net.name] = []
             for node in nodes:
-                if node.id != self.id:
+                if node.node_id != self.node_id:
                     # print("node %d: %s %s %s" % (node.id, node.net, net.name,  net.has_contact(simtime, self, node)))
                     if net.name in node.net and net.has_contact(simtime, self, node):
-                        self.neighbors[net.name].append(node.id)
+                        self.neighbors[net.name].append(node.node_id)
+                        if (
+                            net.contactplan is None
+                            and node.node_id not in old_neigbhbor_ids
+                        ):
+                            event_log(
+                                simtime,
+                                "LINK",
+                                {
+                                    "event": "UP",
+                                    "nodes": [self.node_id, node.node_id],
+                                    "net": net.name,
+                                },
+                            )
+                    else:
+                        if (
+                            net.contactplan is None
+                            and node.node_id in old_neigbhbor_ids
+                        ):
+                            event_log(
+                                simtime,
+                                "LINK",
+                                {
+                                    "event": "DOWN",
+                                    "nodes": [self.node_id, node.node_id],
+                                    "net": net.name,
+                                },
+                            )
         # self.log("neighbors: %s @ %f" % (self.neighbors, simtime))
 
     def add_all_neighbors(self, simtime, nodes: List[Node]):
         for net in self.net.values():
             self.neighbors[net.name] = []
             for node in nodes:
-                if node.id != self.id:
+                if node.node_id != self.node_id:
                     if net.name in node.net:
-                        self.neighbors[net.name].append(node.id)
+                        self.neighbors[net.name].append(node.node_id)
 
     def send(self, netsim: pons.NetSim, to_nid: int, msg: Message):
         for net in self.net.values():
             # tx_time = net.tx_time(msg.size)
             if to_nid == BROADCAST_ADDR:
                 for nid in self.neighbors[net.name]:
-                    if not net.is_lost(netsim.env.now, self.id, nid):
+                    if not net.is_lost(netsim.env.now, self.node_id, nid):
                         try:
                             tx_time = net.tx_time_for_contact(
-                                netsim.env.now, self.id, nid, msg.size
+                                netsim.env.now, self.node_id, nid, msg.size
                             )
                         except:
-                            print("Tx Time Error (%s %s): %s" % (self.id, to_nid, e))
+                            logger.warning(
+                                "Tx Time Error (%s %s): %s" % (self.node_id, to_nid, e)
+                            )
 
                             continue
                         # print("tx_time: %f" % tx_time)
                         receiver = netsim.nodes[nid]
                         netsim.net_stats["tx"] += 1
                         start_delayed(
-                            netsim.env, receiver.on_recv(netsim, self.id, msg), tx_time
+                            netsim.env,
+                            receiver.on_recv(netsim, self.node_id, msg),
+                            tx_time,
                         )
                         pons.simulation.event_log(
                             netsim.env.now,
                             "NET",
                             {
                                 "event": "TX",
-                                "id": self.id,
+                                "id": self.node_id,
                                 "msg": msg.unique_id(),
                                 "to": nid,
                             },
@@ -116,7 +156,7 @@ class Node(object):
                             "NET",
                             {
                                 "event": "LOST",
-                                "id": self.id,
+                                "id": self.node_id,
                                 "msg": msg.unique_id(),
                                 "to": nid,
                             },
@@ -124,14 +164,16 @@ class Node(object):
                         # pass
             else:
                 if to_nid in self.neighbors[net.name]:
-                    if not net.is_lost(netsim.env.now, self.id, to_nid):
+                    if not net.is_lost(netsim.env.now, self.node_id, to_nid):
                         try:
                             tx_time = net.tx_time_for_contact(
-                                netsim.env.now, self.id, to_nid, msg.size
+                                netsim.env.now, self.node_id, to_nid, msg.size
                             )
-                            # print("tx_time: %f" % tx_time)
+                            # logger.debug("tx_time: %f" % tx_time)
                         except Exception as e:
-                            print("Tx Time Error (%s %s): %s" % (self.id, to_nid, e))
+                            logger.warning(
+                                "Tx Time Error (%s %s): %s" % (self.node_id, to_nid, e)
+                            )
                             # tx_time = 0.050001
                             continue
                         # self.log("sending msg %s to %d" % (msg, to_nid))
@@ -142,13 +184,15 @@ class Node(object):
                             "NET",
                             {
                                 "event": "TX",
-                                "id": self.id,
+                                "id": self.node_id,
                                 "msg": msg.unique_id(),
                                 "to": to_nid,
                             },
                         )
                         start_delayed(
-                            netsim.env, receiver.on_recv(netsim, self.id, msg), tx_time
+                            netsim.env,
+                            receiver.on_recv(netsim, self.node_id, msg),
+                            tx_time,
                         )
                     else:
                         # self.log("packet loss: %s to %d" %
@@ -159,7 +203,7 @@ class Node(object):
                             "NET",
                             {
                                 "event": "LOST",
-                                "id": self.id,
+                                "id": self.node_id,
                                 "msg": msg.unique_id(),
                                 "to": to_nid,
                             },
@@ -177,33 +221,39 @@ class Node(object):
             if from_nid in self.neighbors[net.name]:
                 # self.log("Node %d received msg %s from %d" % (self.id, msg.id, from_nid))
                 netsim.net_stats["rx"] += 1
-                netsim.nodes[from_nid].router._on_tx_succeeded(msg.unique_id(), self.id)
+                netsim.nodes[from_nid].router._on_tx_succeeded(
+                    msg.unique_id(), self.node_id
+                )
                 pons.simulation.event_log(
                     netsim.env.now,
                     "NET",
                     {
                         "event": "RX",
-                        "id": self.id,
+                        "id": self.node_id,
                         "msg": msg.unique_id(),
                         "from": from_nid,
                     },
                 )
                 if self.router is not None:
-                    if msg.id == "HELLO":
-                        self.router.on_scan_received(deepcopy(msg), from_nid)
+                    if msg.is_dtn_bundle():
+                        self.router._on_msg_received(msg, from_nid)
                     else:
-                        self.router._on_msg_received(deepcopy(msg), from_nid)
+                        self.router._on_pkt_received(msg, from_nid)
             else:
-                # print("Node %d received msg %s from %d (not neighbor)" %
-                #      (to_nid, msg, from_nid))
+                logger.debug(
+                    "Node %d received msg %s from %d (not neighbor)"
+                    % (self.node_id, msg, from_nid)
+                )
                 netsim.net_stats["drop"] += 1
-                netsim.nodes[from_nid].router._on_tx_failed(msg.unique_id(), self.id)
+                netsim.nodes[from_nid].router._on_tx_failed(
+                    msg.unique_id(), self.node_id
+                )
                 pons.simulation.event_log(
                     netsim.env.now,
                     "NET",
                     {
                         "event": "RX_FAIL",
-                        "id": self.id,
+                        "id": self.node_id,
                         "msg": msg.unique_id(),
                         "to": from_nid,
                     },
@@ -213,8 +263,8 @@ class Node(object):
 def generate_nodes(
     num_nodes: int,
     offset: int = 0,
-    net: List[NetworkSettings] = None,
-    router: pons.routing.Router = None,
+    net: List[NetworkSettings] | None = None,
+    router: pons.routing.Router | None = None,
 ):
     nodes = []
     if net == None:
@@ -226,9 +276,9 @@ def generate_nodes(
 
 def generate_nodes_from_graph(
     graph: nx.Graph,
-    net: List[NetworkSettings] = None,
-    router: Router = None,
-    contactplan: pons.net.ContactPlan = None,
+    net: List[NetworkSettings] | None = None,
+    router: pons.Router | None = None,
+    contactplan: pons.net.plans.CommonContactPlan | None = None,
 ):
     nodes = []
     if net == None:

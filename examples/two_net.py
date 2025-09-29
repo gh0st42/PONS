@@ -50,7 +50,7 @@ nodes3 = pons.generate_nodes(
 
 nodes = nodes1 + nodes2 + nodes3
 
-config = {"movement_logger": False, "peers_logger": False}
+config = {"movement_logger": False, "peers_logger": False, "real_scan": False}
 
 msggenconfig = {
     "type": "single",

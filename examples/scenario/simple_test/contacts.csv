@@ -1,0 +1,15 @@
+src,dst,start,end,bw,delay,label
+n1,n2,0,-1,100mbit,0.100,eth
+n2,n1,0,-1,100mbit,0.100,eth
+
+n2,n3,0,30,2mbit,0.010,rf
+n3,n2,0,30,2mbit,0.010,rf
+
+n2,n3,60,90,2mbit,0.010,rf
+n3,n2,60,90,2mbit,0.010,rf
+
+n2,n3,120,150,2mbit,0.010,rf
+n3,n2,120,150,2mbit,0.010,rf
+
+n2,n3,180,210,2mbit,0.010,rf
+n3,n2,180,210,2mbit,0.010,rf

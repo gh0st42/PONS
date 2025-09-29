@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='utf-8'?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+  <key id="d8" for="edge" attr.name="dynamic_link" attr.type="boolean" />
+  <key id="d7" for="edge" attr.name="loss" attr.type="double" />
+  <key id="d6" for="edge" attr.name="jitter" attr.type="double" />
+  <key id="d5" for="edge" attr.name="delay" attr.type="double" />
+  <key id="d4" for="edge" attr.name="bw" attr.type="long" />
+  <key id="d3" for="node" attr.name="name" attr.type="string" />
+  <key id="d2" for="node" attr.name="type" attr.type="string" />
+  <key id="d1" for="node" attr.name="y" attr.type="double" />
+  <key id="d0" for="node" attr.name="x" attr.type="double" />
+  <graph edgedefault="undirected">
+    <node id="1">
+      <data key="d0">93.0</data>
+      <data key="d1">135.0</data>
+      <data key="d2">Host</data>
+      <data key="d3">n1</data>
+    </node>
+    <node id="2">
+      <data key="d0">209.0</data>
+      <data key="d1">86.0</data>
+      <data key="d2">Host</data>
+      <data key="d3">n2</data>
+    </node>
+    <node id="3">
+      <data key="d0">309.0</data>
+      <data key="d1">140.0</data>
+      <data key="d2">Host</data>
+      <data key="d3">n3</data>
+    </node>
+    <edge source="1" target="2">
+      <data key="d4">0</data>
+      <data key="d5">0.0</data>
+      <data key="d6">0.0</data>
+      <data key="d7">0.0</data>
+    </edge>
+    <edge source="2" target="3">
+      <data key="d4">0</data>
+      <data key="d5">0.0</data>
+      <data key="d6">0.0</data>
+      <data key="d7">0.0</data>
+      <data key="d8">True</data>
+    </edge>
+  </graph>
+</graphml>

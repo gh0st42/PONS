@@ -6,6 +6,7 @@ from tkinter import messagebox, filedialog
 import networkx as nx
 import sys
 import os
+from PIL import Image, ImageTk
 
 if __name__ == "__main__":
     from gui.dialogs import *
@@ -20,6 +21,11 @@ current_filename = ""
 graph = nx.Graph()
 
 active_tool = "Node"
+
+background_image = None
+
+if os.environ.get("BG_IMG"):
+    background_image = os.environ.get("BG_IMG")
 
 canvas_w = 2000
 canvas_h = 2000
@@ -61,8 +67,13 @@ def add_label_entry(frame, text, row):
 def update_ui():
     global canvas
     global frame_links
+    global img
+    global background_image
 
     canvas.delete("all")
+    if background_image is not None:
+        canvas.create_image(0, 0, image=img, anchor=NW)
+
     draw_links()
     draw_nodes()
     draw_prop_links(frame_links)
@@ -94,14 +105,28 @@ def draw_links():
     global canvas
 
     nodes = graph.nodes
-    for src, dst in graph.edges:
-        canvas.create_line(
-            nodes[src]["x"],
-            nodes[src]["y"],
-            nodes[dst]["x"],
-            nodes[dst]["y"],
-            fill="black",
-        )
+    for src, dst, data in graph.edges(data=True):
+        dash = None
+        if "dynamic_link" in data:
+            if data["dynamic_link"]:
+                dash = (4, 4)
+        if not dash:
+            canvas.create_line(
+                nodes[src]["x"],
+                nodes[src]["y"],
+                nodes[dst]["x"],
+                nodes[dst]["y"],
+                fill="black",
+            )
+        else:
+            canvas.create_line(
+                nodes[src]["x"],
+                nodes[src]["y"],
+                nodes[dst]["x"],
+                nodes[dst]["y"],
+                fill="black",
+                dash=dash,
+            )
 
 
 def draw_nodes():
@@ -489,7 +514,7 @@ canvas = Canvas(
     width=canvas_width,
     height=canvas_height,
     bg="white",
-    scrollregion=(0, 0, canvas_width, canvas_height),
+    scrollregion=(0, 0, canvas_w, canvas_h),
     yscrollcommand=v.set,
     xscrollcommand=h.set,
 )
@@ -502,6 +527,11 @@ canvas.bind("<ButtonRelease-1>", canvas_release)
 canvas.grid(row=0, column=0, sticky=(N, S, E, W))
 canvas_frame.columnconfigure(0, weight=1)
 canvas_frame.rowconfigure(0, weight=1)
+
+
+if background_image:
+    img = ImageTk.PhotoImage(file=background_image)
+    canvas.create_image(0, 0, image=img, anchor=NW)
 
 properties = ttk.LabelFrame(p, text="Properties")
 # properties.pack(side=RIGHT)
@@ -531,6 +561,12 @@ def delete_link(dst):
     update_ui()
 
 
+def show_dialog_link_properties(n1, n2, graph):
+    win = dialog_link_properties(n1, n2, graph)
+    root.wait_window(win)
+    update_ui()
+
+
 def draw_prop_links(frame):
     global graph
     global selected_node
@@ -555,7 +591,9 @@ def draw_prop_links(frame):
         ttk.Button(
             frame,
             text="Properties",
-            command=lambda edge=edge: dialog_link_properties(edge[0], edge[1], graph),
+            command=lambda edge=edge: show_dialog_link_properties(
+                edge[0], edge[1], graph
+            ),
         ).grid(row=i, column=2, padx=10, pady=10)
         print(link)
 

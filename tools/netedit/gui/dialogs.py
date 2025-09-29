@@ -17,6 +17,21 @@ def add_label_entry(frame, text, row, default_value=""):
     return textvar
 
 
+def add_label_checkbox(frame, text, row, default_value=False):
+    textvar = BooleanVar()
+    textvar.set(default_value)
+
+    subframe = frame
+    # subframe = ttk.Frame(frame)
+    label = ttk.Label(subframe, text=text)
+    label.grid(row=row, column=0, padx=10, pady=10)
+    entry = ttk.Checkbutton(subframe, variable=textvar)
+    entry.grid(row=row, column=1, padx=10, pady=10)
+    # subframe.pack()
+    # textvar.trace_add("write
+    return textvar
+
+
 def dialog_setup(w, h):
     global canvas_w, canvas_h
 
@@ -54,6 +69,8 @@ def dialog_link_properties(n1, n2, graph):
         link_data["jitter"] = 0
     if not "loss" in link_data:
         link_data["loss"] = 0
+    if not "dynamic_link" in link_data:
+        link_data["dynamic_link"] = False
 
     print("link properties")
     dialog_link_prop = Toplevel()
@@ -73,6 +90,9 @@ def dialog_link_properties(n1, n2, graph):
     )
     loss = add_label_entry(
         subframe, "Loss (in %)", 3, default_value=str(link_data["loss"])
+    )
+    dynamic_link = add_label_checkbox(
+        subframe, "Dynamic Link", 4, default_value=link_data["dynamic_link"]
     )
     subframe.pack(padx=5, pady=5)
 
@@ -102,6 +122,7 @@ def dialog_link_properties(n1, n2, graph):
         link_data["delay"] = delay2
         link_data["jitter"] = jitter2
         link_data["loss"] = loss2
+        link_data["dynamic_link"] = dynamic_link.get()
         graph.edges[n1, n2].update(link_data)
 
         dialog_link_prop.destroy()
@@ -111,3 +132,4 @@ def dialog_link_properties(n1, n2, graph):
         side=RIGHT
     )
     bottom_row.pack(padx=5, pady=5)
+    return dialog_link_prop

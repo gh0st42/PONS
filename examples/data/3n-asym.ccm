@@ -1,0 +1,10 @@
+# set looping of contact plan true/1 or false/0
+s loop 1
+
+# each entry starts with "a contact"
+# a contact <begin timestamp in seconds> <end timestamp in seconds> <node id 1 OR name> <node id 2 OR name> <bandwidth> [loss%] [delay] [jitter]
+
+a contact +30 +60 0 1 100000 00.0 0 0
+a contact +30 +60 1 0 1000 100.0 0 0
+a contact +60 +90 1 2 100000 00.0 0 0
+a contact +60 +90 2 1 1000 100.0 0 0

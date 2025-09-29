@@ -25,6 +25,7 @@ def event_log(ts: float, category: str, msg: dict):
 
     if event_log_fh is not None:
         event_log_fh.write("%f %s %s\n" % (ts, category, dumps(msg)))
+        # event_log_fh.flush()
 
 
 def close_log():
@@ -35,7 +36,10 @@ def close_log():
 
 
 def load_event_log(
-    filename: str = "/tmp/events.log", filter_out: list = [], filter_in: list = []
+    filename: str = "/tmp/events.log",
+    filter_out: list = [],
+    filter_in: list = [],
+    max_ts: float = float("inf"),
 ) -> Tuple[dict, float]:
     events = {}
     max_time = 0
@@ -43,6 +47,8 @@ def load_event_log(
         for line in fh.readlines():
             ts, category, msg = line.strip().split(maxsplit=2)
             ts_slot = round(float(ts))
+            if ts_slot >= max_ts:
+                break
             max_time = max(max_time, int(ts_slot))
             if category in filter_out:
                 continue
