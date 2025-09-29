@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import random
 import logging
 
@@ -19,7 +19,7 @@ class Message(object):
     src_service: int = 0
     dst_service: int = 0
     content: dict = None
-    metadata: dict = None
+    metadata: dict = field(default_factory=dict) 
 
     def __str__(self):
         return "Message(%s, src=%d.%d, dst=%d.%d, size=%d)" % (
