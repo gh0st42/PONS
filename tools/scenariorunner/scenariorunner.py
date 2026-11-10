@@ -238,6 +238,8 @@ def run_scenario(
     log_file = os.getenv("LOG_FILE")
     visualize_events(log_file, args)
 
+    return netsim
+
 
 def main():
 

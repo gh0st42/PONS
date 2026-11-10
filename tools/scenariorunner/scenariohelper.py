@@ -207,7 +207,8 @@ def load_application_traffic(filename: str, json_mapping: Dict) -> List[Dict[str
         node_id = json_mapping[node]["node_number"]
         valid_node_ids.append(node_id)
 
-    json_app_data = json.load(open(filename, "r"))
+    with open(filename, "r") as f:
+        json_app_data = json.load(f)
     for flow in json_app_data:
         src = flow["src"]
         if not src.startswith("ipn:"):
@@ -303,7 +304,8 @@ def load_scenario_dir(scenario_dir: str) -> Dict[str, str]:
             files[key] = None
 
     if files["policy"] is not None:
-        policy = json.load(open(files["policy"], "r"))
+        with open(files["policy"], "r") as f:
+            policy = json.load(f)
         if policy:
             logger.warning(
                 f"Flow policies in {files['policy']} are not supported yet and will be ignored."

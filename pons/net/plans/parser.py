@@ -402,7 +402,9 @@ def read_ccp(
     """
 
     contacts = []
-    for line in open(filename, "r").readlines():
+    with open(filename, "r") as f:
+        lines = f.readlines()
+    for line in lines:
         line = line.strip()
         if not line or line.startswith("#"):
             continue
