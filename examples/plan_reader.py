@@ -43,8 +43,8 @@ def load_mapping_json(filename: str) -> dict[str, any]:
                 node_number += 1
             used_ids.add(node_number)
 
-        mapping[node["id"]] = {
-            "name": node["name"],
+        mapping[node["node_label"]] = {
+            "name": node["node_name"],
             "node_id": node["node_id"],
             "node_number": node_number,
         }

@@ -50,6 +50,19 @@ scenariorunner --scenario-dir examples/scenarios/ccsds/lunar-communication/v1.0 
 or specify the files individually with `--nodes`, `--contacts`
 , `--actual-contacts` and `--flows`.
 
+## Testing
+
+Run the test suite (unit tests for the parsers and scenario loaders as
+well as all example scripts):
+
+```bash
+pip install -e ".[test]"
+python -m pytest
+```
+
+CI runs the same suite via GitHub Actions on every push and pull
+request (see `.github/workflows/tests.yml`).
+
 ## Requirements
 
 - simpy >= 4.0

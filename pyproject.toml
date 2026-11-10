@@ -48,6 +48,7 @@ dependencies = [
 
 [project.optional-dependencies]
 mp4 = ["imageio[ffmpeg]"]
+test = ["pytest>=8"]
 
 [project.scripts]
 ponsanim = "ponsanim.ponsanim:main"
@@ -61,3 +62,14 @@ netedit = "netedit.netedit:main"
 Homepage = "https://github.com/gh0st42/pons"
 Issues = "https://github.com/gh0st42/pons/issues"
 Repository = "https://github.com/gh0st42/pons.git"
+
+[tool.pytest.ini_options]
+testpaths = [
+  "tests",
+  "tests/mobility",
+]
+# tests/mobility uses the *_tests.py naming convention
+python_files = [
+  "test_*.py",
+  "*_tests.py",
+]

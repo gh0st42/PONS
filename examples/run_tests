@@ -7,24 +7,24 @@ import sys
 import subprocess
 import argparse
 
-args = argparse.ArgumentParser(description="Run tests for PONS-dtn examples.")
-args.add_argument(
+parser = argparse.ArgumentParser(description="Run tests for PONS-dtn examples.")
+parser.add_argument(
     "--test_file",
     type=str,
     default="tests.json",
     help="Path to the JSON file containing test scripts.",
 )
-args.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output.")
-args.add_argument(
+parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output.")
+parser.add_argument(
     "-H", "--halt-on-error", action="store_true", help="Halt on first error."
 )
-args.add_argument(
+parser.add_argument(
     "-n",
     "--only-run-single-test",
     type=int,
     help="Run only a single test by index (first entry has index 0) in test file.",
 )
-args = args.parse_args()
+args = parser.parse_args()
 if args.verbose:
     logging.basicConfig(level=logging.DEBUG)
 else:
@@ -33,99 +33,122 @@ else:
 logger = logging.getLogger(__name__)
 
 
+def json_objects_from_output(text):
+    """Extract all JSON objects printed to stdout by an example script.
+
+    The simulator prints progress bars and log lines around the stats
+    blocks, so the objects are scanned out of the text instead of
+    parsing the output as a whole.
+    """
+    dec = json.JSONDecoder()
+    objects = []
+    pos = 0
+    while pos < len(text):
+        if text[pos] == "{":
+            try:
+                obj, end = dec.raw_decode(text, pos)
+                objects.append(obj)
+                pos = end
+                continue
+            except json.JSONDecodeError:
+                pass
+        newline = text.find("\n", pos)
+        if newline == -1:
+            break
+        pos = newline + 1
+    return objects
+
+
+def check_condition(condition, result, stats):
+    """Check a single expected condition against an example's output.
+
+    String conditions must appear as a substring of the output, dict
+    conditions must be contained in one of the JSON stats blocks of the
+    output.
+    """
+    if isinstance(condition, str):
+        return condition in result
+    return any(
+        all(key in obj and str(obj[key]) == str(value) for key, value in condition.items())
+        for obj in stats
+    )
+
+
 def run_tests(test_file):
     if not os.path.exists(test_file):
         logger.error(f"Test file {test_file} does not exist.")
-        return
+        sys.exit(1)
 
     with open(test_file, "r") as f:
         tests = json.load(f)
 
     logger.debug(f"Loaded tests: {tests}")
 
-    total_failed_tests = 0
-    tests_run_so_far = 0
+    failed_tests = 0
+    tests_run = 0
 
     for idx, test in enumerate(tests):
         if args.only_run_single_test is not None and idx != args.only_run_single_test:
             logger.debug(f"Skipping test {idx} as only single test is requested.")
             continue
-        tests_run_so_far += 1
+        tests_run += 1
         test_path = test["file"]
         if not os.path.exists(test_path):
             logger.error(f"Test #{idx}, script {test} does not exist.")
+            failed_tests += 1
             if args.halt_on_error:
                 break
-            else:
-                logger.warning(f"Skipping missing test script: {test_path}")
             continue
 
         logger.info(f"Running test: {test}")
         result = ""
+        failed = 0
         try:
             result = subprocess.check_output(
-                ["python3", test_path], stderr=subprocess.STDOUT
+                [sys.executable, test_path], stderr=subprocess.STDOUT
             ).decode()
-
-        except Exception as e:
-            logger.error(f"Test #{idx} '{test['file']} failed: {e}")
-            logger.debug(
-                f"Output: {e.output.decode() if hasattr(e, 'output') else str(e)}"
-            )
-            total_failed_tests += 1
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Test #{idx} '{test['file']}' failed with exit code {e.returncode}.")
+            logger.debug(f"Output: {e.output.decode() if e.output else str(e)}")
+            failed_tests += 1
             if args.halt_on_error:
                 break
+            continue
+        except subprocess.TimeoutExpired as e:
+            logger.error(f"Test #{idx} '{test['file']}' timed out.")
+            logger.debug(f"Output: {e.output.decode() if e.output else str(e)}")
+            failed_tests += 1
+            if args.halt_on_error:
+                break
+            continue
 
-        failed = 0
-        if "results" in test and len(test["results"]) > 0:
-            expected_results = test["results"]
-            for condition in expected_results:
-                logger.debug(f"Checking condition: {condition}")
-                if isinstance(condition, str):
-                    regex = condition
-                    logger.debug(f"Looking for regex: '{regex}'")
-                    if regex not in result:
-                        logger.error(
-                            f" Test {test['file']} failed: Expected '{regex}' not found in output."
-                        )
-                        failed += 1
-                        if args.halt_on_error:
-                            break
-                        else:
-                            continue
-                elif isinstance(condition, dict):
-                    for keyword, value in condition.items():
-                        regex = f'"{keyword}": {value}'
-                        logger.debug(f"Looking for regex: '{regex}'")
-                        if regex not in result:
-                            logger.error(
-                                f" Test {test['file']} failed: Expected '{regex}' not found in output."
-                            )
-                            failed += 1
-                            if args.halt_on_error:
-                                break
-                            else:
-                                continue
+        stats = json_objects_from_output(result)
+        for condition in test.get("results", []):
+            logger.debug(f"Checking condition: {condition}")
+            if not check_condition(condition, result, stats):
+                logger.error(
+                    f"Test {test['file']} failed: Expected condition '{condition}' not met."
+                )
+                failed += 1
+                if args.halt_on_error:
+                    break
 
         if failed > 0:
             logger.error(
-                f"Test #{idx} '{test['file']} failed with {failed} conditions not met."
+                f"Test #{idx} '{test['file']}' failed with {failed} conditions not met."
             )
-            total_failed_tests += 1
+            failed_tests += 1
             if args.halt_on_error:
                 break
         else:
             logger.info(f"Test #{idx} {test['file']} completed successfully")
         logger.debug(f"Test output: {result}")
-    logger.info(f"Tests successful: {tests_run_so_far-total_failed_tests}")
-    logger.info(f"Total failed tests: {total_failed_tests} / {tests_run_so_far}")
-    if total_failed_tests > 0:
+
+    logger.info(f"Tests successful: {tests_run - failed_tests}")
+    logger.info(f"Total failed tests: {failed_tests} / {tests_run}")
+    if failed_tests > 0 or tests_run == 0:
         sys.exit(1)
 
 
-def main():
-    run_tests(args.test_file)
-
-
 if __name__ == "__main__":
-    main()
+    run_tests(args.test_file)

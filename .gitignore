@@ -6,3 +6,5 @@ venv/
 dist/
 .DS_Store
 .venv*/
+*.mp4
+tmp/

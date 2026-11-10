@@ -9,7 +9,7 @@ import pons.routing
 RANDOM_SEED = 42
 # SIM_TIME = 3600*24*7
 SIM_TIME = 3600 * 24
-NET_RANGE = 50
+NET_RANGE = 100
 NUM_NODES = 10
 WORLD_SIZE = (1000, 1000)
 CAPACITY = 10000
@@ -24,7 +24,7 @@ moves = pons.generate_randomwaypoint_movement(
     SIM_TIME, NUM_NODES, WORLD_SIZE[0], WORLD_SIZE[1], max_pause=60.0
 )
 
-net = pons.NetworkSettings("WIFI_50m", range=NET_RANGE)
+net = pons.NetworkSettings(f"WIFI_{NET_RANGE}m", range=NET_RANGE)
 epidemic = pons.routing.EpidemicRouter(capacity=CAPACITY)
 
 nodes = pons.generate_nodes(NUM_NODES, net=[net], router=epidemic)
