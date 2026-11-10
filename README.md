@@ -26,7 +26,29 @@ Features:
 - tools
   - `netedit` for generating graphml topologies
   - `ponsanim` for generating animated gifs and mp4 from graphml topologies with a contact plan or event logs
-  - `scenariorunner` to simulate scenarios described in a mix of csv and json files without writing any code 
+  - `scenariorunner` to simulate [CCSDS DTN reference scenarios](https://github.com/esa/ccsds-dtn-reference-scenarios) without writing any code
+
+## Scenario Runner
+
+The `scenariorunner` consumes the scenario format of the CCSDS DTN Reference
+Scenarios (see the vendored copies and usage instructions in
+[examples/scenarios/ccsds](examples/scenarios/ccsds/README.md)):
+
+- `nodes.json` — nodes with `node_label`, `node_name` and `ipn:` `node_id`
+- `planned_contacts.csv` — contact plan used as routing knowledge
+- `actual_contacts.csv` — optional data-plane contacts (defaults to the
+  planned contacts)
+- `traffic.json` — application traffic flows (`src`, `dst`, `adu_size`,
+  `interval`, optional `ttl`)
+
+Run a scenario directory directly:
+
+```bash
+scenariorunner --scenario-dir examples/scenarios/ccsds/lunar-communication/v1.0 -r StaticRouter -t 86400
+```
+
+or specify the files individually with `--nodes`, `--contacts`
+, `--actual-contacts` and `--flows`.
 
 ## Requirements
 

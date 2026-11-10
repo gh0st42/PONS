@@ -1,0 +1,72 @@
+[
+  {
+    "node_label": "lbcc",
+    "node_name": "Lunar Base Control Centre",
+    "node_id": "ipn:10.0"
+  },
+  {
+    "node_label": "lrcc",
+    "node_name": "Rover Control Centre ",
+    "node_id": "ipn:20.0"
+  },
+  {
+    "node_label": "lucc",
+    "node_name": "Lunar Gateway User Control Centre ",
+    "node_id": "ipn:30.0"
+  },
+  {
+    "node_label": "lb",
+    "node_name": "Lunar Base",
+    "node_id": "ipn:11.0"
+  },
+  {
+    "node_label": "lrov",
+    "node_name": "Rover",
+    "node_id": "ipn:21.0"
+  },
+  {
+    "node_label": "lgwu",
+    "node_name": "Lunar Gateway User",
+    "node_id": "ipn:31.0"
+  },
+  {
+    "node_label": "lrec1",
+    "node_name": "Relay Control Centre 1",
+    "node_id": "ipn:100.0"
+  },
+  {
+    "node_label": "lrec2",
+    "node_name": "Relay Control Centre 2",
+    "node_id": "ipn:200.0"
+  },
+  {
+    "node_label": "lgs1",
+    "node_name": "Ground Station 1",
+    "node_id": "ipn:110.0"
+  },
+  {
+    "node_label": "lgs2",
+    "node_name": "Ground Station 2",
+    "node_id": "ipn:210.0"
+  },
+  {
+    "node_label": "lgs3",
+    "node_name": "Ground Station 3",
+    "node_id": "ipn:211.0"
+  },
+  {
+    "node_label": "lgw",
+    "node_name": "Lunar Gateway",
+    "node_id": "ipn:220.0"
+  },
+  {
+    "node_label": "lre1",
+    "node_name": "Relay 1",
+    "node_id": "ipn:120.0"
+  },
+  {
+    "node_label": "lre2",
+    "node_name": "Relay 2",
+    "node_id": "ipn:221.0"
+  }
+]

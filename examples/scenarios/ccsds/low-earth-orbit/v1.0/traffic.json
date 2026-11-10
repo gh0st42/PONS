@@ -1,0 +1,32 @@
+[
+  {
+    "info": "High downlink payload eosat -> eopcc",
+    "src": "ipn:50.5",
+    "dst": "ipn:40.5",
+    "start_time": 0,
+    "end_time": -1,
+    "adu_size": 10000000,
+    "interval": 1,
+    "ttl": 2592000
+  },
+  {
+    "info": "Low downlink TM eosat -> eomcc",
+    "src": "ipn:50.1",
+    "dst": "ipn:30.1",
+    "start_time": 0,
+    "end_time": -1,
+    "adu_size": 64000,
+    "interval": 60,
+    "ttl": 2592000
+  },
+  {
+    "info": "Low uplink TC eomcc -> eosat",
+    "src": "ipn:30.1",
+    "dst": "ipn:50.1",
+    "start_time": 0,
+    "end_time": -1,
+    "adu_size": 512,
+    "interval": 300,
+    "ttl": 2592000
+  }
+]

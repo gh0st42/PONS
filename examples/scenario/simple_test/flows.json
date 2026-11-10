@@ -5,7 +5,7 @@
     "dst": "ipn:3.5",
     "start_time": 0,
     "end_time": -1,
-    "bundle_size": 64000,
-    "generation_rate_in_s": 10
+    "adu_size": 64000,
+    "interval": 10
   }
 ]

@@ -30,6 +30,21 @@ SCRIPT_DIR = str(SCRIPT_DIR)
 from pons.net.plans.parser import read_csv, read_json, read_ccp
 
 
+def read_contacts_file(filename: str, mapping: dict) -> List[Dict[str, Any]]:
+    """Read a contacts file, dispatching on its extension."""
+    if filename.endswith(".json"):
+        return read_json(filename, mapping=mapping)
+    elif filename.endswith(".csv"):
+        return read_csv(filename, mapping=mapping)
+    elif filename.endswith(".ccp"):
+        return read_ccp(filename, mapping=mapping, symmetric=False)
+    else:
+        logger.error(
+            f"Unsupported contacts file format: {filename}. Please use .csv or .json or .ccp."
+        )
+        sys.exit(1)
+
+
 def visualize_events(event_log: str, args: argparse.Namespace = None):
     """
     Visualize the events in the event log.
@@ -86,17 +101,35 @@ def visualize_events(event_log: str, args: argparse.Namespace = None):
 
 def run_scenario(
     g: nx.Graph,
-    contacts: List[Dict[str, Any]],
+    planned_contacts: List[Dict[str, Any]],
+    actual_contacts: List[Dict[str, Any]],
     flows: List[Dict[str, Any]],
     args: argparse.Namespace,
 ):
     logger.info(
-        f"Running scenario with {len(g.nodes)} nodes, {len(g.edges)} links and {len(contacts)} contacts..."
+        f"Running scenario with {len(g.nodes)} nodes, {len(g.edges)} links and "
+        f"{len(planned_contacts)} planned contacts..."
     )
-    parsed_contacts = pons.net.ContactPlan(contacts=contacts, symmetric=False)
 
-    # pons.net.CoreContactPlan(contacts=contacts, symmetric=False)
-    plan = pons.net.NetworkPlan(g, contacts=parsed_contacts)
+    # the planned contact topology is the routing knowledge (plan.full_graph),
+    # while the actual contacts form the data plane
+    parsed_actual = pons.net.ContactPlan(contacts=actual_contacts, symmetric=False)
+
+    # only links that have actual contacts may carry data, so the graph
+    # handed to the network plan must not contain anything else
+    actual_pairs = {(c.nodes[0], c.nodes[1]) for c in actual_contacts}
+    g_data = g.copy()
+    for u, v, key in list(g_data.edges(keys=True)):
+        if (u, v) not in actual_pairs:
+            g_data.remove_edge(u, v, key)
+
+    plan = pons.net.NetworkPlan(g_data, contacts=parsed_actual)
+
+    # routing knowledge: the planned contacts form the topology the routers
+    # may plan with, even if some planned contacts never actually happen
+    for c in planned_contacts:
+        if not plan.full_graph.has_edge(c.nodes[0], c.nodes[1]):
+            plan.full_graph.add_edge(c.nodes[0], c.nodes[1], bw=c.bw, delay=c.delay)
 
     router_class = getattr(pons.routing, args.router, None)
     # check if router_class constructor accepts a graph parameter
@@ -106,12 +139,22 @@ def run_scenario(
         router = router_class(graph=plan.full_graph)
     else:
         router = router_class()
-    # router = pons.routing.EpidemicRouter()
     logger.info(f"Generating {len(g.nodes)} {args.router} nodes...")
     nodes = plan.generate_nodes(router=router)
     config = {"movement_logger": False, "peers_logger": False, "event_filter": ["NET"]}
 
-    max_runtime = args.sim_time if args.sim_time else contacts[-1].timespan[1]
+    # the simulation ends with the last actual contact, as nothing can be
+    # transmitted afterwards, fixed links (end time -1) do not limit it
+    contacts_end = [
+        c.timespan[1] for c in actual_contacts + planned_contacts if c.timespan[1] > 0
+    ]
+    max_runtime = args.sim_time if args.sim_time else max(contacts_end, default=0)
+    if max_runtime <= 0:
+        logger.error(
+            "No simulation duration could be determined. "
+            "Please specify a simulation time with --sim-time."
+        )
+        sys.exit(1)
     logger.info(f"Max runtime set to {max_runtime} seconds.")
 
     msg_gens = []
@@ -120,10 +163,17 @@ def run_scenario(
         for f in flows:
             if f["src_scheme"] != "ipn" or f["dst_scheme"] != "ipn":
                 logger.error(
-                    f"Flow {f['id']} has unsupported src or dst scheme: {f['src_scheme']}, {f['dst_scheme']}"
+                    f"Flow from ipn:{f['src_id']}.{f['src_service']} to "
+                    f"ipn:{f['dst_id']}.{f['dst_service']} has unsupported src or "
+                    f"dst scheme: {f['src_scheme']}, {f['dst_scheme']}"
                 )
                 sys.exit(1)
             # convert flows to message generators
+
+            # use the ttl of the flow if it is set, otherwise the max runtime
+            ttl = f.get("ttl", -1)
+            if ttl <= 0:
+                ttl = max_runtime
 
             msg_gen = {
                 "type": "single",
@@ -134,24 +184,25 @@ def run_scenario(
                 "dst_service": f["dst_service"],
                 "size": f["size"],
                 "id": f["type"] + "-",
-                "ttl": max_runtime,  # use max_runtime as ttl
+                "ttl": ttl,
                 "start_time": f.get("start_time", 0),  # default to 0 if not specified
                 "end_time": f.get("end_time", -1),  # default to -1 if not specified
             }
             msg_gens.append(msg_gen)
 
-    # print("Message Generators:")
-    # pp(msg_gens)
     netsim = pons.NetSim(max_runtime, nodes, config=config, msggens=msg_gens)
 
     if args.use_app:
         for f in flows:
+            ttl = f.get("ttl", -1)
+            if ttl <= 0:
+                ttl = max_runtime
             sender_app = pons.apps.SenderApp(
                 service=f["src_service"],
                 dst=f["dst_id"],
                 dst_service=f["dst_service"],
                 interval=f["rate"],
-                ttl=max_runtime,  # use max_runtime as ttl
+                ttl=ttl,
                 size=f["size"],
                 msg_prefix=f["type"],
                 active_time=(f.get("start_time", 0), f.get("end_time", -1)),
@@ -200,22 +251,35 @@ def main():
         ):
             valid_routers.append(name)
 
-    parser = argparse.ArgumentParser(description="Run a CSV/JSON scenario.")
+    parser = argparse.ArgumentParser(description="Run a CCSDS DTN reference scenario.")
+    parser.add_argument(
+        "--scenario-dir",
+        "-s",
+        type=str,
+        help="CCSDS DTN reference scenario directory containing nodes.json, "
+        "planned_contacts.csv and, optionally, actual_contacts.csv and traffic.json. "
+        "Overrides the individual file arguments.",
+    )
     parser.add_argument(
         "--contacts",
         "-c",
         type=str,
-        required=True,
-        help="CSV/JSON/CCP file with contacts. Type is determined by the file extension (.csv, .json, .ccp).",
+        help="Planned contacts CSV/JSON/CCP file. Type is determined by the file extension (.csv, .json, .ccp).",
     )
     parser.add_argument(
-        "--nodes", "-n", type=str, help="Node mapping JSON file", required=True
+        "--actual-contacts",
+        "-C",
+        type=str,
+        help="Optional CSV/JSON/CCP file with actual contacts (defaults to the planned contacts).",
+    )
+    parser.add_argument(
+        "--nodes", "-n", type=str, help="Node mapping JSON file (nodes.json)"
     )
     parser.add_argument(
         "--flows",
         "-f",
         type=str,
-        help="JSON file with application traffic flows",
+        help="JSON file with application traffic flows (traffic.json)",
     )
     parser.add_argument(
         "--router",
@@ -229,7 +293,7 @@ def main():
         "--sim-time",
         "-t",
         type=int,
-        help="Simulation time in seconds (default: taken from last entry in contacts file)",
+        help="Simulation time in seconds (default: latest contact end time in the contacts files)",
     )
     parser.add_argument(
         "--visualize",
@@ -259,29 +323,50 @@ def main():
     )
     args = parser.parse_args()
 
+    if args.scenario_dir:
+        if args.contacts or args.nodes or args.flows or args.actual_contacts:
+            logger.warning(
+                "Individual file arguments are ignored when --scenario-dir is used."
+            )
+        files = scenariohelper.load_scenario_dir(args.scenario_dir)
+        args.contacts = files["planned_contacts"]
+        args.actual_contacts = files["actual_contacts"] or files["planned_contacts"]
+        args.nodes = files["nodes"]
+        args.flows = files["traffic"]
+
+    if not (args.contacts and args.nodes):
+        logger.error(
+            "No scenario specified. Please provide either --scenario-dir or "
+            "--contacts and --nodes."
+        )
+        sys.exit(1)
+
+    if args.flows is None:
+        logger.warning(
+            "No traffic flows specified. Running the scenario without any traffic."
+        )
+
     node_mapping = scenariohelper.load_mapping_json(args.nodes)
     # rename nodes to integers from their node_id
     mapping = {}
     for k, v in node_mapping.items():
         mapping[k] = v["node_number"]
 
-    if args.contacts.endswith(".json"):
-        contacts = read_json(args.contacts, mapping=mapping)
-    elif args.contacts.endswith(".csv"):
-        contacts = read_csv(args.contacts, mapping=mapping)
-    elif args.contacts.endswith(".ccp"):
-        contacts = read_ccp(args.contacts, mapping=mapping, symmetric=False)
+    planned_contacts = read_contacts_file(args.contacts, mapping)
+    if args.actual_contacts and args.actual_contacts != args.contacts:
+        actual_contacts = read_contacts_file(args.actual_contacts, mapping)
     else:
-        logger.error(
-            f"Unsupported contacts file format: {args.contacts}. Please use .csv or .json or .ccp."
-        )
-        sys.exit(1)
+        actual_contacts = planned_contacts
 
-    g = scenariohelper.get_graph_from_contacts(contacts, node_mapping)
+    # the graph is built from the planned contacts, as they contain the
+    # full expected topology (a superset of the actual contacts)
+    g = scenariohelper.get_graph_from_contacts(planned_contacts, node_mapping)
     g = nx.relabel_nodes(g, mapping)
 
-    flows = scenariohelper.load_application_traffic(args.flows, node_mapping)
-    run_scenario(g, contacts, flows, args)
+    flows = []
+    if args.flows:
+        flows = scenariohelper.load_application_traffic(args.flows, node_mapping)
+    run_scenario(g, planned_contacts, actual_contacts, flows, args)
 
 
 if __name__ == "__main__":

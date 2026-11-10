@@ -1,0 +1,121 @@
+[
+  {
+    "info": "Telemetry mr1 -> mr1c",
+    "src": "ipn:11.1",
+    "dst": "ipn:10.1",
+    "start_time": 0,
+    "end_time": -1,
+    "adu_size": 64000,
+    "interval": 60,
+    "ttl": 2592000
+  },
+  {
+    "info": "Payload mr1 -> mr1c",
+    "src": "ipn:11.5",
+    "dst": "ipn:10.5",
+    "start_time": 0,
+    "end_time": -1,
+    "adu_size": 64000,
+    "interval": 1,
+    "ttl": 2592000
+  },
+  {
+    "info": "Telecommand mr1c -> mr1",
+    "src": "ipn:10.5",
+    "dst": "ipn:11.5",
+    "start_time": 0,
+    "end_time": -1,
+    "adu_size": 1024,
+    "interval": 300,
+    "ttl": 2592000
+  },
+  {
+    "info": "Telemetry mr2 -> mr2c",
+    "src": "ipn:21.1",
+    "dst": "ipn:20.1",
+    "start_time": 0,
+    "end_time": -1,
+    "adu_size": 64000,
+    "interval": 60,
+    "ttl": 2592000
+  },
+  {
+    "info": "Payload mr2 -> mr2c",
+    "src": "ipn:21.5",
+    "dst": "ipn:20.5",
+    "start_time": 0,
+    "end_time": -1,
+    "adu_size": 64000,
+    "interval": 1,
+    "ttl": 2592000
+  },
+  {
+    "info": "Telecommand mr2c -> mr2",
+    "src": "ipn:20.5",
+    "dst": "ipn:21.5",
+    "start_time": 0,
+    "end_time": -1,
+    "adu_size": 1024,
+    "interval": 300,
+    "ttl": 2592000
+  },
+  {
+    "info": "Telemetry mre1 -> mrec1",
+    "src": "ipn:120.1",
+    "dst": "ipn:100.1",
+    "start_time": 0,
+    "end_time": -1,
+    "adu_size": 64000,
+    "interval": 60,
+    "ttl": 2592000
+  },
+  {
+    "info": "Telecommand mrec1 -> mre1",
+    "src": "ipn:100.1",
+    "dst": "ipn:120.1",
+    "start_time": 0,
+    "end_time": -1,
+    "adu_size": 1024,
+    "interval": 300,
+    "ttl": 2592000
+  },
+  {
+    "info": "Telemetry mre2 -> mrec2",
+    "src": "ipn:220.1",
+    "dst": "ipn:200.1",
+    "start_time": 0,
+    "end_time": -1,
+    "adu_size": 64000,
+    "interval": 60,
+    "ttl": 2592000
+  },
+  {
+    "info": "Telecommand mrec2 -> mre2",
+    "src": "ipn:200.1",
+    "dst": "ipn:220.1",
+    "start_time": 0,
+    "end_time": -1,
+    "adu_size": 1024,
+    "interval": 300,
+    "ttl": 2592000
+  },
+  {
+    "info": "Telemetry mre3 -> mrec",
+    "src": "ipn:221.1",
+    "dst": "ipn:200.1",
+    "start_time": 0,
+    "end_time": -1,
+    "adu_size": 64000,
+    "interval": 60,
+    "ttl": 2592000
+  },
+  {
+    "info": "Telecommand mrec -> mre3",
+    "src": "ipn:200.1",
+    "dst": "ipn:221.1",
+    "start_time": 0,
+    "end_time": -1,
+    "adu_size": 1024,
+    "interval": 300
+  }
+]

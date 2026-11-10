@@ -23,6 +23,7 @@ from pons.net.plans import bandwidth_parser, Contact
 
 
 def load_mapping_json(filename: str) -> Dict[str, Any]:
+    """Load a CCSDS DTN reference scenario node mapping (nodes.json)."""
     logger.info(f"Loading node mapping from {filename}")
     with open(filename, "r") as f:
         data = json.load(f)
@@ -44,8 +45,8 @@ def load_mapping_json(filename: str) -> Dict[str, Any]:
                 node_number += 1
             used_ids.add(node_number)
 
-        mapping[node["id"]] = {
-            "name": node["name"],
+        mapping[node["node_label"]] = {
+            "name": node["node_name"],
             "node_id": node["node_id"],
             "node_number": node_number,
         }
@@ -198,6 +199,7 @@ def extract_from_ipn(node_id: str) -> tuple[int, int]:
 
 
 def load_application_traffic(filename: str, json_mapping: Dict) -> List[Dict[str, Any]]:
+    """Load application traffic flows from a CCSDS DTN reference scenario traffic.json."""
     logger.info(f"Loading application traffic flows from {filename}")
     traffic = []
     valid_node_ids = []
@@ -267,11 +269,43 @@ def load_application_traffic(filename: str, json_mapping: Dict) -> List[Dict[str
                 "dst_service": dst_service,
                 "interval": interval,
                 "type": flow_type,
-                "size": flow["bundle_size"],
-                "rate": flow["generation_rate_in_s"],
+                "size": flow["adu_size"],
+                "rate": flow["interval"],
+                "ttl": flow.get("ttl", -1),
                 "info": flow["info"],
                 "start_time": flow.get("start_time", 0),
                 "end_time": flow.get("end_time", -1),
             }
         )
     return traffic
+
+
+def load_scenario_dir(scenario_dir: str) -> Dict[str, str]:
+    """Resolve the files of a CCSDS DTN reference scenario directory.
+
+    A scenario directory contains nodes.json, planned_contacts.csv and
+    traffic.json as well as the optional actual_contacts.csv and policy.json.
+    """
+    scenario_dir = pathlib.Path(scenario_dir)
+    files = {
+        "nodes": scenario_dir / "nodes.json",
+        "planned_contacts": scenario_dir / "planned_contacts.csv",
+        "actual_contacts": scenario_dir / "actual_contacts.csv",
+        "traffic": scenario_dir / "traffic.json",
+        "policy": scenario_dir / "policy.json",
+    }
+    for key, f in files.items():
+        if not f.exists():
+            if key in ("nodes", "planned_contacts"):
+                logger.error(f"Required scenario file {f} not found.")
+                sys.exit(1)
+            logger.debug(f"Optional scenario file {f} not found, skipping.")
+            files[key] = None
+
+    if files["policy"] is not None:
+        policy = json.load(open(files["policy"], "r"))
+        if policy:
+            logger.warning(
+                f"Flow policies in {files['policy']} are not supported yet and will be ignored."
+            )
+    return {k: (str(f) if f is not None else None) for k, f in files.items()}

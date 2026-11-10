@@ -1,0 +1,151 @@
+[
+  {
+    "info": "lb [ipn:11.0] -> lbcc [ipn:10.0]",
+    "src": "ipn:11.1",
+    "dst": "ipn:10.1",
+    "start_time": 0,
+    "end_time": -1,
+    "adu_size": 64000,
+    "interval": 60,
+    "ttl": 2592000
+  },
+  {
+    "info": "lb [ipn:11.0] -> lbcc [ipn:10.0]",
+    "src": "ipn:11.5",
+    "dst": "ipn:10.5",
+    "start_time": 0,
+    "end_time": -1,
+    "adu_size": 64000,
+    "interval": 1,
+    "ttl": 2592000
+  },
+  {
+    "info": "lbcc [ipn:10.0] -> lb [ipn:11.0]",
+    "src": "ipn:10.1",
+    "dst": "ipn:11.1",
+    "start_time": 0,
+    "end_time": -1,
+    "adu_size": 512,
+    "interval": 300,
+    "ttl": 2592000
+  },
+  {
+    "info": "lrov [ipn:21.0] -> lrcc [ipn:20.0]",
+    "src": "ipn:21.1",
+    "dst": "ipn:20.1",
+    "start_time": 0,
+    "end_time": -1,
+    "adu_size": 64000,
+    "interval": 60,
+    "ttl": 2592000
+  },
+  {
+    "info": "lrov [ipn:21.0] -> lrcc [ipn:20.0]",
+    "src": "ipn:21.5",
+    "dst": "ipn:20.5",
+    "start_time": 0,
+    "end_time": -1,
+    "adu_size": 64000,
+    "interval": 1,
+    "ttl": 2592000
+  },
+  {
+    "info": "lrcc [ipn:20.0] -> lrov [ipn:21.0]",
+    "src": "ipn:20.1",
+    "dst": "ipn:21.1",
+    "start_time": 0,
+    "end_time": -1,
+    "adu_size": 512,
+    "interval": 300,
+    "ttl": 2592000
+  },
+  {
+    "info": "lgwu [ipn:31.0] -> lucc [ipn:30.0]",
+    "src": "ipn:31.1",
+    "dst": "ipn:30.1",
+    "start_time": 0,
+    "end_time": -1,
+    "adu_size": 64000,
+    "interval": 60,
+    "ttl": 2592000
+  },
+  {
+    "info": "lgwu [ipn:31.0] -> lucc [ipn:30.0]",
+    "src": "ipn:31.5",
+    "dst": "ipn:30.5",
+    "start_time": 0,
+    "end_time": -1,
+    "adu_size": 64000,
+    "interval": 1,
+    "ttl": 2592000
+  },
+  {
+    "info": "lucc [ipn:30.0] -> lgwu [ipn:31.0]",
+    "src": "ipn:30.1",
+    "dst": "ipn:31.1",
+    "start_time": 0,
+    "end_time": -1,
+    "adu_size": 512,
+    "interval": 300,
+    "ttl": 2592000
+  },
+  {
+    "info": "lre1 [ipn:120.0] -> lrec1 [ipn:100.0]",
+    "src": "ipn:120.1",
+    "dst": "ipn:100.1",
+    "start_time": 0,
+    "end_time": -1,
+    "adu_size": 64000,
+    "interval": 60,
+    "ttl": 2592000
+  },
+  {
+    "info": "lrec1 [ipn:100.0] -> lre1 [ipn:120.0]",
+    "src": "ipn:100.1",
+    "dst": "ipn:120.1",
+    "start_time": 0,
+    "end_time": -1,
+    "adu_size": 512,
+    "interval": 300,
+    "ttl": 2592000
+  },
+  {
+    "info": "lgw [ipn:220.0] -> lrec2 [ipn:200.0]",
+    "src": "ipn:220.1",
+    "dst": "ipn:200.1",
+    "start_time": 0,
+    "end_time": -1,
+    "adu_size": 64000,
+    "interval": 60,
+    "ttl": 2592000
+  },
+  {
+    "info": "lrec2 [ipn:200.0] -> lgw [ipn:220.0]",
+    "src": "ipn:200.1",
+    "dst": "ipn:220.1",
+    "start_time": 0,
+    "end_time": -1,
+    "adu_size": 512,
+    "interval": 300,
+    "ttl": 2592000
+  },
+  {
+    "info": "lre2 [ipn:221.0] -> lrec2 [ipn:200.0]",
+    "src": "ipn:221.1",
+    "dst": "ipn:200.1",
+    "start_time": 0,
+    "end_time": -1,
+    "adu_size": 64000,
+    "interval": 60,
+    "ttl": 2592000
+  },
+  {
+    "info": "lrec2 [ipn:200.0] -> lre2 [ipn:221.0]",
+    "src": "ipn:200.1",
+    "dst": "ipn:221.1",
+    "start_time": 0,
+    "end_time": -1,
+    "adu_size": 512,
+    "interval": 300
+  }
+]

@@ -1,0 +1,20 @@
+[
+  {
+    "info": "High downlink payload",
+    "policy_target": "ipn:50.0",
+    "src": "ipn:50.5",
+    "dst": "ipn:40.5",
+    "link_restrictions": [
+      "hi_dl"
+    ]
+  },
+  {
+    "info": "Low downlink TM",
+    "policy_target": "ipn:50.0",
+    "src": "ipn:50.1",
+    "dst": "ipn:40.1",
+    "link_restrictions": [
+      "low_dl"
+    ]
+  }
+]

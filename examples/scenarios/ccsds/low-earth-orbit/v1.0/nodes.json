@@ -1,0 +1,27 @@
+[
+  {
+    "node_label": "eogs1",
+    "node_name": "Ground Station 1",
+    "node_id": "ipn:10.0"
+  },
+  {
+    "node_label": "eogs2",
+    "node_name": "Ground Station 2",
+    "node_id": "ipn:20.0"
+  },
+  {
+    "node_label": "eomcc",
+    "node_name": "Mission Control Centre",
+    "node_id": "ipn:30.0"
+  },
+  {
+    "node_label": "eopcc",
+    "node_name": "Payload Control Centre",
+    "node_id": "ipn:40.0"
+  },
+  {
+    "node_label": "eosat",
+    "node_name": "Earth Observation Satellite",
+    "node_id": "ipn:50.0"
+  }
+]

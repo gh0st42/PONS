@@ -1,0 +1,62 @@
+[
+  {
+    "node_label": "mr1c",
+    "node_name": "Rover 1 Control Centre",
+    "node_id": "ipn:10.0"
+  },
+  {
+    "node_label": "mr2c",
+    "node_name": "Rover 2 Control Centre",
+    "node_id": "ipn:20.0"
+  },
+  {
+    "node_label": "mrecc",
+    "node_name": "Relay Coordination Centre",
+    "node_id": "ipn:50.0"
+  },
+  {
+    "node_label": "mr1",
+    "node_name": "Mars Rover 1",
+    "node_id": "ipn:11.0"
+  },
+  {
+    "node_label": "mr2",
+    "node_name": "Mars Rover 2",
+    "node_id": "ipn:21.0"
+  },
+  {
+    "node_label": "mrec1",
+    "node_name": "Relay Control Centre 1",
+    "node_id": "ipn:100.0"
+  },
+  {
+    "node_label": "mrec2",
+    "node_name": "Relay Control Centre 2",
+    "node_id": "ipn:200.0"
+  },
+  {
+    "node_label": "mgs1",
+    "node_name": "Ground Station 1",
+    "node_id": "ipn:110.0"
+  },
+  {
+    "node_label": "mgs2",
+    "node_name": "Ground Station 2",
+    "node_id": "ipn:210.0"
+  },
+  {
+    "node_label": "mre1",
+    "node_name": "Relay 1",
+    "node_id": "ipn:120.0"
+  },
+  {
+    "node_label": "mre2",
+    "node_name": "Relay 2",
+    "node_id": "ipn:220.0"
+  },
+  {
+    "node_label": "mre3",
+    "node_name": "Relay 3",
+    "node_id": "ipn:221.0"
+  }
+]
