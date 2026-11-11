@@ -1,7 +1,7 @@
 from copy import copy
 import random
 import pons
-from pons.event_log import event_log
+from pons.event_log import event_log, is_enabled
 
 
 class App(object):
@@ -26,27 +26,29 @@ class App(object):
         self.netsim = netsim
 
     def _on_msg_received(self, msg: pons.Message):
-        event_log(
-            self.netsim.env.now,
-            "APP",
-            {
-                "event": "RX",
-                "id": self.my_id,
-                "service": self.service,
-                "from": msg.src,
-                "from_service": msg.src_service,
-                "msg": msg.unique_id(),
-            },
-        )
+        if is_enabled("APP"):
+            event_log(
+                self.netsim.env.now,
+                "APP",
+                {
+                    "event": "RX",
+                    "id": self.my_id,
+                    "service": self.service,
+                    "from": msg.src,
+                    "from_service": msg.src_service,
+                    "msg": msg.unique_id(),
+                },
+            )
         self.on_msg_received(msg)
 
     def send(self, msg: pons.Message):
         self.netsim.routing_stats["created"] += 1
-        event_log(
-            self.netsim.env.now,
-            "APP",
-            {"event": "TX", "src": self.my_id, "dst": msg.dst, "msg": msg.unique_id()},
-        )
+        if is_enabled("APP"):
+            event_log(
+                self.netsim.env.now,
+                "APP",
+                {"event": "TX", "src": self.my_id, "dst": msg.dst, "msg": msg.unique_id()},
+            )
         self.netsim.nodes[self.my_id].router.add(msg)
 
     def on_msg_received(self, msg: pons.Message):

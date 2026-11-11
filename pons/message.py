@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import random
 import logging
 
@@ -20,6 +20,10 @@ class Message(object):
     dst_service: int = 0
     content: dict = None
     metadata: dict = None
+    # cache for unique_id, excluded from equality and repr so that
+    # comparing and removing messages from stores behaves the same as
+    # before the cache existed
+    _unique_id: str = field(default=None, compare=False, repr=False)
 
     def __str__(self):
         return "Message(%s, src=%d.%d, dst=%d.%d, size=%d)" % (
@@ -32,7 +36,9 @@ class Message(object):
         )
 
     def unique_id(self) -> str:
-        return "%s-%d-%d" % (self.id, self.src, self.created)
+        if self._unique_id is None:
+            self._unique_id = "%s-%d-%d" % (self.id, self.src, self.created)
+        return self._unique_id
 
     def is_expired(self, now):
         is_expired = self.created + self.ttl < now

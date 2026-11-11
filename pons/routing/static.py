@@ -57,6 +57,9 @@ class StaticRouter(Router):
         self.graph = graph
         self.shortest_paths_only = shortest_paths_only
         self.pick_random_next_hop = pick_random_next_hop
+        # routes indexed by destination, built in start()
+        self._exact_routes = {}
+        self._pattern_routes = []
 
     def start(self, netsim: NetSim, my_id: int):
         super().start(netsim, my_id)
@@ -112,6 +115,16 @@ class StaticRouter(Router):
             ]
             self.routes = sorted(self.routes, key=lambda x: x.hops)
 
+        # index the routes for O(1) lookups per destination while keeping
+        # the same candidate set as iterating the whole table
+        self._exact_routes = {}
+        self._pattern_routes = []
+        for route in self.routes:
+            if isinstance(route.dst, str):
+                self._pattern_routes.append(route)
+            else:
+                self._exact_routes.setdefault(route.dst, []).append(route)
+
         self.log("routes: %s" % self.routes)
 
     def __str__(self):
@@ -135,10 +148,19 @@ class StaticRouter(Router):
             return
 
         next_hops = set()
-        # check routing table
-        for route in self.routes:
+        # check routing table: exact destination matches first, then the
+        # (few) pattern based routes; the resulting candidate set is the
+        # same as with a full table scan
+        candidates = self._exact_routes.get(msg.dst, [])
+        if self._pattern_routes:
+            candidates = candidates + [
+                route
+                for route in self._pattern_routes
+                if route.get_next_hop(msg) is not None
+            ]
+        for route in candidates:
             # self.log("checking route %s" % route)
-            next_hop = route.get_next_hop(msg)
+            next_hop = route.next_hop
             if next_hop is not None:
                 # self.log("found route %s for %d" % (route, msg.dst))
                 if next_hop in self.peers and not self.msg_already_spread(

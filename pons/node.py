@@ -4,7 +4,7 @@ from copy import deepcopy
 from typing import List
 import pons
 from pons.message import Message
-from pons.event_log import event_log
+from pons.event_log import event_log, is_enabled
 
 from pons.net.common import BROADCAST_ADDR, NetworkSettings
 from simpy.util import start_delayed
@@ -71,6 +71,16 @@ class Node(object):
         )
         for net in self.net.values():
             self.neighbors[net.name] = []
+            if net.contactplan is not None:
+                try:
+                    self.neighbors[net.name] = self._plan_neighbors(
+                        net, simtime, nodes
+                    )
+                    continue
+                except NotImplementedError:
+                    # plans like the ION contact plan do not support the
+                    # plan lookup, fall back to pairwise checks
+                    pass
             for node in nodes:
                 if node.node_id != self.node_id:
                     # print("node %d: %s %s %s" % (node.id, node.net, net.name,  net.has_contact(simtime, self, node)))
@@ -104,6 +114,34 @@ class Node(object):
                                 },
                             )
         # self.log("neighbors: %s @ %f" % (self.neighbors, simtime))
+
+    def _plan_neighbors(self, net: NetworkSettings, simtime, nodes: List[Node]):
+        """Neighbors from a contact plan with a single plan lookup.
+
+        For contact plan based networks, a pairwise has_contact() check
+        over all nodes is equivalent to collecting the endpoints of the
+        contacts active at simtime from this node: symmetric contact
+        plans and the edges of an undirected static graph also match in
+        reverse direction.
+        """
+        plan = net.contactplan
+        if hasattr(plan, "G"):
+            # NetworkPlan
+            inner = plan.contactplan
+            symmetric = (
+                inner.symmetric if inner is not None else False
+            ) or (plan.G is not None and not plan.G.is_directed())
+        else:
+            symmetric = getattr(plan, "symmetric", False)
+        neighbor_ids = set()
+        for c in plan.at(simtime):
+            u, v = c.nodes
+            if u == self.node_id:
+                neighbor_ids.add(v)
+            elif symmetric and v == self.node_id:
+                neighbor_ids.add(u)
+        net_members = {n.node_id for n in nodes if net.name in n.net}
+        return sorted(neighbor_ids & net_members)
 
     def add_all_neighbors(self, simtime, nodes: List[Node]):
         for net in self.net.values():
@@ -198,16 +236,17 @@ class Node(object):
                         # self.log("packet loss: %s to %d" %
                         # (msg.id, to_nid))
                         netsim.net_stats["loss"] += 1
-                        pons.simulation.event_log(
-                            netsim.env.now,
-                            "NET",
-                            {
-                                "event": "LOST",
-                                "id": self.node_id,
-                                "msg": msg.unique_id(),
-                                "to": to_nid,
-                            },
-                        )
+                        if is_enabled("NET"):
+                            pons.simulation.event_log(
+                                netsim.env.now,
+                                "NET",
+                                {
+                                    "event": "LOST",
+                                    "id": self.node_id,
+                                    "msg": msg.unique_id(),
+                                    "to": to_nid,
+                                },
+                            )
                         # pass
 
                 else:
@@ -224,16 +263,17 @@ class Node(object):
                 netsim.nodes[from_nid].router._on_tx_succeeded(
                     msg.unique_id(), self.node_id
                 )
-                pons.simulation.event_log(
-                    netsim.env.now,
-                    "NET",
-                    {
-                        "event": "RX",
-                        "id": self.node_id,
-                        "msg": msg.unique_id(),
-                        "from": from_nid,
-                    },
-                )
+                if is_enabled("NET"):
+                    pons.simulation.event_log(
+                        netsim.env.now,
+                        "NET",
+                        {
+                            "event": "RX",
+                            "id": self.node_id,
+                            "msg": msg.unique_id(),
+                            "from": from_nid,
+                        },
+                    )
                 if self.router is not None:
                     if msg.is_dtn_bundle():
                         self.router._on_msg_received(msg, from_nid)
@@ -248,16 +288,17 @@ class Node(object):
                 netsim.nodes[from_nid].router._on_tx_failed(
                     msg.unique_id(), self.node_id
                 )
-                pons.simulation.event_log(
-                    netsim.env.now,
-                    "NET",
-                    {
-                        "event": "RX_FAIL",
-                        "id": self.node_id,
-                        "msg": msg.unique_id(),
-                        "to": from_nid,
-                    },
-                )
+                if is_enabled("NET"):
+                    pons.simulation.event_log(
+                        netsim.env.now,
+                        "NET",
+                        {
+                            "event": "RX_FAIL",
+                            "id": self.node_id,
+                            "msg": msg.unique_id(),
+                            "to": from_nid,
+                        },
+                    )
 
 
 def generate_nodes(

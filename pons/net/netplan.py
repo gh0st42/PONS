@@ -40,6 +40,11 @@ class NetworkPlan(CommonContactPlan):
             return self.contactplan.next_event(time)
         return None
 
+    def has_boundary_at(self, time: float) -> bool:
+        if self.contactplan is not None:
+            return self.contactplan.has_boundary_at(time)
+        return False
+
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, NetworkPlan):
             logger.debug("Comparing NetworkPlan with non-NetworkPlan object")

@@ -1,7 +1,7 @@
 from copy import copy
 import pons
 import logging
-from pons.event_log import event_log
+from pons.event_log import event_log, is_enabled
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +12,11 @@ class Router(object):
     def __init__(self, scan_interval=2.0, capacity=0, apps=None):
         self.scan_interval = scan_interval
         self.peers = []
+        # time of the last executed peer discovery tick, None until the
+        # first scan ran (the first tick always has to build the initial
+        # peer set; contacts inclusive of their end time can still
+        # change the sample of the following tick)
+        self._last_scan_time = None
         self.history = {}
         self.store = []
         self.capacity = capacity
@@ -42,11 +47,12 @@ class Router(object):
         self.stats["tx"] += 1
         self.remember(to_nid, msg.unique_id())
         self.netsim.nodes[self.my_id].send(self.netsim, to_nid, msg)
-        event_log(
-            self.env.now,
-            "ROUTER",
-            {"event": "TX", "src": self.my_id, "dst": to_nid, "msg": msg.unique_id()},
-        )
+        if is_enabled("ROUTER"):
+            event_log(
+                self.env.now,
+                "ROUTER",
+                {"event": "TX", "src": self.my_id, "dst": to_nid, "msg": msg.unique_id()},
+            )
 
     def add(self, msg: pons.Message):
         self.store_add(msg)
@@ -62,34 +68,39 @@ class Router(object):
             # self.log("store cleaned up, made room for msg %s" % msg.id)
         self.store.append(msg)
         self.used += msg.size
-        event_log(
-            self.env.now,
-            "STORE",
-            {
-                "event": "ADDED",
-                "id": self.my_id,
-                "msg": msg.unique_id(),
-                "used": self.used,
-                "capacity": self.capacity,
-            },
-        )
+        if is_enabled("STORE"):
+            event_log(
+                self.env.now,
+                "STORE",
+                {
+                    "event": "ADDED",
+                    "id": self.my_id,
+                    "msg": msg.unique_id(),
+                    "used": self.used,
+                    "capacity": self.capacity,
+                },
+            )
         return True
 
-    def store_del(self, msg: pons.Message, dropped: bool = False):
+    def store_del(self, msg: pons.Message, dropped: bool = False, idx: int = None):
         self.used -= msg.size
-        self.store.remove(msg)
+        if idx is None:
+            self.store.remove(msg)
+        else:
+            del self.store[idx]
         event = "DROPPED" if dropped else "REMOVED"
-        event_log(
-            self.env.now,
-            "STORE",
-            {
-                "event": event,
-                "id": self.my_id,
-                "msg": msg.unique_id(),
-                "used": self.used,
-                "capacity": self.capacity,
-            },
-        )
+        if is_enabled("STORE"):
+            event_log(
+                self.env.now,
+                "STORE",
+                {
+                    "event": event,
+                    "id": self.my_id,
+                    "msg": msg.unique_id(),
+                    "used": self.used,
+                    "capacity": self.capacity,
+                },
+            )
         if dropped:
             self.stats["dropped"] += 1
             self.netsim.routing_stats["dropped"] += 1
@@ -98,9 +109,9 @@ class Router(object):
             self.netsim.routing_stats["removed"] += 1
 
     def store_del_by_id(self, msg_id: str, dropped: bool = False):
-        for msg in self.store:
+        for idx, msg in enumerate(self.store):
             if msg.unique_id() == msg_id:
-                self.store_del(msg, dropped)
+                self.store_del(msg, dropped, idx)
                 return
 
     def store_cleanup(self):
@@ -136,56 +147,108 @@ class Router(object):
         while True:
             # print("[%s] scanning..." % self.my_id)
 
-            if self.netsim.do_actual_scan:
-                # do actual peer discovery with a hello message
-                self.peers.clear()
-                self.netsim.nodes[self.my_id].send(
-                    self.netsim,
-                    pons.BROADCAST_ADDR,
-                    pons.Message(
-                        "HELLO",
-                        self.my_id,
+            if self._should_scan():
+                self._last_scan_time = self.env.now
+                if self.netsim.do_actual_scan:
+                    # do actual peer discovery with a hello message
+                    self.peers.clear()
+                    self.netsim.nodes[self.my_id].send(
+                        self.netsim,
                         pons.BROADCAST_ADDR,
-                        HELLO_MSG_SIZE,
-                        self.netsim.env.now,
-                        metadata={"is_bundle": False},
-                    ),
-                )
-            else:
-                # assume some kind of peer discovery mechanism
-                self.netsim.nodes[self.my_id].calc_neighbors(
-                    self.netsim.env.now, self.netsim.nodes.values()
-                )
-
-                old_peers = copy(self.peers)
-                peers = set()
-                for net in self.netsim.nodes[self.my_id].neighbors.values():
-                    peers.update(net)
-                self.peers = list(peers)
-                # self.peers = copy(self.netsim.nodes[self.my_id].neighbors)
-
-                new_peers = [p for p in self.peers if p not in old_peers]
-
-                for peer in new_peers:
-                    self.on_peer_discovered(peer)
-
-                if len(old_peers) == 0 and len(self.peers) > 0:
-                    diff = self.netsim.env.now - self.last_peer_found
-                    event_log(
-                        self.netsim.env.now,
-                        "PEERS",
-                        {
-                            "event": "NO_PEERS_PERIOD",
-                            "id": self.my_id,
-                            "duration": diff,
-                        },
+                        pons.Message(
+                            "HELLO",
+                            self.my_id,
+                            pons.BROADCAST_ADDR,
+                            HELLO_MSG_SIZE,
+                            self.netsim.env.now,
+                            metadata={"is_bundle": False},
+                        ),
                     )
-                elif len(old_peers) > 0 and len(self.peers) == 0:
-                    self.last_peer_found = self.netsim.env.now
+                else:
+                    # assume some kind of peer discovery mechanism
+                    self.netsim.nodes[self.my_id].calc_neighbors(
+                        self.netsim.env.now, self.netsim.nodes.values()
+                    )
 
-                    # report period without peers
+                    old_peers = copy(self.peers)
+                    peers = set()
+                    for net in self.netsim.nodes[self.my_id].neighbors.values():
+                        peers.update(net)
+                    self.peers = list(peers)
+                    # self.peers = copy(self.netsim.nodes[self.my_id].neighbors)
+
+                    new_peers = [p for p in self.peers if p not in old_peers]
+
+                    for peer in new_peers:
+                        self.on_peer_discovered(peer)
+
+                    if (
+                        is_enabled("PEERS")
+                        and len(old_peers) == 0
+                        and len(self.peers) > 0
+                    ):
+                        diff = self.netsim.env.now - self.last_peer_found
+                        event_log(
+                            self.netsim.env.now,
+                            "PEERS",
+                            {
+                                "event": "NO_PEERS_PERIOD",
+                                "id": self.my_id,
+                                "duration": diff,
+                            },
+                        )
+                    elif len(old_peers) > 0 and len(self.peers) == 0:
+                        self.last_peer_found = self.netsim.env.now
+
+                        # report period without peers
 
             yield self.env.timeout(self.scan_interval)
+
+    def _should_scan(self) -> bool:
+        """Whether this tick must (re)compute the neighbor set.
+
+        With contact plan based networks the neighbor set can only
+        change at contact plan boundaries. On ticks where no boundary
+        has occurred since the last scan tick, the scan work would
+        compute an unchanged peer set, trigger no peer discovery and
+        write no events, so the work is skipped. The tick grid and with
+        it the event ordering are untouched.
+
+        Boundaries lying exactly at the last scanned tick also force a
+        re-scan: contact spans are inclusive of their end time, so a
+        contact ending at the tick is still part of that tick's sample
+        but drops out of the following one.
+        """
+        if self.netsim.do_actual_scan:
+            return True
+
+        nets = list(self.netsim.nodes[self.my_id].net.values())
+        plans = [net.contactplan for net in nets if net.contactplan is not None]
+        if len(plans) != len(nets) or not plans:
+            # position based networks can change at any time
+            return True
+
+        last = self._last_scan_time
+        if last is None:
+            # no peer set has been sampled yet
+            return True
+        now = self.env.now
+        try:
+            for plan in plans:
+                if getattr(plan, "loop", False):
+                    # looping plans restart at the cycle end, which is
+                    # not visible in the boundary queries
+                    return True
+                t = plan.next_event(last)
+                if t is not None and t <= now:
+                    return True
+                if plan.has_boundary_at(last):
+                    return True
+        except NotImplementedError:
+            # plans like the ION contact plan do not support boundary
+            # queries, always scan those
+            return True
+        return False
 
     def _on_tx_failed(self, msg_id: str, remote_id: int):
         self.stats["aborted"] += 1
@@ -224,18 +287,19 @@ class Router(object):
         pass
 
     def _on_msg_received(self, msg: pons.Message, remote_id: int):
-        event_log(
-            self.env.now,
-            "ROUTER",
-            {
-                "event": "RX",
-                "at": self.my_id,
-                "from": remote_id,
-                "src": msg.src,
-                "dst": msg.dst,
-                "msg": msg.unique_id(),
-            },
-        )
+        if is_enabled("ROUTER"):
+            event_log(
+                self.env.now,
+                "ROUTER",
+                {
+                    "event": "RX",
+                    "at": self.my_id,
+                    "from": remote_id,
+                    "src": msg.src,
+                    "dst": msg.dst,
+                    "msg": msg.unique_id(),
+                },
+            )
         self.stats["rx"] += 1
         # self.log("msg received: %s from %d" % (msg, remote_id))
         self.netsim.routing_stats["relayed"] += 1
@@ -254,28 +318,29 @@ class Router(object):
                     if app.service == msg.dst_service:
                         app._on_msg_received(msg)
                         delivered = True
-                if delivered:
-                    event_log(
-                        self.env.now,
-                        "ROUTER",
-                        {
-                            "event": "DELIVERED",
-                            "src": msg.src,
-                            "dst": msg.dst,
-                            "msg": msg.unique_id(),
-                        },
-                    )
-                else:
-                    event_log(
-                        self.env.now,
-                        "ROUTER",
-                        {
-                            "event": "APP_NOT_FOUND",
-                            "src": msg.src,
-                            "dst": msg.dst,
-                            "msg": msg.unique_id(),
-                        },
-                    )
+                if is_enabled("ROUTER"):
+                    if delivered:
+                        event_log(
+                            self.env.now,
+                            "ROUTER",
+                            {
+                                "event": "DELIVERED",
+                                "src": msg.src,
+                                "dst": msg.dst,
+                                "msg": msg.unique_id(),
+                            },
+                        )
+                    else:
+                        event_log(
+                            self.env.now,
+                            "ROUTER",
+                            {
+                                "event": "APP_NOT_FOUND",
+                                "src": msg.src,
+                                "dst": msg.dst,
+                                "msg": msg.unique_id(),
+                            },
+                        )
         else:
             # self.log("msg already known", self.history)
             self.netsim.routing_stats["dups"] += 1

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from bisect import bisect_left, bisect_right
 from typing import TYPE_CHECKING, Dict, List, Tuple, Optional
 import logging
 
@@ -101,6 +102,14 @@ class ContactPlan(CommonContactPlan):
         """
         self.contacts.sort(key=lambda c: c.timespan[0])
         self.max_time = max((c.timespan[1] for c in self.contacts), default=0.0)
+        # all contact start and end times as a sorted list, so that
+        # next_event can answer with a binary search in O(log n)
+        boundaries = set()
+        for c in self.contacts:
+            boundaries.add(c.timespan[0])
+            if c.timespan[1] > 0:
+                boundaries.add(c.timespan[1])
+        self._boundaries = sorted(boundaries)
 
     def get_max_time(self) -> int:
         """Returns the maximum time in the contact plan."""
@@ -205,27 +214,23 @@ class ContactPlan(CommonContactPlan):
         return current_contacts
 
     def next_event(self, time: float) -> Optional[float]:
+        next_time = None
+        # the next boundary is the first contact start or end time
+        # greater than the given time, which is the same as what the
+        # previous linear search over all contacts computed
+        boundaries = self._boundaries
+        idx = bisect_right(boundaries, time)
+        if idx < len(boundaries):
+            next_time = boundaries[idx]
 
-        min_idx = 0
-        if time >= self.last_next[0]:
-            min_idx = self.last_next[1]
+        self.last_next = (next_time, 0)
 
-        start_event = float("inf")
-        end_event = float("inf")
-        for i in range(min_idx, len(self.contacts)):
-            contact = self.contacts[i]
-            if contact.timespan[0] > time and contact.timespan[0] < start_event:
-                start_event = contact.timespan[0]
-                min_idx = min(min_idx, i)
-            if contact.timespan[1] > time and contact.timespan[1] < end_event:
-                end_event = contact.timespan[1]
-                min_idx = min(min_idx, i)
+        return next_time
 
-        next_time = min(start_event, end_event)
-
-        self.last_next = (next_time, min_idx)
-
-        return next_time if next_time != float("inf") else None
+    def has_boundary_at(self, time: float) -> bool:
+        """Whether a contact start or end time lies exactly at the given time."""
+        idx = bisect_left(self._boundaries, time)
+        return idx < len(self._boundaries) and self._boundaries[idx] == time
 
     def fixed_links(self) -> List[Tuple[int, int]]:
         """Returns a list of fixed links in the contact plan."""

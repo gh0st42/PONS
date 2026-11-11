@@ -10,6 +10,15 @@ def is_logging() -> bool:
     return event_log_fh is not None
 
 
+def is_enabled(category: str) -> bool:
+    """Whether an event of the given category would be written to the log.
+
+    Use this to skip building event dicts (and the unique_id() calls they
+    usually need) at hot call sites when the event would be dropped anyway.
+    """
+    return event_log_fh is not None and category not in event_filter
+
+
 def open_log(filename: str = "/tmp/events.log"):
     global event_log_fh
     event_log_fh = open(filename, "w")
